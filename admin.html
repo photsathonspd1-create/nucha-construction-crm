@@ -576,6 +576,31 @@
             <button class="modal-close" onclick="closeNoteModal()">&times;</button>
             <h2>บันทึก Lead</h2>
             <div id="noteModalContent"></div>
+
+            <!-- AI Copilot -->
+            <div style="margin: 16px 0; padding: 16px; background: var(--blue-soft); border-radius: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <span style="font-size: 1.2rem;">🤖</span>
+                    <strong style="font-size: 0.9rem;">AI Copilot</strong>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="table-btn table-btn-edit" onclick="aiGenerateReply('auto')">💬 สร้างข้อความตอบ</button>
+                    <button type="button" class="table-btn table-btn-edit" onclick="aiGenerateReply('follow_up')">⏰ สร้าง follow-up</button>
+                    <button type="button" class="table-btn table-btn-edit" onclick="aiAnalyzeLead()">📊 วิเคราะห์ lead</button>
+                </div>
+                <div id="aiReplyBox" style="display:none; margin-top: 12px; padding: 12px; background: white; border-radius: 8px; border: 1px solid var(--gray-200);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                        <strong style="font-size: 0.82rem; color: var(--blue);">AI Reply</strong>
+                        <button type="button" class="table-btn table-btn-edit" onclick="copyAIReply()">📋 Copy</button>
+                    </div>
+                    <div id="aiReplyText" style="font-size: 0.88rem; line-height: 1.6; white-space: pre-wrap;"></div>
+                </div>
+                <div id="aiLoading" style="display:none; text-align:center; padding:12px; color:var(--gray-400);">
+                    <div class="loading-spinner" style="width:20px;height:20px;margin:0 auto 8px;"></div>
+                    AI กำลังคิด...
+                </div>
+            </div>
+
             <form id="noteForm" style="margin-top: 20px;">
                 <input type="hidden" id="noteLeadId">
                 <div class="form-group">

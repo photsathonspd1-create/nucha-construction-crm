@@ -7,6 +7,8 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 const LINE_NOTIFY_TOKEN = Deno.env.get('LINE_NOTIFY_TOKEN') || ''
 const TELEGRAM_BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || ''
 const TELEGRAM_CHAT_ID = Deno.env.get('TELEGRAM_CHAT_ID') || ''
+const PROMPTDEE_API_URL = 'https://www.promptdee.net/api/ai-chat'
+const AUTO_REPLY_ENABLED = Deno.env.get('AUTO_REPLY_ENABLED') || 'false'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,6 +28,8 @@ serve(async (req) => {
       case 'new_lead': {
         const { lead } = body
         const urgency = lead.score >= 5 ? '🔥 ด่วน!' : lead.score >= 3 ? '⚡ ปานกลาง' : '📋 ปกติ'
+
+        // Internal notification (to team)
         message = [
           '🏗️ ===== LEAD ใหม่! =====',
           '',
@@ -39,6 +43,25 @@ serve(async (req) => {
           '',
           '🔗 เปิด CRM เพื่อดูรายละเอียด'
         ].filter(Boolean).join('\n')
+
+        // Auto-reply to customer via LINE (if configured)
+        if (lead.phone && AUTO_REPLY_ENABLED === 'true') {
+          try {
+            const aiRes = await fetch(PROMPTDEE_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                message: `คุณคือเซลบริษัทก่อสร้าง NUCHA INNOVATION\n\nหน้าที่: สร้างข้อความตอบกลับอัตโนมัติ\nกฎ: ไม่เกิน 4 บรรทัด สุภาพ ถามคำถาม 1 ข้อ ตอบเป็นภาษาไทย\n\nข้อมูลลูกค้า:\n- ชื่อ: ${lead.name}\n- บริการ: ${lead.service_type}\n- งบ: ${lead.budget_range}\n- ข้อความ: ${lead.message || 'ไม่ได้ระบุ'}\n\nสร้างข้อความตอบกลับสั้นๆ ให้ลูกรู้สึกว่าเราใส่ใจ`
+              })
+            })
+            if (aiRes.ok) {
+              const aiData = await aiRes.json()
+              autoReply = aiData.reply || aiData.message || aiData.text || null
+            }
+          } catch (e) {
+            console.log('AI auto-reply failed:', e.message)
+          }
+        }
         break
       }
 
@@ -82,6 +105,10 @@ serve(async (req) => {
     }
 
     // Send to all configured channels
+    let autoReply = null
+
+    // ... (switch case above handles setting message and autoReply)
+
     const results = await Promise.allSettled([
       sendLineNotify(message),
       sendTelegram(message)
@@ -94,7 +121,8 @@ serve(async (req) => {
         channels: {
           line: results[0].status,
           telegram: results[1].status
-        }
+        },
+        autoReply: autoReply || null
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

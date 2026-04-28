@@ -87,6 +87,21 @@
 - [x] **followup-reminder** — daily 9 AM → overdue follow-ups
 - [x] **daily-summary** — daily 6 PM → pipeline + stats
 
+### 🤖 AI Integration (PromptDee GPT-4o-mini) (NEW)
+- [x] **ai-reply Edge Function** — 5 AI types:
+  - `auto_reply` — สร้างข้อความตอบกลับอัตโนมัติ
+  - `follow_up` — สร้างข้อความ follow-up ตามระยะเวลา
+  - `follow_up_sequence` — สร้าง follow-up 7 วัน
+  - `copilot` — ช่วยเขียนข้อความ (custom prompt)
+  - `analyze_lead` — วิเคราะห์ lead + ให้คำแนะนำ
+- [x] **AI Copilot ใน admin** — ปุ่ม 3 แบบใน note modal:
+  - 💬 สร้างข้อความตอบ
+  - ⏰ สร้าง follow-up
+  - 📊 วิเคราะห์ lead
+- [x] **Copy button** — คัดลอก AI reply ไป clipboard
+- [x] **Auto-reply** — ส่ง LINE อัตโนมัติเมื่อ lead ใหม่ (เปิด/ปิดได้)
+- [x] CRM module: aiAutoReply, aiFollowUp, aiFollowUpSequence, aiCopilot, aiAnalyzeLead
+
 ### 👥 Team System
 - [x] profiles table
 - [x] assigned_to field in leads
@@ -150,9 +165,10 @@
 4. สร้าง admin user → Authentication > Invite
 5. Upload ไป Hostinger
 
-### Notifications + SLA
+### Notifications + SLA + AI
 ```bash
 supabase functions deploy notify
+supabase functions deploy ai-reply
 supabase functions deploy sla-check
 supabase functions deploy followup-reminder
 supabase functions deploy daily-summary
@@ -161,6 +177,7 @@ supabase secrets set LINE_NOTIFY_TOKEN=xxx
 supabase secrets set TELEGRAM_BOT_TOKEN=xxx
 supabase secrets set TELEGRAM_CHAT_ID=xxx
 supabase secrets set SUPABASE_SERVICE_ROLE_KEY=xxx
+supabase secrets set AUTO_REPLY_ENABLED=true
 
 # Cron schedules (Supabase Dashboard > Edge Functions > Schedules)
 # sla-check: */5 * * * * (every 5 min)
@@ -204,7 +221,8 @@ nucha-crm/
 │   ├── auth.js             ← Auth module
 │   ├── schema.sql          ← DB schema (6 tables + SLA functions + triggers)
 │   └── functions/
-│       ├── notify/index.ts           ← LINE + Telegram (3 types)
+│       ├── notify/index.ts           ← LINE + Telegram + AI auto-reply
+│       ├── ai-reply/index.ts         ← PromptDee AI (5 types)
 │       ├── sla-check/index.ts        ← SLA breach alerts (*/5 min)
 │       ├── followup-reminder/index.ts ← Daily follow-up check
 │       └── daily-summary/index.ts    ← Evening summary

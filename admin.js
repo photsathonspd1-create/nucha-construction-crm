@@ -568,6 +568,94 @@ async function deleteLeadConfirm(id) {
     catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
 }
 
+// ===== AI Copilot =====
+let currentNoteLeadId = null;
+
+async function aiGenerateReply(type) {
+    const leadId = document.getElementById('noteLeadId').value;
+    const lead = cachedLeads.find(l => l.id === leadId);
+    if (!lead) { showToast('ไม่พบ lead', 'error'); return; }
+
+    const replyBox = document.getElementById('aiReplyBox');
+    const replyText = document.getElementById('aiReplyText');
+    const loading = document.getElementById('aiLoading');
+
+    replyBox.style.display = 'none';
+    loading.style.display = 'block';
+
+    let reply;
+    if (type === 'auto') {
+        reply = await CRM.aiAutoReply(lead);
+    } else if (type === 'follow_up') {
+        const notes = await CRM.getNotes(leadId);
+        const lastNote = notes[0]?.note || '';
+        const daysSince = Math.round((Date.now() - new Date(lead.created_at)) / 86400000);
+        reply = await CRM.aiFollowUp(lead, daysSince, lastNote);
+    }
+
+    loading.style.display = 'none';
+    if (reply) {
+        replyText.textContent = reply;
+        replyBox.style.display = 'block';
+        showToast('AI สร้างข้อความสำเร็จ', 'success');
+    } else {
+        showToast('AI ไม่สามารถสร้างข้อความได้', 'error');
+    }
+}
+
+async function aiAnalyzeLead() {
+    const leadId = document.getElementById('noteLeadId').value;
+    const lead = cachedLeads.find(l => l.id === leadId);
+    if (!lead) { showToast('ไม่พบ lead', 'error'); return; }
+
+    const replyBox = document.getElementById('aiReplyBox');
+    const replyText = document.getElementById('aiReplyText');
+    const loading = document.getElementById('aiLoading');
+
+    replyBox.style.display = 'none';
+    loading.style.display = 'block';
+
+    const analysis = await CRM.aiAnalyzeLead(lead);
+    loading.style.display = 'none';
+
+    if (analysis) {
+        // Try to parse as JSON for structured display
+        try {
+            const data = JSON.parse(analysis);
+            replyText.innerHTML = `
+                <div style="margin-bottom:8px;"><strong>📞 วิธีติดต่อ:</strong> ${esc(data.approach)}</div>
+                <div style="margin-bottom:8px;"><strong>💬 ประเด็นที่ควรพูด:</strong>
+                    <ul style="margin:4px 0 0 20px;">${(data.talking_points || []).map(p => `<li>${esc(p)}</li>`).join('')}</ul>
+                </div>
+                <div style="margin-bottom:8px;"><strong>⚠️ ความเสี่ยง:</strong> ${esc(data.risk)}</div>
+                <div><strong>💡 คำแนะนำ:</strong> ${esc(data.suggestion)}</div>
+            `;
+        } catch {
+            replyText.textContent = analysis;
+        }
+        replyBox.style.display = 'block';
+        showToast('AI วิเคราะห์สำเร็จ', 'success');
+    } else {
+        showToast('AI ไม่สามารถวิเคราะห์ได้', 'error');
+    }
+}
+
+function copyAIReply() {
+    const text = document.getElementById('aiReplyText').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('คัดลอกแล้ว', 'success');
+    }).catch(() => {
+        // Fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast('คัดลอกแล้ว', 'success');
+    });
+}
+
 // ===== Modal: Notes =====
 async function openNoteModal(leadId) {
     document.getElementById('noteLeadId').value = leadId;

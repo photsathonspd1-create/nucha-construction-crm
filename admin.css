@@ -493,6 +493,26 @@ body { font-family: var(--font-thai); color: var(--gray-600); background: var(--
 .mini-funnel { display: flex; gap: 2px; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 8px; }
 .mini-funnel-seg { height: 100%; transition: width 0.5s; }
 
+/* ===== AI Copilot ===== */
+.ai-copilot-box {
+    margin: 16px 0; padding: 16px;
+    background: var(--blue-soft); border-radius: 12px;
+}
+.ai-copilot-header {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.ai-reply-box {
+    margin-top: 12px; padding: 12px;
+    background: white; border-radius: 8px;
+    border: 1px solid var(--gray-200);
+}
+.ai-reply-text {
+    font-size: 0.88rem; line-height: 1.6; white-space: pre-wrap;
+}
+.ai-loading {
+    text-align: center; padding: 12px; color: var(--gray-400);
+}
+
 /* Toast notification */
 .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);

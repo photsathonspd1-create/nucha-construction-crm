@@ -301,6 +301,72 @@ const CRM = {
         return Math.round(score * 10) / 10;
     },
 
+    // ===== AI (PromptDee) =====
+    async aiAutoReply(lead) {
+        try {
+            const { data, error } = await supabase.functions.invoke('ai-reply', {
+                body: { type: 'auto_reply', lead }
+            });
+            if (error) throw error;
+            return data?.reply || null;
+        } catch (e) {
+            console.error('aiAutoReply:', e);
+            return null;
+        }
+    },
+
+    async aiFollowUp(lead, daysSince, lastNote) {
+        try {
+            const { data, error } = await supabase.functions.invoke('ai-reply', {
+                body: { type: 'follow_up', lead, context: { daysSince, lastNote } }
+            });
+            if (error) throw error;
+            return data?.reply || null;
+        } catch (e) {
+            console.error('aiFollowUp:', e);
+            return null;
+        }
+    },
+
+    async aiFollowUpSequence(lead, day) {
+        try {
+            const { data, error } = await supabase.functions.invoke('ai-reply', {
+                body: { type: 'follow_up_sequence', lead, context: { day } }
+            });
+            if (error) throw error;
+            return data?.reply || null;
+        } catch (e) {
+            console.error('aiFollowUpSequence:', e);
+            return null;
+        }
+    },
+
+    async aiCopilot(prompt, lead = null) {
+        try {
+            const { data, error } = await supabase.functions.invoke('ai-reply', {
+                body: { type: 'copilot', lead, context: { prompt } }
+            });
+            if (error) throw error;
+            return data?.reply || null;
+        } catch (e) {
+            console.error('aiCopilot:', e);
+            return null;
+        }
+    },
+
+    async aiAnalyzeLead(lead) {
+        try {
+            const { data, error } = await supabase.functions.invoke('ai-reply', {
+                body: { type: 'analyze_lead', lead }
+            });
+            if (error) throw error;
+            return data?.reply || null;
+        } catch (e) {
+            console.error('aiAnalyzeLead:', e);
+            return null;
+        }
+    },
+
     // ===== SLA TRACKING =====
     async getSLABreaches() {
         const { data, error } = await supabase.rpc('get_sla_breaches');
