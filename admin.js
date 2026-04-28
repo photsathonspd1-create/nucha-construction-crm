@@ -7,16 +7,21 @@
 let cachedLeads = [];
 let cachedAppts = [];
 let cachedProposals = [];
+let cachedUsers = [];
+let currentUserId = null;
 
 // ===== Auth Check =====
 (async () => {
     const session = await Auth.requireAuth();
     if (!session) return;
+    currentUserId = session.user.id;
     const profile = await Auth.getProfile();
     if (profile) {
         document.getElementById('userName').textContent = profile.full_name || 'Admin';
         document.getElementById('userRole').textContent = profile.role || 'admin';
     }
+    // Load team members
+    cachedUsers = await CRM.getUsers();
     await refreshData();
     hideLoading();
 })();
@@ -70,6 +75,7 @@ async function refreshData() {
         renderFollowUps();
         renderActivities();
         renderAnalytics();
+        renderTeam();
     } catch (err) {
         console.error('refreshData:', err);
     }
@@ -279,19 +285,27 @@ async function renderFollowUps() {
     if (!c) return;
     const followUps = await CRM.getPendingFollowUps();
     document.getElementById('followupCount').textContent = followUps.length;
+
     if (followUps.length === 0) { c.innerHTML = '<div class="empty-state"><h3>ไม่มีรายการติดตาม</h3></div>'; return; }
-    c.innerHTML = followUps.map(n => `
-        <div class="followup-item">
+
+    // Sort by priority
+    followUps.sort((a, b) => (b.leads?.score || 0) - (a.leads?.score || 0));
+
+    c.innerHTML = followUps.map(n => {
+        const p = getPriority(n.leads?.score || 0);
+        return `
+        <div class="followup-item priority-${p}">
             <div class="followup-info">
-                <div class="followup-name">${esc(n.leads?.name || 'N/A')}</div>
-                <div class="followup-detail">${esc(n.note)}</div>
+                <div class="followup-name"><span class="priority-dot ${p}"></span>${esc(n.leads?.name || 'N/A')}</div>
+                <div class="followup-detail">${esc(n.note)} · ${esc(n.leads?.service_type || '')}</div>
             </div>
             <div style="display:flex;align-items:center;gap:12px;">
                 <span class="followup-date">📅 ${CRM.formatDate(n.follow_up_date)}</span>
+                <a href="tel:${n.leads?.phone}" class="table-btn table-btn-edit" style="text-decoration:none;">📞 โทร</a>
                 <button class="table-btn table-btn-note" onclick="markFollowUpDone('${n.id}')">✓ เสร็จ</button>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 // ===== Render Activities =====
@@ -483,6 +497,7 @@ function openAddLeadModal() {
     document.getElementById('modalTitle').textContent = 'เพิ่ม Lead ใหม่';
     document.getElementById('modalLeadForm').reset();
     document.getElementById('editLeadId').value = '';
+    populateTeamDropdown();
     document.getElementById('leadModal').classList.add('active');
 }
 
@@ -499,6 +514,7 @@ async function openEditLeadModal(id) {
     document.getElementById('modalStatus').value = lead.status || 'New Lead';
     document.getElementById('modalNote').value = '';
     document.getElementById('modalFollowUpDate').value = '';
+    populateTeamDropdown(lead.assigned_to);
     document.getElementById('leadModal').classList.add('active');
 }
 
@@ -513,7 +529,8 @@ document.getElementById('modalLeadForm').addEventListener('submit', async functi
         email: document.getElementById('modalEmail').value || null,
         service_type: document.getElementById('modalService').value,
         budget_range: document.getElementById('modalBudget').value,
-        status: document.getElementById('modalStatus').value
+        status: document.getElementById('modalStatus').value,
+        assigned_to: document.getElementById('modalAssignedTo').value || null
     };
     const note = document.getElementById('modalNote').value.trim();
     const followUpDate = document.getElementById('modalFollowUpDate').value || null;
@@ -642,6 +659,11 @@ document.getElementById('proposalForm').addEventListener('submit', async functio
         });
         closeProposalModal();
         showToast('สร้างใบเสนอราคาสำเร็จ', 'success');
+
+        // Notify new proposal
+        const leadName = cachedLeads.find(l => l.id === document.getElementById('proposalLead').value)?.name || 'N/A';
+        CRM.notifyNewProposal({ proposal_number: 'NP-xxxx', title: document.getElementById('proposalTitle').value, total }, leadName);
+
         await refreshData();
     } catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
 });
@@ -660,6 +682,64 @@ async function updateProposalStatus(id, newStatus) {
         }
         await refreshData();
     } catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
+}
+
+// ===== Team Performance =====
+async function renderTeam() {
+    // Team stats cards
+    const statsEl = document.getElementById('teamStats');
+    const tableEl = document.getElementById('teamTableBody');
+    if (!statsEl || !tableEl) return;
+
+    const teamData = await CRM.getTeamPerformance();
+
+    // Stats cards for each team member
+    statsEl.innerHTML = teamData.map(u => `
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-card-icon ${u.conversionRate >= 30 ? 'green' : u.conversionRate >= 15 ? 'blue' : 'orange'}">
+                    <span style="font-weight:900;font-size:1rem;">${(u.full_name || 'A')[0].toUpperCase()}</span>
+                </div>
+            </div>
+            <div class="stat-card-num">${u.totalLeads}</div>
+            <div class="stat-card-label">${esc(u.full_name || 'Unnamed')}</div>
+            <div style="margin-top:8px;font-size:0.78rem;">
+                <span style="color:var(--green);font-weight:700;">${u.closedDeals} ปิดดีล</span>
+                <span style="color:var(--gray-400);margin-left:8px;">${u.conversionRate}%</span>
+            </div>
+        </div>
+    `).join('');
+
+    // Table
+    tableEl.innerHTML = teamData.map(u => `
+        <tr>
+            <td><strong>${esc(u.full_name || 'Unnamed')}</strong></td>
+            <td><span class="status-badge new">${esc(u.role)}</span></td>
+            <td>${u.totalLeads}</td>
+            <td style="color:var(--green);font-weight:700;">${u.closedDeals}</td>
+            <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div style="flex:1;height:6px;background:var(--gray-100);border-radius:3px;overflow:hidden;">
+                        <div style="height:100%;width:${u.conversionRate}%;background:${u.conversionRate >= 30 ? 'var(--green)' : u.conversionRate >= 15 ? 'var(--blue)' : 'var(--orange)'};border-radius:3px;"></div>
+                    </div>
+                    <span style="font-weight:700;font-size:0.82rem;">${u.conversionRate}%</span>
+                </div>
+            </td>
+            <td style="font-size:0.78rem;color:var(--gray-400);">
+                🆕${u.pipeline.new} · 📞${u.pipeline.contacted} · 📅${u.pipeline.appointment} · 📄${u.pipeline.proposal}
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Populate team assignment dropdown
+function populateTeamDropdown(selectedId = null) {
+    const select = document.getElementById('modalAssignedTo');
+    if (!select) return;
+    select.innerHTML = '<option value="">-- ไม่ระบุ --</option>' +
+        cachedUsers.map(u =>
+            `<option value="${u.id}" ${selectedId === u.id ? 'selected' : ''}>${esc(u.full_name || u.id.substring(0, 8))}</option>`
+        ).join('');
 }
 
 // ===== Export CSV =====

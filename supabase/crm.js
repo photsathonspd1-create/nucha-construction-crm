@@ -301,26 +301,120 @@ const CRM = {
         return Math.round(score * 10) / 10;
     },
 
-    // ===== NOTIFICATIONS =====
+    // ===== TEAM / USER MANAGEMENT =====
+    async getUsers() {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('full_name');
+        if (error) { console.error('getUsers:', error); return []; }
+        return data || [];
+    },
+
+    async assignLead(leadId, userId) {
+        const { data, error } = await supabase
+            .from('leads')
+            .update({ assigned_to: userId })
+            .eq('id', leadId)
+            .select()
+            .single();
+        if (error) { console.error('assignLead:', error); throw error; }
+
+        // Log activity
+        await this.logActivity(leadId, 'lead_assigned', { assigned_to: userId });
+        return data;
+    },
+
+    async getMyLeads(userId) {
+        const { data, error } = await supabase
+            .from('leads')
+            .select('*')
+            .eq('assigned_to', userId)
+            .order('created_at', { ascending: false });
+        if (error) { console.error('getMyLeads:', error); return []; }
+        return data || [];
+    },
+
+    async getTeamPerformance() {
+        const users = await this.getUsers();
+        const leads = await this.getLeads();
+        return users.map(u => {
+            const userLeads = leads.filter(l => l.assigned_to === u.id);
+            const closed = userLeads.filter(l => l.status === 'Closed Won').length;
+            return {
+                ...u,
+                totalLeads: userLeads.length,
+                closedDeals: closed,
+                conversionRate: userLeads.length > 0 ? Math.round((closed / userLeads.length) * 100) : 0,
+                pipeline: {
+                    new: userLeads.filter(l => l.status === 'New Lead').length,
+                    contacted: userLeads.filter(l => l.status === 'Contacted').length,
+                    appointment: userLeads.filter(l => l.status === 'Appointment Set').length,
+                    proposal: userLeads.filter(l => l.status === 'Proposal Sent').length,
+                }
+            };
+        });
+    },
+
+    // ===== NOTIFICATIONS (Enhanced) =====
     async notifyNewLead(lead) {
         try {
-            // Call Supabase Edge Function for notification
             const { error } = await supabase.functions.invoke('notify', {
                 body: {
                     type: 'new_lead',
                     lead: {
+                        id: lead.id,
                         name: lead.name,
                         phone: lead.phone,
                         service_type: lead.service_type,
                         budget_range: lead.budget_range,
-                        score: lead.score
+                        score: lead.score,
+                        message: lead.message
                     }
                 }
             });
             if (error) console.error('notifyNewLead:', error);
         } catch (e) {
-            // Notification failure should not block lead creation
             console.warn('Notification failed:', e.message);
+        }
+    },
+
+    async notifyFollowUpReminder(notes) {
+        try {
+            const { error } = await supabase.functions.invoke('notify', {
+                body: {
+                    type: 'followup_reminder',
+                    notes: notes.map(n => ({
+                        lead_name: n.leads?.name || 'N/A',
+                        lead_phone: n.leads?.phone || '',
+                        note: n.note,
+                        follow_up_date: n.follow_up_date,
+                        service_type: n.leads?.service_type || ''
+                    }))
+                }
+            });
+            if (error) console.error('notifyFollowUpReminder:', error);
+        } catch (e) {
+            console.warn('Follow-up notification failed:', e.message);
+        }
+    },
+
+    async notifyNewProposal(proposal, leadName) {
+        try {
+            const { error } = await supabase.functions.invoke('notify', {
+                body: {
+                    type: 'new_proposal',
+                    proposal: {
+                        number: proposal.proposal_number,
+                        title: proposal.title,
+                        total: proposal.total,
+                        lead_name: leadName
+                    }
+                }
+            });
+            if (error) console.error('notifyNewProposal:', error);
+        } catch (e) {
+            console.warn('Proposal notification failed:', e.message);
         }
     },
 

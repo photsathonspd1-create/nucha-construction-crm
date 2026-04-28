@@ -62,6 +62,10 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
                         <span>Analytics</span>
                     </div>
+                    <div class="sidebar-link" data-page="team" onclick="showPage('team')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                        <span>ทีม</span>
+                    </div>
                 </div>
             </nav>
             <div class="sidebar-footer">
@@ -367,6 +371,33 @@
                     <div id="leadSources" style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px;"></div>
                 </div>
             </div>
+
+            <!-- TEAM PAGE -->
+            <div class="page-section" id="page-team">
+                <div class="main-header">
+                    <div>
+                        <h1>ทีม</h1>
+                        <div class="main-header-sub">ประสิทธิภาพทีมขาย</div>
+                    </div>
+                </div>
+                <div class="stat-cards" id="teamStats"></div>
+                <div class="card" style="padding: 24px;">
+                    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px;">📊 สรุปผลงานทีม</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ชื่อ</th>
+                                <th>บทบาท</th>
+                                <th>Leads ทั้งหมด</th>
+                                <th>ปิดดีล</th>
+                                <th>Conversion</th>
+                                <th>Pipeline</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teamTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -430,6 +461,12 @@
                 <div class="form-group">
                     <label>วันนัดติดตาม (ถ้ามี)</label>
                     <input type="date" id="modalFollowUpDate">
+                </div>
+                <div class="form-group">
+                    <label>มอบหมายให้</label>
+                    <select id="modalAssignedTo">
+                        <option value="">-- ไม่ระบุ --</option>
+                    </select>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel" onclick="closeLeadModal()">ยกเลิก</button>
