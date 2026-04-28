@@ -1,5 +1,6 @@
 // ============================================
-// NUCHA CRM — Admin Dashboard Logic (Supabase)
+// NUCHA CRM — Admin Dashboard (Enhanced)
+// Features: Kanban DnD, Analytics, Priority, Toast
 // ============================================
 
 // ===== Cached Data =====
@@ -11,37 +12,32 @@ let cachedProposals = [];
 (async () => {
     const session = await Auth.requireAuth();
     if (!session) return;
-
-    // Load user profile
     const profile = await Auth.getProfile();
     if (profile) {
         document.getElementById('userName').textContent = profile.full_name || 'Admin';
         document.getElementById('userRole').textContent = profile.role || 'admin';
     }
-
-    // Initial data load
     await refreshData();
     hideLoading();
 })();
 
-function showLoading() {
-    document.getElementById('loadingOverlay')?.classList.add('show');
-}
-function hideLoading() {
-    document.getElementById('loadingOverlay')?.classList.remove('show');
+function showLoading() { document.getElementById('loadingOverlay')?.classList.add('show'); }
+function hideLoading() { document.getElementById('loadingOverlay')?.classList.remove('show'); }
+
+// ===== Toast =====
+function showToast(msg, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className = 'toast show ' + type;
+    setTimeout(() => toast.classList.remove('show'), 3500);
 }
 
 // ===== Page Navigation =====
 function showPage(pageId) {
     document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
-
-    const page = document.getElementById('page-' + pageId);
-    if (page) page.classList.add('active');
-
-    const link = document.querySelector(`.sidebar-link[data-page="${pageId}"]`);
-    if (link) link.classList.add('active');
-
+    document.getElementById('page-' + pageId)?.classList.add('active');
+    document.querySelector(`.sidebar-link[data-page="${pageId}"]`)?.classList.add('active');
     refreshData();
 }
 
@@ -53,7 +49,6 @@ async function refreshData() {
             CRM.getAppointments(),
             CRM.getProposals()
         ]);
-
         const today = new Date().toISOString().split('T')[0];
 
         // Stats
@@ -64,51 +59,69 @@ async function refreshData() {
         document.getElementById('leadsCount').textContent = cachedLeads.length;
         document.getElementById('apptsCount').textContent = cachedAppts.length;
 
-        // Recent leads
+        // Mini funnel on dashboard
+        renderMiniFunnel('dashMiniFunnel');
+
         renderRecentLeads(cachedLeads.slice(0, 5));
-
-        // Leads table
         renderLeadsTable();
-
-        // Pipeline
         renderPipeline();
-
-        // Appointments
         renderAppointments();
-
-        // Proposals
         renderProposals();
-
-        // Follow-ups
         renderFollowUps();
-
-        // Activities
         renderActivities();
-
+        renderAnalytics();
     } catch (err) {
-        console.error('refreshData error:', err);
+        console.error('refreshData:', err);
     }
+}
+
+// ===== Lead Priority =====
+function getPriority(score) {
+    if (score >= 5) return 'high';
+    if (score >= 3) return 'mid';
+    return 'low';
+}
+function getPriorityLabel(score) {
+    if (score >= 5) return '🔴 สูง';
+    if (score >= 3) return '🟡 กลาง';
+    return '🟢 ต่ำ';
+}
+
+// ===== Mini Funnel =====
+function renderMiniFunnel(containerId) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const stages = ['New Lead', 'Contacted', 'Appointment Set', 'Proposal Sent', 'Closed Won'];
+    const colors = ['#2563EB', '#F59E0B', '#7C3AED', '#D97706', '#06C755'];
+    const total = cachedLeads.length || 1;
+    el.innerHTML = stages.map((s, i) => {
+        const count = cachedLeads.filter(l => l.status === s).length;
+        const pct = Math.max((count / total) * 100, 2);
+        return `<div class="mini-funnel-seg" style="width:${pct}%; background:${colors[i]}"></div>`;
+    }).join('');
 }
 
 // ===== Render Recent Leads =====
 function renderRecentLeads(leads) {
-    const container = document.getElementById('recentLeadsList');
-    if (leads.length === 0) {
-        container.innerHTML = '<div class="empty-state"><h3>ยังไม่มี Lead</h3><p>Lead จะปรากฏที่นี่เมื่อมีลูกค้ากรอกฟอร์ม</p></div>';
-        return;
-    }
-    container.innerHTML = leads.map(l => `
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--gray-100);">
-            <div>
-                <div style="font-weight: 700;">${escHtml(l.name)}</div>
-                <div style="font-size: 0.82rem; color: var(--gray-400);">${escHtml(l.service_type)} · ${escHtml(l.phone)}</div>
+    const c = document.getElementById('recentLeadsList');
+    if (leads.length === 0) { c.innerHTML = '<div class="empty-state"><h3>ยังไม่มี Lead</h3></div>'; return; }
+    c.innerHTML = leads.map(l => {
+        const p = getPriority(l.score);
+        return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray-100);">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span class="priority-dot ${p}"></span>
+                <div>
+                    <div style="font-weight:700;">${esc(l.name)}</div>
+                    <div style="font-size:0.82rem;color:var(--gray-400);">${esc(l.service_type)} · ${esc(l.phone)}</div>
+                </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <span class="status-badge ${getStatusClass(l.status)}">${escHtml(l.status)}</span>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span class="status-badge ${getStatusClass(l.status)}">${esc(l.status)}</span>
                 ${getScoreHTML(l.score)}
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 // ===== Render Leads Table =====
@@ -117,46 +130,41 @@ function renderLeadsTable() {
     const search = document.getElementById('leadSearch')?.value?.toLowerCase() || '';
     const statusF = document.getElementById('statusFilter')?.value || '';
     const serviceF = document.getElementById('serviceFilter')?.value || '';
-
-    if (search) leads = leads.filter(l =>
-        l.name?.toLowerCase().includes(search) || l.phone?.includes(search)
-    );
+    if (search) leads = leads.filter(l => l.name?.toLowerCase().includes(search) || l.phone?.includes(search));
     if (statusF) leads = leads.filter(l => l.status === statusF);
     if (serviceF) leads = leads.filter(l => l.service_type === serviceF);
 
     const tbody = document.getElementById('leadsTableBody');
     if (!tbody) return;
+    if (leads.length === 0) { tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><h3>ไม่พบข้อมูล</h3></div></td></tr>'; return; }
 
-    if (leads.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><h3>ไม่พบข้อมูล</h3></div></td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = leads.map(l => `
+    tbody.innerHTML = leads.map(l => {
+        const p = getPriority(l.score);
+        return `
         <tr>
-            <td><strong>${escHtml(l.name)}</strong></td>
-            <td>${escHtml(l.phone)}</td>
-            <td>${escHtml(l.service_type || '-')}</td>
-            <td>${escHtml(l.budget_range || '-')}</td>
+            <td><span class="priority-dot ${p}"></span><strong>${esc(l.name)}</strong></td>
+            <td>${esc(l.phone)}</td>
+            <td>${esc(l.service_type || '-')}</td>
+            <td>${esc(l.budget_range || '-')}</td>
             <td>${getScoreHTML(l.score)}</td>
             <td>
-                <select class="filter-select" style="padding:4px 8px; font-size:0.78rem;" onchange="changeStatus('${l.id}', this.value)">
+                <select class="filter-select" style="padding:4px 8px;font-size:0.78rem;" onchange="changeStatus('${l.id}',this.value)">
                     ${['New Lead','Contacted','Appointment Set','Proposal Sent','Closed Won','Closed Lost'].map(s =>
                         `<option value="${s}" ${l.status === s ? 'selected' : ''}>${s}</option>`
                     ).join('')}
                 </select>
             </td>
-            <td style="font-size: 0.82rem; color: var(--gray-400);">${CRM.formatDate(l.created_at)}</td>
+            <td style="font-size:0.82rem;color:var(--gray-400);">${CRM.formatDate(l.created_at)}</td>
             <td>
                 <button class="table-btn table-btn-note" onclick="openNoteModal('${l.id}')">📝</button>
                 <button class="table-btn table-btn-edit" onclick="openEditLeadModal('${l.id}')">แก้ไข</button>
                 <button class="table-btn table-btn-delete" onclick="deleteLeadConfirm('${l.id}')">ลบ</button>
             </td>
-        </tr>
-    `).join('');
+        </tr>`;
+    }).join('');
 }
 
-// ===== Render Pipeline =====
+// ===== Kanban Pipeline with Drag & Drop =====
 function renderPipeline() {
     const stages = ['New Lead', 'Contacted', 'Appointment Set', 'Proposal Sent', 'Closed Won', 'Closed Lost'];
     const grid = document.getElementById('pipelineGrid');
@@ -165,90 +173,120 @@ function renderPipeline() {
     grid.innerHTML = stages.map(stage => {
         const stageLeads = cachedLeads.filter(l => l.status === stage);
         return `
-            <div class="pipeline-col">
-                <div class="pipeline-col-header">
-                    <span class="pipeline-col-title">${stage}</span>
-                    <span class="pipeline-col-count">${stageLeads.length}</span>
-                </div>
-                ${stageLeads.map(l => `
-                    <div class="pipeline-card" onclick="openEditLeadModal('${l.id}')">
-                        ${l.score >= 5 ? '<span class="pipeline-card-score">🔥 ' + l.score + '</span>' : ''}
-                        <div class="pipeline-card-name">${escHtml(l.name)}</div>
-                        <div class="pipeline-card-service">${escHtml(l.service_type || '-')}</div>
-                        <span class="pipeline-card-budget">${escHtml(l.budget_range || 'ไม่ระบุ')}</span>
-                    </div>
-                `).join('')}
+        <div class="pipeline-col" data-status="${stage}"
+             ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+            <div class="pipeline-col-header">
+                <span class="pipeline-col-title">${stage}</span>
+                <span class="pipeline-col-count">${stageLeads.length}</span>
             </div>
-        `;
+            ${stageLeads.map(l => {
+                const p = getPriority(l.score);
+                return `
+                <div class="pipeline-card priority-${p}" draggable="true"
+                     data-id="${l.id}" ondragstart="handleDragStart(event)"
+                     onclick="openEditLeadModal('${l.id}')">
+                    ${l.score >= 5 ? '<span class="pipeline-card-score">🔥 ' + l.score + '</span>' : ''}
+                    <div class="pipeline-card-name">${esc(l.name)}</div>
+                    <div class="pipeline-card-service">${esc(l.service_type || '-')}</div>
+                    <span class="pipeline-card-budget">${esc(l.budget_range || 'ไม่ระบุ')}</span>
+                    <div class="pipeline-card-phone">📞 ${esc(l.phone)}</div>
+                </div>`;
+            }).join('')}
+        </div>`;
     }).join('');
+}
+
+// Drag & Drop handlers
+let draggedId = null;
+function handleDragStart(e) {
+    draggedId = e.target.dataset.id;
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+function handleDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.classList.add('drag-over');
+}
+function handleDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+}
+async function handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    const newStatus = e.currentTarget.dataset.status;
+    if (!draggedId || !newStatus) return;
+    document.querySelectorAll('.pipeline-card.dragging').forEach(el => el.classList.remove('dragging'));
+
+    try {
+        await CRM.updateLead(draggedId, { status: newStatus });
+        showToast(`เปลี่ยนสถานะเป็น "${newStatus}" สำเร็จ`, 'success');
+        await refreshData();
+    } catch (err) {
+        showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+    }
+    draggedId = null;
 }
 
 // ===== Render Appointments =====
 function renderAppointments() {
     const grid = document.getElementById('apptsGrid');
     if (!grid) return;
-
-    if (cachedAppts.length === 0) {
-        grid.innerHTML = '<div class="empty-state"><h3>ยังไม่มีนัดหมาย</h3></div>';
-        return;
-    }
-
+    if (cachedAppts.length === 0) { grid.innerHTML = '<div class="empty-state"><h3>ยังไม่มีนัดหมาย</h3></div>'; return; }
     grid.innerHTML = cachedAppts.map(a => `
         <div class="appt-card">
             <div class="appt-card-date">📅 ${CRM.formatDate(a.date)} เวลา ${a.time}</div>
-            <div class="appt-card-name">${escHtml(a.lead_name || 'ไม่ระบุ')}</div>
-            <div class="appt-card-detail">${escHtml(a.service_type || '')} · ${CRM.getMeetingLabel(a.meeting_type)}</div>
+            <div class="appt-card-name">${esc(a.lead_name || 'ไม่ระบุ')}</div>
+            <div class="appt-card-detail">${esc(a.service_type || '')} · ${CRM.getMeetingLabel(a.meeting_type)}</div>
         </div>
     `).join('');
 }
 
-// ===== Render Proposals =====
+// ===== Render Proposals (with Accept/Reject) =====
 function renderProposals() {
     const tbody = document.getElementById('proposalsTableBody');
     if (!tbody) return;
+    if (cachedProposals.length === 0) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><h3>ยังไม่มีใบเสนอราคา</h3></div></td></tr>'; return; }
 
-    if (cachedProposals.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><h3>ยังไม่มีใบเสนอราคา</h3></div></td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = cachedProposals.map(p => `
+    tbody.innerHTML = cachedProposals.map(p => {
+        const statusMap = { draft: 'new', sent: 'contacted', accepted: 'closed', rejected: 'lost', expired: 'lost' };
+        const statusLabel = { draft: 'ร่าง', sent: 'ส่งแล้ว', accepted: 'ยอมรับ', rejected: 'ปฏิเสธ', expired: 'หมดอายุ' };
+        return `
         <tr>
-            <td><strong>${escHtml(p.proposal_number)}</strong></td>
-            <td>${escHtml(p.title)}</td>
-            <td>${escHtml(p.lead_id || '-')}</td>
-            <td style="font-weight:700; color:var(--red);">฿${Number(p.total).toLocaleString()}</td>
-            <td><span class="status-badge ${p.status === 'accepted' ? 'closed' : p.status === 'sent' ? 'contacted' : 'new'}">${escHtml(p.status)}</span></td>
-            <td style="font-size:0.82rem; color:var(--gray-400);">${CRM.formatDate(p.created_at)}</td>
+            <td><strong>${esc(p.proposal_number)}</strong></td>
+            <td>${esc(p.title)}</td>
+            <td style="font-size:0.82rem;">${esc(p.lead_id || '-')}</td>
+            <td style="font-weight:700;color:var(--red);">฿${Number(p.total).toLocaleString()}</td>
+            <td><span class="status-badge ${statusMap[p.status] || 'new'}">${statusLabel[p.status] || p.status}</span></td>
+            <td style="font-size:0.82rem;color:var(--gray-400);">${CRM.formatDate(p.created_at)}</td>
             <td>
-                <button class="table-btn table-btn-edit" onclick="updateProposalStatus('${p.id}', '${p.status === 'draft' ? 'sent' : p.status === 'sent' ? 'accepted' : p.status}')">
-                    ${p.status === 'draft' ? 'ส่ง' : p.status === 'sent' ? 'ยอมรับ' : '✓'}
-                </button>
+                <div class="proposal-actions">
+                    ${p.status === 'draft' ? `<button class="table-btn btn-accept" onclick="updateProposalStatus('${p.id}','sent')">📤 ส่ง</button>` : ''}
+                    ${p.status === 'sent' ? `
+                        <button class="table-btn btn-accept" onclick="updateProposalStatus('${p.id}','accepted')">✅ ยอมรับ</button>
+                        <button class="table-btn btn-reject" onclick="updateProposalStatus('${p.id}','rejected')">❌ ปฏิเสธ</button>
+                    ` : ''}
+                    ${p.status === 'accepted' ? '<span style="color:var(--green);font-weight:700;">✅ ปิดดีล</span>' : ''}
+                    ${p.status === 'rejected' ? '<span style="color:var(--gray-400);">❌ ถูกปฏิเสธ</span>' : ''}
+                </div>
             </td>
-        </tr>
-    `).join('');
+        </tr>`;
+    }).join('');
 }
 
 // ===== Render Follow-ups =====
 async function renderFollowUps() {
-    const container = document.getElementById('followupsList');
-    if (!container) return;
-
+    const c = document.getElementById('followupsList');
+    if (!c) return;
     const followUps = await CRM.getPendingFollowUps();
     document.getElementById('followupCount').textContent = followUps.length;
-
-    if (followUps.length === 0) {
-        container.innerHTML = '<div class="empty-state"><h3>ไม่มีรายการติดตาม</h3><p>Follow-up จะปรากฏที่นี่เมื่อถึงกำหนด</p></div>';
-        return;
-    }
-
-    container.innerHTML = followUps.map(n => `
+    if (followUps.length === 0) { c.innerHTML = '<div class="empty-state"><h3>ไม่มีรายการติดตาม</h3></div>'; return; }
+    c.innerHTML = followUps.map(n => `
         <div class="followup-item">
             <div class="followup-info">
-                <div class="followup-name">${escHtml(n.leads?.name || 'N/A')}</div>
-                <div class="followup-detail">${escHtml(n.note)}</div>
+                <div class="followup-name">${esc(n.leads?.name || 'N/A')}</div>
+                <div class="followup-detail">${esc(n.note)}</div>
             </div>
-            <div style="display:flex; align-items:center; gap:12px;">
+            <div style="display:flex;align-items:center;gap:12px;">
                 <span class="followup-date">📅 ${CRM.formatDate(n.follow_up_date)}</span>
                 <button class="table-btn table-btn-note" onclick="markFollowUpDone('${n.id}')">✓ เสร็จ</button>
             </div>
@@ -258,58 +296,187 @@ async function renderFollowUps() {
 
 // ===== Render Activities =====
 async function renderActivities() {
-    const container = document.getElementById('activitiesList');
-    if (!container) return;
-
+    const c = document.getElementById('activitiesList');
+    if (!c) return;
     const activities = await CRM.getActivities(null, 30);
-
-    if (activities.length === 0) {
-        container.innerHTML = '<div class="empty-state"><h3>ยังไม่มีกิจกรรม</h3></div>';
-        return;
-    }
-
-    container.innerHTML = activities.map(a => {
+    if (activities.length === 0) { c.innerHTML = '<div class="empty-state"><h3>ยังไม่มีกิจกรรม</h3></div>'; return; }
+    c.innerHTML = activities.map(a => {
         let desc = a.action;
-        if (a.action === 'status_changed' && a.details) {
-            desc = `เปลี่ยนสถานะ: ${a.details.old_status} → ${a.details.new_status}`;
-        } else if (a.action === 'lead_created') {
-            desc = 'สร้าง Lead ใหม่';
-        }
+        if (a.action === 'status_changed' && a.details) desc = `เปลี่ยนสถานะ: ${a.details.old_status} → ${a.details.new_status}`;
+        else if (a.action === 'lead_created') desc = 'สร้าง Lead ใหม่';
         return `
-            <div class="activity-item">
-                <div class="activity-dot"></div>
-                <div>
-                    <div class="activity-text">${escHtml(desc)}</div>
-                    <div class="activity-time">${CRM.formatDate(a.created_at)}</div>
-                </div>
+        <div class="activity-item">
+            <div class="activity-dot"></div>
+            <div>
+                <div class="activity-text">${esc(desc)}</div>
+                <div class="activity-time">${CRM.formatDate(a.created_at)}</div>
             </div>
-        `;
+        </div>`;
     }).join('');
 }
 
-// ===== Helpers =====
-function getStatusClass(status) {
-    const map = {
-        'New Lead': 'new', 'Contacted': 'contacted',
-        'Appointment Set': 'appointment', 'Proposal Sent': 'proposal',
-        'Closed Won': 'closed', 'Closed Lost': 'lost',
-        'Closed': 'closed'
-    };
-    return map[status] || 'new';
+// ===== Analytics =====
+function renderAnalytics() {
+    renderConversionRate();
+    renderLeadsPerDay();
+    renderAvgCloseTime();
+    renderPipelineValue();
+    renderMiniFunnel('miniFunnel');
+    renderConversionFunnel();
+    renderLeadsByDayChart();
+    renderServicePopularity();
+    renderBudgetDistribution();
+    renderLeadSources();
 }
 
+function renderConversionRate() {
+    const el = document.getElementById('conversionRate');
+    if (!el) return;
+    const total = cachedLeads.length;
+    const closed = cachedLeads.filter(l => l.status === 'Closed Won').length;
+    el.textContent = total > 0 ? Math.round((closed / total) * 100) + '%' : '0%';
+}
+
+function renderLeadsPerDay() {
+    const el = document.getElementById('avgLeadsPerDay');
+    if (!el) return;
+    const now = Date.now();
+    const weekAgo = now - 7 * 86400000;
+    const recent = cachedLeads.filter(l => new Date(l.created_at).getTime() > weekAgo);
+    el.textContent = (recent.length / 7).toFixed(1);
+}
+
+function renderAvgCloseTime() {
+    const el = document.getElementById('avgResponseTime');
+    if (!el) return;
+    const closed = cachedLeads.filter(l => l.status === 'Closed Won' && l.updated_at && l.created_at);
+    if (closed.length === 0) { el.textContent = '-'; return; }
+    const avgDays = closed.reduce((sum, l) => {
+        return sum + (new Date(l.updated_at) - new Date(l.created_at)) / 86400000;
+    }, 0) / closed.length;
+    el.textContent = Math.round(avgDays);
+}
+
+function renderPipelineValue() {
+    const el = document.getElementById('totalRevenue');
+    if (!el) return;
+    const budgetValues = {
+        'มากกว่า 10,000,000': 12000000,
+        '5,000,000 - 10,000,000': 7500000,
+        '3,000,000 - 5,000,000': 4000000,
+        '1,000,000 - 3,000,000': 2000000,
+        '500,000 - 1,000,000': 750000,
+        'ต่ำกว่า 500,000': 300000
+    };
+    const active = cachedLeads.filter(l => !['Closed Won', 'Closed Lost'].includes(l.status));
+    const total = active.reduce((sum, l) => sum + (budgetValues[l.budget_range] || 0), 0);
+    el.textContent = '฿' + (total / 1000000).toFixed(1) + 'M';
+}
+
+function renderLeadsByDayChart() {
+    const c = document.getElementById('leadsByDayChart');
+    if (!c) return;
+    const days = [];
+    const labels = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const count = cachedLeads.filter(l => l.created_at?.startsWith(dateStr)).length;
+        days.push({ label: labels[d.getDay()], count });
+    }
+    const max = Math.max(...days.map(d => d.count), 1);
+    c.innerHTML = days.map(d => `
+        <div class="bar-item">
+            <div class="bar-fill" style="height:${(d.count / max) * 150}px" data-value="${d.count}"></div>
+            <div class="bar-label">${d.label}</div>
+        </div>
+    `).join('');
+}
+
+function renderConversionFunnel() {
+    const c = document.getElementById('conversionFunnel');
+    if (!c) return;
+    const stages = [
+        { label: 'New Lead', color: '#2563EB' },
+        { label: 'Contacted', color: '#F59E0B' },
+        { label: 'Appointment', color: '#7C3AED' },
+        { label: 'Proposal', color: '#D97706' },
+        { label: 'Closed Won', color: '#06C755' }
+    ];
+    const total = cachedLeads.length || 1;
+    c.innerHTML = stages.map(s => {
+        const count = cachedLeads.filter(l => l.status === s.label).length;
+        const pct = Math.max((count / total) * 100, 3);
+        return `
+        <div class="funnel-row">
+            <div class="funnel-label">${s.label}</div>
+            <div class="funnel-bar-wrap">
+                <div class="funnel-bar" style="width:${pct}%;background:${s.color}">${count}</div>
+            </div>
+            <div class="funnel-count">${Math.round(pct)}%</div>
+        </div>`;
+    }).join('');
+}
+
+function renderServicePopularity() {
+    const c = document.getElementById('servicePopularity');
+    if (!c) return;
+    const services = {};
+    cachedLeads.forEach(l => { services[l.service_type] = (services[l.service_type] || 0) + 1; });
+    const sorted = Object.entries(services).sort((a, b) => b[1] - a[1]);
+    const max = sorted[0]?.[1] || 1;
+    c.innerHTML = sorted.map(([name, count]) => `
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+            <div style="width:100px;font-size:0.82rem;font-weight:600;text-align:right;">${esc(name)}</div>
+            <div style="flex:1;height:24px;background:var(--gray-100);border-radius:6px;overflow:hidden;">
+                <div style="height:100%;width:${(count/max)*100}%;background:linear-gradient(90deg,var(--red),var(--red-light));border-radius:6px;display:flex;align-items:center;padding-left:8px;">
+                    <span style="font-size:0.72rem;font-weight:700;color:white;">${count}</span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderBudgetDistribution() {
+    const c = document.getElementById('budgetDistribution');
+    if (!c) return;
+    const budgets = {};
+    cachedLeads.forEach(l => { budgets[l.budget_range || 'ไม่ระบุ'] = (budgets[l.budget_range || 'ไม่ระบุ'] || 0) + 1; });
+    const sorted = Object.entries(budgets).sort((a, b) => b[1] - a[1]);
+    const total = cachedLeads.length || 1;
+    c.innerHTML = sorted.map(([name, count]) => `
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-100);">
+            <span style="font-size:0.85rem;">${esc(name)}</span>
+            <span style="font-weight:700;font-family:var(--font-display);">${count} (${Math.round(count/total*100)}%)</span>
+        </div>
+    `).join('');
+}
+
+function renderLeadSources() {
+    const c = document.getElementById('leadSources');
+    if (!c) return;
+    const sources = {};
+    cachedLeads.forEach(l => { sources[l.source || 'website'] = (sources[l.source || 'website'] || 0) + 1; });
+    const total = cachedLeads.length || 1;
+    c.innerHTML = Object.entries(sources).map(([src, count]) => `
+        <div style="text-align:center;padding:16px 24px;background:var(--white);border-radius:12px;border:1px solid var(--gray-100);">
+            <div style="font-size:1.8rem;font-weight:900;color:var(--red);font-family:var(--font-display);">${count}</div>
+            <div style="font-size:0.78rem;color:var(--gray-400);margin-top:4px;">${esc(src)}</div>
+            <div style="font-size:0.72rem;color:var(--gray-300);">${Math.round(count/total*100)}%</div>
+        </div>
+    `).join('');
+}
+
+// ===== Helpers =====
+function getStatusClass(s) {
+    return { 'New Lead':'new','Contacted':'contacted','Appointment Set':'appointment','Proposal Sent':'proposal','Closed Won':'closed','Closed Lost':'lost','Closed':'closed' }[s]||'new';
+}
 function getScoreHTML(score) {
     if (!score) return '';
     const cls = score >= 5 ? 'score-high' : score >= 3 ? 'score-mid' : 'score-low';
     return `<span class="score-badge ${cls}"><span class="score-dot"></span>${score}</span>`;
 }
-
-function escHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 // ===== Modal: Lead =====
 function openAddLeadModal() {
@@ -322,7 +489,6 @@ function openAddLeadModal() {
 async function openEditLeadModal(id) {
     const lead = await CRM.getLeadById(id);
     if (!lead) return;
-
     document.getElementById('modalTitle').textContent = 'แก้ไข Lead';
     document.getElementById('editLeadId').value = id;
     document.getElementById('modalName').value = lead.name || '';
@@ -333,15 +499,11 @@ async function openEditLeadModal(id) {
     document.getElementById('modalStatus').value = lead.status || 'New Lead';
     document.getElementById('modalNote').value = '';
     document.getElementById('modalFollowUpDate').value = '';
-
     document.getElementById('leadModal').classList.add('active');
 }
 
-function closeLeadModal() {
-    document.getElementById('leadModal').classList.remove('active');
-}
+function closeLeadModal() { document.getElementById('leadModal').classList.remove('active'); }
 
-// Lead form submit
 document.getElementById('modalLeadForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const editId = document.getElementById('editLeadId').value;
@@ -355,106 +517,78 @@ document.getElementById('modalLeadForm').addEventListener('submit', async functi
     };
     const note = document.getElementById('modalNote').value.trim();
     const followUpDate = document.getElementById('modalFollowUpDate').value || null;
-
     try {
         if (editId) {
             await CRM.updateLead(editId, data);
             if (note) await CRM.addNote(editId, note, 'general', followUpDate);
+            showToast('อัพเดท Lead สำเร็จ', 'success');
         } else {
             const lead = await CRM.saveLead({ ...data, source: 'admin' });
             if (note) await CRM.addNote(lead.id, note, 'general', followUpDate);
+            showToast('สร้าง Lead ใหม่สำเร็จ', 'success');
         }
         closeLeadModal();
         await refreshData();
-    } catch (err) {
-        alert('เกิดข้อผิดพลาด: ' + err.message);
-    }
+    } catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
 });
 
 async function changeStatus(id, status) {
-    try {
-        await CRM.updateLead(id, { status });
-        await refreshData();
-    } catch (err) {
-        alert('เกิดข้อผิดพลาด: ' + err.message);
-    }
+    try { await CRM.updateLead(id, { status }); showToast(`เปลี่ยนสถานะเป็น "${status}"`, 'success'); await refreshData(); }
+    catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
 }
 
 async function deleteLeadConfirm(id) {
     if (!confirm('ลบ Lead นี้?')) return;
-    try {
-        await CRM.deleteLead(id);
-        await refreshData();
-    } catch (err) {
-        alert('เกิดข้อผิดพลาด: ' + err.message);
-    }
+    try { await CRM.deleteLead(id); showToast('ลบ Lead สำเร็จ', 'success'); await refreshData(); }
+    catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
 }
 
 // ===== Modal: Notes =====
 async function openNoteModal(leadId) {
     document.getElementById('noteLeadId').value = leadId;
     const notes = await CRM.getNotes(leadId);
-    const content = document.getElementById('noteModalContent');
-
-    if (notes.length === 0) {
-        content.innerHTML = '<p style="color:var(--gray-400); text-align:center; padding:20px;">ยังไม่มีบันทึก</p>';
-    } else {
-        content.innerHTML = notes.map(n => `
+    const c = document.getElementById('noteModalContent');
+    if (notes.length === 0) { c.innerHTML = '<p style="color:var(--gray-400);text-align:center;padding:20px;">ยังไม่มีบันทึก</p>'; }
+    else {
+        c.innerHTML = notes.map(n => `
             <div class="note-item">
-                <div class="note-text">${escHtml(n.note)}</div>
+                <div class="note-text">${esc(n.note)}</div>
                 <div class="note-meta">
                     ${n.note_type !== 'general' ? `<span class="status-badge new" style="margin-right:8px">${n.note_type}</span>` : ''}
                     ${n.follow_up_date ? `📅 Follow-up: ${CRM.formatDate(n.follow_up_date)}` : ''}
-                    · ${CRM.formatDate(n.created_at)}
-                    ${n.follow_up_done ? ' ✅' : ''}
+                    · ${CRM.formatDate(n.created_at)} ${n.follow_up_done ? ' ✅' : ''}
                 </div>
             </div>
         `).join('');
     }
-
     document.getElementById('noteModal').classList.add('active');
 }
-
-function closeNoteModal() {
-    document.getElementById('noteModal').classList.remove('active');
-}
+function closeNoteModal() { document.getElementById('noteModal').classList.remove('active'); }
 
 document.getElementById('noteForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const leadId = document.getElementById('noteLeadId').value;
     const note = document.getElementById('newNoteText').value.trim();
-    const noteType = document.getElementById('newNoteType').value;
-    const followUpDate = document.getElementById('newNoteFollowUp').value || null;
-
     if (!note) return;
-
     try {
-        await CRM.addNote(leadId, note, noteType, followUpDate);
+        await CRM.addNote(leadId, note, document.getElementById('newNoteType').value, document.getElementById('newNoteFollowUp').value || null);
         document.getElementById('newNoteText').value = '';
         document.getElementById('newNoteFollowUp').value = '';
-        await openNoteModal(leadId); // Refresh notes
+        showToast('เพิ่มบันทึกสำเร็จ', 'success');
+        await openNoteModal(leadId);
         await refreshData();
-    } catch (err) {
-        alert('เกิดข้อผิดพลาด: ' + err.message);
-    }
+    } catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
 });
 
 async function markFollowUpDone(noteId) {
-    try {
-        await CRM.markFollowUpDone(noteId);
-        await refreshData();
-    } catch (err) {
-        alert('เกิดข้อผิดพลาด: ' + err.message);
-    }
+    try { await CRM.markFollowUpDone(noteId); showToast('ทำเครื่องหมายเสร็จแล้ว', 'success'); await refreshData(); }
+    catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
 }
 
 // ===== Modal: Proposal =====
 async function openNewProposalModal() {
-    // Populate lead dropdown
     const select = document.getElementById('proposalLead');
-    select.innerHTML = '<option value="">-- เลือก Lead --</option>' +
-        cachedLeads.map(l => `<option value="${l.id}">${escHtml(l.name)} (${escHtml(l.service_type)})</option>`).join('');
-
+    select.innerHTML = '<option value="">-- เลือก Lead --</option>' + cachedLeads.map(l => `<option value="${l.id}">${esc(l.name)} (${esc(l.service_type)})</option>`).join('');
     document.getElementById('proposalForm').reset();
     document.getElementById('proposalItems').innerHTML = `
         <div class="proposal-item-row">
@@ -462,117 +596,79 @@ async function openNewProposalModal() {
             <input type="number" placeholder="จำนวน" class="proposal-item-qty" style="flex:1" value="1">
             <input type="number" placeholder="ราคา/หน่วย" class="proposal-item-price" style="flex:1">
             <button type="button" class="table-btn table-btn-delete" onclick="removeProposalItem(this)">ลบ</button>
-        </div>
-    `;
+        </div>`;
     updateProposalTotal();
     document.getElementById('proposalModal').classList.add('active');
 }
-
-function closeProposalModal() {
-    document.getElementById('proposalModal').classList.remove('active');
-}
+function closeProposalModal() { document.getElementById('proposalModal').classList.remove('active'); }
 
 function addProposalItem() {
-    const container = document.getElementById('proposalItems');
-    const row = document.createElement('div');
-    row.className = 'proposal-item-row';
+    const row = document.createElement('div'); row.className = 'proposal-item-row';
     row.innerHTML = `
         <input type="text" placeholder="รายการ" class="proposal-item-name" style="flex:2">
         <input type="number" placeholder="จำนวน" class="proposal-item-qty" style="flex:1" value="1">
         <input type="number" placeholder="ราคา/หน่วย" class="proposal-item-price" style="flex:1">
-        <button type="button" class="table-btn table-btn-delete" onclick="removeProposalItem(this)">ลบ</button>
-    `;
-    container.appendChild(row);
-    // Attach listeners for total calculation
-    row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', updateProposalTotal));
+        <button type="button" class="table-btn table-btn-delete" onclick="removeProposalItem(this)">ลบ</button>`;
+    document.getElementById('proposalItems').appendChild(row);
+    row.querySelectorAll('input').forEach(i => i.addEventListener('input', updateProposalTotal));
 }
-
-function removeProposalItem(btn) {
-    const rows = document.querySelectorAll('.proposal-item-row');
-    if (rows.length <= 1) return;
-    btn.closest('.proposal-item-row').remove();
-    updateProposalTotal();
-}
-
+function removeProposalItem(btn) { if (document.querySelectorAll('.proposal-item-row').length > 1) { btn.closest('.proposal-item-row').remove(); updateProposalTotal(); } }
 function updateProposalTotal() {
-    let total = 0;
-    document.querySelectorAll('.proposal-item-row').forEach(row => {
-        const qty = parseFloat(row.querySelector('.proposal-item-qty').value) || 0;
-        const price = parseFloat(row.querySelector('.proposal-item-price').value) || 0;
-        total += qty * price;
+    let t = 0;
+    document.querySelectorAll('.proposal-item-row').forEach(r => {
+        t += (parseFloat(r.querySelector('.proposal-item-qty').value)||0) * (parseFloat(r.querySelector('.proposal-item-price').value)||0);
     });
-    document.getElementById('proposalTotal').textContent = `฿${total.toLocaleString()}`;
-    return total;
+    document.getElementById('proposalTotal').textContent = `฿${t.toLocaleString()}`; return t;
 }
-
-// Listen for input changes
-document.addEventListener('input', (e) => {
-    if (e.target.classList.contains('proposal-item-qty') || e.target.classList.contains('proposal-item-price')) {
-        updateProposalTotal();
-    }
-});
+document.addEventListener('input', e => { if (e.target.classList.contains('proposal-item-qty') || e.target.classList.contains('proposal-item-price')) updateProposalTotal(); });
 
 document.getElementById('proposalForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-
     const items = [];
-    document.querySelectorAll('.proposal-item-row').forEach(row => {
-        const name = row.querySelector('.proposal-item-name').value;
-        const qty = parseFloat(row.querySelector('.proposal-item-qty').value) || 0;
-        const price = parseFloat(row.querySelector('.proposal-item-price').value) || 0;
-        if (name) items.push({ name, qty, price, total: qty * price });
+    document.querySelectorAll('.proposal-item-row').forEach(r => {
+        const name = r.querySelector('.proposal-item-name').value;
+        const qty = parseFloat(r.querySelector('.proposal-item-qty').value)||0;
+        const price = parseFloat(r.querySelector('.proposal-item-price').value)||0;
+        if (name) items.push({ name, qty, price, total: qty*price });
     });
-
-    const total = items.reduce((sum, item) => sum + item.total, 0);
-    const leadId = document.getElementById('proposalLead').value;
-
+    const total = items.reduce((s, i) => s + i.total, 0);
     try {
         await CRM.saveProposal({
-            lead_id: leadId || null,
+            lead_id: document.getElementById('proposalLead').value || null,
             title: document.getElementById('proposalTitle').value,
-            items: items,
-            subtotal: total,
-            tax: 0,
-            total: total,
+            items, subtotal: total, tax: 0, total,
             valid_until: document.getElementById('proposalValidUntil').value || null,
             notes: document.getElementById('proposalNotes').value || null
         });
         closeProposalModal();
+        showToast('สร้างใบเสนอราคาสำเร็จ', 'success');
         await refreshData();
-    } catch (err) {
-        alert('เกิดข้อผิดพลาด: ' + err.message);
-    }
+    } catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
 });
 
 async function updateProposalStatus(id, newStatus) {
     try {
         await CRM.updateProposal(id, { status: newStatus });
+        const labels = { sent: 'ส่งใบเสนอราคาแล้ว', accepted: 'ยอมรับใบเสนอราคา', rejected: 'ปฏิเสธใบเสนอราคา' };
+        showToast(labels[newStatus] || 'อัพเดทสถานะ', 'success');
+        // If accepted, update lead status to Closed Won
+        if (newStatus === 'accepted') {
+            const proposal = cachedProposals.find(p => p.id === id);
+            if (proposal?.lead_id) {
+                await CRM.updateLead(proposal.lead_id, { status: 'Closed Won' });
+            }
+        }
         await refreshData();
-    } catch (err) {
-        alert('เกิดข้อผิดพลาด: ' + err.message);
-    }
+    } catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
 }
 
 // ===== Export CSV =====
 function exportLeadsCSV() {
-    if (cachedLeads.length === 0) {
-        alert('ไม่มีข้อมูลให้ export');
-        return;
-    }
-
-    const headers = ['ชื่อ', 'เบอร์โทร', 'อีเมล', 'บริการ', 'งบประมาณ', 'สถานะ', 'คะแนน', 'วันที่'];
-    const rows = cachedLeads.map(l => [
-        l.name, l.phone, l.email || '', l.service_type, l.budget_range,
-        l.status, l.score, l.created_at
-    ]);
-
-    // BOM for Thai Excel compatibility
-    const csv = '\uFEFF' + [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    if (cachedLeads.length === 0) { alert('ไม่มีข้อมูลให้ export'); return; }
+    const headers = ['ชื่อ','เบอร์โทร','อีเมล','บริการ','งบประมาณ','สถานะ','คะแนน','แหล่งที่มา','วันที่'];
+    const rows = cachedLeads.map(l => [l.name, l.phone, l.email||'', l.service_type, l.budget_range, l.status, l.score, l.source||'website', l.created_at]);
+    const csv = '\uFEFF' + [headers,...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `nucha-leads-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `nucha-leads-${new Date().toISOString().split('T')[0]}.csv`; a.click();
 }

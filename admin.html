@@ -56,6 +56,13 @@
                         <span>กิจกรรม</span>
                     </div>
                 </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">วิเคราะห์</div>
+                    <div class="sidebar-link" data-page="analytics" onclick="showPage('analytics')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                        <span>Analytics</span>
+                    </div>
+                </div>
             </nav>
             <div class="sidebar-footer">
                 <div class="sidebar-user" id="sidebarUser">
@@ -115,6 +122,7 @@
                         </div>
                         <div class="stat-card-num" id="closedDeals">0</div>
                         <div class="stat-card-label">ปิดงานแล้ว</div>
+                        <div class="mini-funnel" id="dashMiniFunnel"></div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-card-header">
@@ -274,6 +282,91 @@
                     <div id="activitiesList"></div>
                 </div>
             </div>
+
+            <!-- ANALYTICS PAGE -->
+            <div class="page-section" id="page-analytics">
+                <div class="main-header">
+                    <div>
+                        <h1>Analytics</h1>
+                        <div class="main-header-sub">วิเคราะห์ข้อมูลเชิงลึก</div>
+                    </div>
+                </div>
+
+                <!-- Top Stats -->
+                <div class="stat-cards">
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-icon green">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            </div>
+                        </div>
+                        <div class="stat-card-num" id="conversionRate">0%</div>
+                        <div class="stat-card-label">Conversion Rate</div>
+                        <div class="mini-funnel" id="miniFunnel"></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-icon blue">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                            </div>
+                        </div>
+                        <div class="stat-card-num" id="avgLeadsPerDay">0</div>
+                        <div class="stat-card-label">Leads/วัน (เฉลี่ย 7 วัน)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-icon orange">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            </div>
+                        </div>
+                        <div class="stat-card-num" id="avgResponseTime">-</div>
+                        <div class="stat-card-label">เวลาเฉลี่ยปิดดีล (วัน)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-icon red">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                            </div>
+                        </div>
+                        <div class="stat-card-num" id="totalRevenue">฿0</div>
+                        <div class="stat-card-label">มูลค่า Pipeline รวม</div>
+                    </div>
+                </div>
+
+                <div class="analytics-grid">
+                    <!-- Leads by Day Chart -->
+                    <div class="analytics-card">
+                        <h3>📊 Leads 7 วันล่าสุด</h3>
+                        <div class="bar-chart" id="leadsByDayChart"></div>
+                    </div>
+
+                    <!-- Conversion Funnel -->
+                    <div class="analytics-card">
+                        <h3>🔄 Conversion Funnel</h3>
+                        <div class="funnel" id="conversionFunnel"></div>
+                    </div>
+                </div>
+
+                <div class="analytics-grid">
+                    <!-- Service Popularity -->
+                    <div class="analytics-card">
+                        <h3>🏠 บริการยอดนิยม</h3>
+                        <div id="servicePopularity"></div>
+                    </div>
+
+                    <!-- Budget Distribution -->
+                    <div class="analytics-card">
+                        <h3>💰 การกระจายงบประมาณ</h3>
+                        <div id="budgetDistribution"></div>
+                    </div>
+                </div>
+
+                <!-- Lead Source -->
+                <div class="analytics-card" style="margin-bottom: 28px;">
+                    <h3>📡 แหล่งที่มาของ Leads</h3>
+                    <div id="leadSources" style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px;"></div>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -426,6 +519,9 @@
             </form>
         </div>
     </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
 
     <!-- Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
