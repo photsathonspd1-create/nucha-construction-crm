@@ -66,6 +66,7 @@ async function refreshData() {
 
         // Mini funnel on dashboard
         renderMiniFunnel('dashMiniFunnel');
+        renderSLABreaches();
 
         renderRecentLeads(cachedLeads.slice(0, 5));
         renderLeadsTable();
@@ -515,6 +516,10 @@ async function openEditLeadModal(id) {
     document.getElementById('modalNote').value = '';
     document.getElementById('modalFollowUpDate').value = '';
     populateTeamDropdown(lead.assigned_to);
+    // Lost reason
+    const lostReasonEl = document.getElementById('modalLostReason');
+    if (lostReasonEl) lostReasonEl.value = lead.lost_reason || '';
+    toggleLostReason();
     document.getElementById('leadModal').classList.add('active');
 }
 
@@ -530,7 +535,10 @@ document.getElementById('modalLeadForm').addEventListener('submit', async functi
         service_type: document.getElementById('modalService').value,
         budget_range: document.getElementById('modalBudget').value,
         status: document.getElementById('modalStatus').value,
-        assigned_to: document.getElementById('modalAssignedTo').value || null
+        assigned_to: document.getElementById('modalAssignedTo').value || null,
+        lost_reason: document.getElementById('modalStatus').value === 'Closed Lost'
+            ? (document.getElementById('modalLostReason')?.value || null)
+            : null
     };
     const note = document.getElementById('modalNote').value.trim();
     const followUpDate = document.getElementById('modalFollowUpDate').value || null;
@@ -684,52 +692,168 @@ async function updateProposalStatus(id, newStatus) {
     } catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
 }
 
+// ===== SLA Breach Display =====
+async function renderSLABreaches() {
+    const breaches = await CRM.getSLABreaches();
+
+    // SLA alerts card on dashboard
+    const card = document.getElementById('slaAlertsCard');
+    const list = document.getElementById('slaAlertsList');
+    if (card && list) {
+        if (breaches.length > 0) {
+            card.style.display = 'block';
+            list.innerHTML = breaches.map(b => {
+                const p = getPriority(b.lead_score);
+                const timeStr = b.minutes_since_created >= 1440
+                    ? `${Math.round(b.minutes_since_created / 1440)} วัน`
+                    : b.minutes_since_created >= 60
+                        ? `${Math.round(b.minutes_since_created / 60)} ชม.`
+                        : `${Math.round(b.minutes_since_created)} นาที`;
+                return `
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray-100);">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span class="priority-dot ${p}"></span>
+                        <div>
+                            <div style="font-weight:700;">${esc(b.lead_name)}</div>
+                            <div style="font-size:0.82rem;color:var(--gray-400);">📞 ${esc(b.lead_phone)} · 👤 ${esc(b.assigned_name || 'ไม่ระบุ')}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <span style="color:var(--red);font-weight:700;font-size:0.82rem;">⏰ ${timeStr}</span>
+                        <a href="tel:${b.lead_phone}" class="table-btn btn-accept" style="text-decoration:none;">📞 โทร</a>
+                    </div>
+                </div>`;
+            }).join('');
+        } else {
+            card.style.display = 'none';
+        }
+    }
+
+    // Sidebar badge
+    const dashHeader = document.querySelector('#page-dashboard .main-header-sub');
+    if (dashHeader) {
+        const existing = document.getElementById('slaBadge');
+        if (breaches.length > 0) {
+            if (!existing) {
+                const badge = document.createElement('span');
+                badge.id = 'slaBadge';
+                badge.style.cssText = 'display:inline-block;margin-left:12px;padding:4px 12px;background:var(--red);color:white;border-radius:50px;font-size:0.78rem;font-weight:700;';
+                badge.textContent = `🚨 ${breaches.length} SLA`;
+                dashHeader.appendChild(badge);
+            } else {
+                existing.textContent = `🚨 ${breaches.length} SLA`;
+            }
+        } else if (existing) {
+            existing.remove();
+        }
+    }
+}
+
 // ===== Team Performance =====
 async function renderTeam() {
-    // Team stats cards
+    const period = document.getElementById('leaderboardPeriod')?.value || 'month';
+    const leaderboard = await CRM.getLeaderboard(period);
+    const lostReasons = await CRM.getLostReasonStats();
+
+    // Leaderboard
+    const lbEl = document.getElementById('leaderboard');
+    if (lbEl) {
+        const medals = ['🥇', '🥈', '🥉'];
+        lbEl.innerHTML = leaderboard.slice(0, 5).map((u, i) => {
+            const medal = medals[i] || `${i + 1}.`;
+            const barWidth = leaderboard[0]?.closedDeals > 0
+                ? (u.closedDeals / leaderboard[0].closedDeals) * 100
+                : 0;
+            return `
+            <div style="display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid var(--gray-100);">
+                <div style="font-size:1.5rem;width:36px;text-align:center;">${medal}</div>
+                <div style="flex:1;">
+                    <div style="font-weight:700;margin-bottom:4px;">${esc(u.full_name || 'Unnamed')}</div>
+                    <div style="height:8px;background:var(--gray-100);border-radius:4px;overflow:hidden;">
+                        <div style="height:100%;width:${barWidth}%;background:linear-gradient(90deg,var(--red),var(--red-light));border-radius:4px;"></div>
+                    </div>
+                </div>
+                <div style="text-align:right;min-width:80px;">
+                    <div style="font-family:var(--font-display);font-weight:900;font-size:1.2rem;color:var(--red);">${u.closedDeals}</div>
+                    <div style="font-size:0.72rem;color:var(--gray-400);">ดีล · ${u.conversionRate}%</div>
+                </div>
+                <div style="text-align:right;min-width:80px;">
+                    <div style="font-weight:700;">${u.avgResponseTime !== null ? u.avgResponseTime + ' นาที' : '-'}</div>
+                    <div style="font-size:0.72rem;color:var(--gray-400);">เวลาเฉลี่ยตอบ</div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // Stats cards
     const statsEl = document.getElementById('teamStats');
-    const tableEl = document.getElementById('teamTableBody');
-    if (!statsEl || !tableEl) return;
-
-    const teamData = await CRM.getTeamPerformance();
-
-    // Stats cards for each team member
-    statsEl.innerHTML = teamData.map(u => `
-        <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon ${u.conversionRate >= 30 ? 'green' : u.conversionRate >= 15 ? 'blue' : 'orange'}">
-                    <span style="font-weight:900;font-size:1rem;">${(u.full_name || 'A')[0].toUpperCase()}</span>
+    if (statsEl) {
+        statsEl.innerHTML = leaderboard.map(u => `
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon ${u.conversionRate >= 30 ? 'green' : u.conversionRate >= 15 ? 'blue' : 'orange'}">
+                        <span style="font-weight:900;font-size:1rem;">${(u.full_name || 'A')[0].toUpperCase()}</span>
+                    </div>
+                </div>
+                <div class="stat-card-num">${u.totalLeads}</div>
+                <div class="stat-card-label">${esc(u.full_name || 'Unnamed')}</div>
+                <div style="margin-top:8px;font-size:0.78rem;">
+                    <span style="color:var(--green);font-weight:700;">${u.closedDeals} ปิดดีล</span>
+                    <span style="color:var(--gray-400);margin-left:8px;">${u.conversionRate}%</span>
                 </div>
             </div>
-            <div class="stat-card-num">${u.totalLeads}</div>
-            <div class="stat-card-label">${esc(u.full_name || 'Unnamed')}</div>
-            <div style="margin-top:8px;font-size:0.78rem;">
-                <span style="color:var(--green);font-weight:700;">${u.closedDeals} ปิดดีล</span>
-                <span style="color:var(--gray-400);margin-left:8px;">${u.conversionRate}%</span>
-            </div>
-        </div>
-    `).join('');
+        `).join('');
+    }
+
+    // Lost reasons
+    const lrEl = document.getElementById('lostReasons');
+    if (lrEl) {
+        if (lostReasons.length === 0) {
+            lrEl.innerHTML = '<p style="color:var(--gray-400);text-align:center;padding:20px;">ยังไม่มีข้อมูล</p>';
+        } else {
+            const maxCount = lostReasons[0]?.count || 1;
+            lrEl.innerHTML = lostReasons.map(r => `
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+                    <div style="width:110px;font-size:0.82rem;font-weight:600;text-align:right;">${esc(r.reason)}</div>
+                    <div style="flex:1;height:24px;background:var(--gray-100);border-radius:6px;overflow:hidden;">
+                        <div style="height:100%;width:${(r.count/maxCount)*100}%;background:var(--red);border-radius:6px;display:flex;align-items:center;padding-left:8px;">
+                            <span style="font-size:0.72rem;font-weight:700;color:white;">${r.count}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
 
     // Table
-    tableEl.innerHTML = teamData.map(u => `
-        <tr>
-            <td><strong>${esc(u.full_name || 'Unnamed')}</strong></td>
-            <td><span class="status-badge new">${esc(u.role)}</span></td>
-            <td>${u.totalLeads}</td>
-            <td style="color:var(--green);font-weight:700;">${u.closedDeals}</td>
-            <td>
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <div style="flex:1;height:6px;background:var(--gray-100);border-radius:3px;overflow:hidden;">
-                        <div style="height:100%;width:${u.conversionRate}%;background:${u.conversionRate >= 30 ? 'var(--green)' : u.conversionRate >= 15 ? 'var(--blue)' : 'var(--orange)'};border-radius:3px;"></div>
+    const tbody = document.getElementById('teamTableBody');
+    if (tbody) {
+        tbody.innerHTML = leaderboard.map((u, i) => `
+            <tr>
+                <td>${i + 1}</td>
+                <td><strong>${esc(u.full_name || 'Unnamed')}</strong></td>
+                <td><span class="status-badge new">${esc(u.role)}</span></td>
+                <td>${u.totalLeads}</td>
+                <td style="color:var(--green);font-weight:700;">${u.closedDeals}</td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div style="flex:1;height:6px;background:var(--gray-100);border-radius:3px;overflow:hidden;">
+                            <div style="height:100%;width:${u.conversionRate}%;background:${u.conversionRate >= 30 ? 'var(--green)' : u.conversionRate >= 15 ? 'var(--blue)' : 'var(--orange)'};border-radius:3px;"></div>
+                        </div>
+                        <span style="font-weight:700;font-size:0.82rem;">${u.conversionRate}%</span>
                     </div>
-                    <span style="font-weight:700;font-size:0.82rem;">${u.conversionRate}%</span>
-                </div>
-            </td>
-            <td style="font-size:0.78rem;color:var(--gray-400);">
-                🆕${u.pipeline.new} · 📞${u.pipeline.contacted} · 📅${u.pipeline.appointment} · 📄${u.pipeline.proposal}
-            </td>
-        </tr>
-    `).join('');
+                </td>
+                <td>${u.avgResponseTime !== null ? u.avgResponseTime + ' นาที' : '-'}</td>
+            </tr>
+        `).join('');
+    }
+}
+
+// Toggle lost reason dropdown
+function toggleLostReason() {
+    const status = document.getElementById('modalStatus').value;
+    const group = document.getElementById('lostReasonGroup');
+    if (group) group.style.display = status === 'Closed Lost' ? 'block' : 'none';
 }
 
 // Populate team assignment dropdown

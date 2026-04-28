@@ -301,6 +301,84 @@ const CRM = {
         return Math.round(score * 10) / 10;
     },
 
+    // ===== SLA TRACKING =====
+    async getSLABreaches() {
+        const { data, error } = await supabase.rpc('get_sla_breaches');
+        if (error) { console.error('getSLABreaches:', error); return []; }
+        return data || [];
+    },
+
+    async checkSLABreaches() {
+        try {
+            const { error } = await supabase.functions.invoke('sla-check');
+            if (error) console.error('checkSLABreaches:', error);
+        } catch (e) {
+            console.warn('SLA check failed:', e.message);
+        }
+    },
+
+    // ===== LEADERBOARD =====
+    async getLeaderboard(period = 'month') {
+        const now = new Date();
+        let startDate;
+        if (period === 'week') {
+            startDate = new Date(now.getTime() - 7 * 86400000).toISOString();
+        } else if (period === 'month') {
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        } else {
+            startDate = new Date(now.getFullYear(), 0, 1).toISOString();
+        }
+
+        const users = await this.getUsers();
+        const { data: leads } = await supabase
+            .from('leads')
+            .select('*, assigned_to, first_contact_at, created_at, updated_at')
+            .gte('created_at', startDate);
+
+        return users.map(u => {
+            const userLeads = (leads || []).filter(l => l.assigned_to === u.id);
+            const closed = userLeads.filter(l => l.status === 'Closed Won');
+            const contacted = userLeads.filter(l => l.first_contact_at);
+
+            // Avg response time (minutes)
+            const responseTimes = contacted.map(l =>
+                (new Date(l.first_contact_at) - new Date(l.created_at)) / 60000
+            );
+            const avgResponseTime = responseTimes.length > 0
+                ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
+                : null;
+
+            return {
+                ...u,
+                totalLeads: userLeads.length,
+                closedDeals: closed.length,
+                conversionRate: userLeads.length > 0 ? Math.round((closed.length / userLeads.length) * 100) : 0,
+                avgResponseTime: avgResponseTime,
+                avgCloseDays: closed.length > 0
+                    ? Math.round(closed.reduce((sum, l) => sum + (new Date(l.updated_at) - new Date(l.created_at)) / 86400000, 0) / closed.length)
+                    : null
+            };
+        }).sort((a, b) => b.closedDeals - a.closedDeals || b.conversionRate - a.conversionRate);
+    },
+
+    // ===== LOST REASON ANALYTICS =====
+    async getLostReasonStats() {
+        const { data, error } = await supabase
+            .from('leads')
+            .select('lost_reason, service_type, budget_range')
+            .eq('status', 'Closed Lost')
+            .not('lost_reason', 'is', null);
+        if (error) { console.error('getLostReasonStats:', error); return []; }
+
+        const reasons = {};
+        (data || []).forEach(l => {
+            reasons[l.lost_reason] = (reasons[l.lost_reason] || 0) + 1;
+        });
+        return Object.entries(reasons)
+            .map(([reason, count]) => ({ reason, count }))
+            .sort((a, b) => b.count - a.count);
+    },
+
     // ===== TEAM / USER MANAGEMENT =====
     async getUsers() {
         const { data, error } = await supabase

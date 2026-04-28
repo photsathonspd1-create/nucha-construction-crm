@@ -148,8 +148,16 @@
                     </div>
                 </div>
                 <div class="card" style="padding: 24px;">
-                    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px;">Leads ล่าสุด</h3>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                        <h3 style="font-size: 1.1rem; font-weight: 700;">Leads ล่าสุด</h3>
+                    </div>
                     <div id="recentLeadsList"></div>
+                </div>
+
+                <!-- SLA Alerts -->
+                <div class="card" id="slaAlertsCard" style="padding: 24px; margin-top: 16px; display: none;">
+                    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: var(--red);">🚨 SLA Alerts — Leads ที่เกินเวลา</h3>
+                    <div id="slaAlertsList"></div>
                 </div>
             </div>
 
@@ -379,19 +387,45 @@
                         <h1>ทีม</h1>
                         <div class="main-header-sub">ประสิทธิภาพทีมขาย</div>
                     </div>
+                    <div class="header-actions">
+                        <select class="filter-select" id="leaderboardPeriod" onchange="renderTeam()">
+                            <option value="month">เดือนนี้</option>
+                            <option value="week">สัปดาห์นี้</option>
+                            <option value="year">ปีนี้</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="stat-cards" id="teamStats"></div>
+
+                <!-- Leaderboard -->
+                <div class="analytics-card" style="margin-bottom: 24px;">
+                    <h3>🏆 Leaderboard</h3>
+                    <div id="leaderboard"></div>
+                </div>
+
+                <!-- Lost Reasons -->
+                <div class="analytics-grid" style="margin-bottom: 24px;">
+                    <div class="analytics-card">
+                        <h3>📊 ผลงานทีม</h3>
+                        <div class="stat-cards" id="teamStats" style="margin-bottom:0;"></div>
+                    </div>
+                    <div class="analytics-card">
+                        <h3>❌ เหตุผลที่เสียดีล</h3>
+                        <div id="lostReasons"></div>
+                    </div>
+                </div>
+
                 <div class="card" style="padding: 24px;">
-                    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px;">📊 สรุปผลงานทีม</h3>
+                    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px;">📋 รายละเอียดทีม</h3>
                     <table class="data-table">
                         <thead>
                             <tr>
+                                <th>#</th>
                                 <th>ชื่อ</th>
                                 <th>บทบาท</th>
-                                <th>Leads ทั้งหมด</th>
+                                <th>Leads</th>
                                 <th>ปิดดีล</th>
                                 <th>Conversion</th>
-                                <th>Pipeline</th>
+                                <th>เวลาเฉลี่ยตอบ</th>
                             </tr>
                         </thead>
                         <tbody id="teamTableBody"></tbody>
@@ -445,13 +479,26 @@
                 </div>
                 <div class="form-group">
                     <label>สถานะ</label>
-                    <select id="modalStatus">
+                    <select id="modalStatus" onchange="toggleLostReason()">
                         <option value="New Lead">New Lead</option>
                         <option value="Contacted">Contacted</option>
                         <option value="Appointment Set">Appointment Set</option>
                         <option value="Proposal Sent">Proposal Sent</option>
                         <option value="Closed Won">Closed Won</option>
                         <option value="Closed Lost">Closed Lost</option>
+                    </select>
+                </div>
+                <div class="form-group" id="lostReasonGroup" style="display:none;">
+                    <label>❌ เหตุผลที่เสีย</label>
+                    <select id="modalLostReason">
+                        <option value="">-- เลือกเหตุผล --</option>
+                        <option value="ราคาแพง">ราคาแพง</option>
+                        <option value="คู่แข่งเร็วกว่า">คู่แข่งเร็วกว่า</option>
+                        <option value="ลูกค้ายังไม่พร้อม">ลูกค้ายังไม่พร้อม</option>
+                        <option value="งบประมาณไม่พอ">งบประมาณไม่พอ</option>
+                        <option value="ไม่ตอบกลับ">ไม่ตอบกลับ</option>
+                        <option value="โครงการเลื่อน">โครงการเลื่อน</option>
+                        <option value="อื่นๆ">อื่นๆ</option>
                     </select>
                 </div>
                 <div class="form-group">

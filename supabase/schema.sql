@@ -20,6 +20,12 @@ CREATE TABLE IF NOT EXISTS leads (
     score NUMERIC(4,1) DEFAULT 0,
     source TEXT DEFAULT 'website',
     assigned_to UUID REFERENCES auth.users(id),
+    first_contact_at TIMESTAMPTZ,
+    lost_reason TEXT
+        CHECK (lost_reason IS NULL OR lost_reason IN (
+            'ราคาแพง', 'คู่แข่งเร็วกว่า', 'ลูกค้ายังไม่พร้อม',
+            'งบประมาณไม่พอ', 'ไม่ตอบกลับ', 'โครงการเลื่อน', 'อื่นๆ'
+        )),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -262,3 +268,57 @@ INSERT INTO leads (name, phone, service_type, budget_range, message, status, sco
     ('อรุณ จันทร์เจริญ', '085-678-9012', 'ตกแต่ง', '500,000 - 1,000,000', 'รีโนเวทคอนโด', 'Proposal Sent', 3),
     ('สุดา มั่นคง', '093-456-7890', 'รับเหมาก่อสร้าง', '5,000,000 - 10,000,000', 'สร้างออฟฟิศ 3 ชั้น', 'New Lead', 4),
     ('กมล ศิริพร', '087-890-1234', 'บริหารโครงการ', 'มากกว่า 10,000,000', 'บริหารโครงการหมู่บ้านจัดสรร', 'Contacted', 7);
+
+-- ===== SLA TRACKING =====
+-- Auto-set first_contact_at when status changes from 'New Lead'
+CREATE OR REPLACE FUNCTION auto_set_first_contact()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.status = 'New Lead' AND NEW.status != 'New Lead' AND NEW.first_contact_at IS NULL THEN
+        NEW.first_contact_at = NOW();
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER lead_first_contact
+    BEFORE UPDATE ON leads
+    FOR EACH ROW EXECUTE FUNCTION auto_set_first_contact();
+
+-- SLA breach check function (call via Edge Function or cron)
+CREATE OR REPLACE FUNCTION get_sla_breaches()
+RETURNS TABLE(
+    lead_id UUID,
+    lead_name TEXT,
+    lead_phone TEXT,
+    lead_score NUMERIC,
+    lead_created TIMESTAMPTZ,
+    minutes_since_created NUMERIC,
+    assigned_name TEXT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        l.id,
+        l.name,
+        l.phone,
+        l.score,
+        l.created_at,
+        EXTRACT(EPOCH FROM (NOW() - l.created_at)) / 60,
+        p.full_name
+    FROM leads l
+    LEFT JOIN profiles p ON l.assigned_to = p.id
+    WHERE l.status = 'New Lead'
+      AND l.first_contact_at IS NULL
+      AND (
+          (l.score >= 5 AND EXTRACT(EPOCH FROM (NOW() - l.created_at)) > 300) OR     -- 5 min for high
+          (l.score >= 3 AND EXTRACT(EPOCH FROM (NOW() - l.created_at)) > 7200) OR     -- 2 hr for mid
+          (l.score < 3 AND EXTRACT(EPOCH FROM (NOW() - l.created_at)) > 86400)        -- 24 hr for low
+      )
+    ORDER BY l.score DESC, l.created_at ASC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Index for SLA queries
+CREATE INDEX IF NOT EXISTS idx_leads_first_contact ON leads(first_contact_at) WHERE first_contact_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_leads_lost_reason ON leads(lost_reason) WHERE lost_reason IS NOT NULL;
