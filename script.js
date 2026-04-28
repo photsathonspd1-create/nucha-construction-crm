@@ -1,97 +1,6 @@
 // ===== Config =====
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
 
-// ===== CRM Data Store (localStorage) =====
-const CRM = {
-    KEY: 'nucha_crm_leads',
-    APPT_KEY: 'nucha_crm_appointments',
-    NOTES_KEY: 'nucha_crm_notes',
-
-    getLeads() {
-        try { return JSON.parse(localStorage.getItem(this.KEY)) || []; } catch { return []; }
-    },
-    saveLead(lead) {
-        const leads = this.getLeads();
-        lead.id = 'LEAD-' + Date.now();
-        lead.created_at = new Date().toISOString();
-        lead.status = 'New Lead';
-        lead.score = this.calculateScore(lead);
-        leads.unshift(lead);
-        localStorage.setItem(this.KEY, JSON.stringify(leads));
-        this.notifyNewLead(lead);
-        return lead;
-    },
-    updateLeadStatus(id, status) {
-        const leads = this.getLeads();
-        const lead = leads.find(l => l.id === id);
-        if (lead) {
-            lead.status = status;
-            lead.updated_at = new Date().toISOString();
-            localStorage.setItem(this.KEY, JSON.stringify(leads));
-        }
-    },
-    addNote(leadId, note) {
-        const notes = JSON.parse(localStorage.getItem(this.NOTES_KEY)) || [];
-        notes.push({
-            id: 'NOTE-' + Date.now(),
-            lead_id: leadId,
-            note: note,
-            created_at: new Date().toISOString()
-        });
-        localStorage.setItem(this.NOTES_KEY, JSON.stringify(notes));
-    },
-    getNotes(leadId) {
-        const notes = JSON.parse(localStorage.getItem(this.NOTES_KEY)) || [];
-        return notes.filter(n => n.lead_id === leadId);
-    },
-    getAppointments() {
-        try { return JSON.parse(localStorage.getItem(this.APPT_KEY)) || []; } catch { return []; }
-    },
-    saveAppointment(appt) {
-        const appts = this.getAppointments();
-        appt.id = 'APT-' + Date.now();
-        appt.status = 'confirmed';
-        appt.created_at = new Date().toISOString();
-        appts.unshift(appt);
-        localStorage.setItem(this.APPT_KEY, JSON.stringify(appts));
-        return appt;
-    },
-    calculateScore(lead) {
-        let score = 0;
-        // Budget scoring
-        const budgetScores = {
-            'มากกว่า 10,000,000': 5,
-            '5,000,000 - 10,000,000': 4,
-            '3,000,000 - 5,000,000': 3,
-            '1,000,000 - 3,000,000': 2,
-            '500,000 - 1,000,000': 1,
-            'ต่ำกว่า 500,000': 0.5
-        };
-        score += budgetScores[lead.budget_range] || 0;
-        // Service clarity
-        if (lead.service_type && lead.service_type !== 'อื่นๆ') score += 2;
-        // Has message = engaged
-        if (lead.message && lead.message.length > 10) score += 1;
-        // Has appointment
-        if (lead.date) score += 2;
-        return Math.round(score * 10) / 10;
-    },
-    notifyNewLead(lead) {
-        // Auto-reply simulation
-        console.log(`[CRM] New lead: ${lead.name} | ${lead.service_type} | Score: ${lead.score}`);
-        // In production: send LINE notification, email, etc.
-    },
-    getPipelineStats() {
-        const leads = this.getLeads();
-        const stages = ['New Lead', 'Contacted', 'Appointment Set', 'Proposal Sent', 'Closed', 'Lost'];
-        return stages.map(stage => ({
-            stage,
-            count: leads.filter(l => l.status === stage).length,
-            leads: leads.filter(l => l.status === stage)
-        }));
-    }
-};
-
 // ===== Loader =====
 window.addEventListener('load', () => {
     const loader = document.getElementById('loader');
@@ -249,21 +158,14 @@ document.querySelectorAll('.btn-next').forEach(btn => {
         const currentStep = btn.closest('.form-step');
         const currentStepNum = parseInt(currentStep.dataset.step);
 
-        // Validate current step
         if (currentStepNum === 1) {
             const selected = currentStep.querySelector('input[name="service_type"]:checked');
-            if (!selected) {
-                showFormError(currentStep, 'กรุณาเลือกบริการ');
-                return;
-            }
+            if (!selected) { showFormError(currentStep, 'กรุณาเลือกบริการ'); return; }
         }
         if (currentStepNum === 2) {
             const name = document.getElementById('bookingName').value.trim();
             const phone = document.getElementById('bookingPhone').value.trim();
-            if (!name || !phone) {
-                showFormError(currentStep, 'กรุณากรอกชื่อและเบอร์โทร');
-                return;
-            }
+            if (!name || !phone) { showFormError(currentStep, 'กรุณากรอกชื่อและเบอร์โทร'); return; }
         }
 
         goToStep(currentStepNum + 1);
@@ -316,9 +218,9 @@ if (dateInput) {
     dateInput.setAttribute('min', today);
 }
 
-// Form submission
+// Form submission — NOW USING SUPABASE
 if (bookingForm) {
-    bookingForm.addEventListener('submit', function(e) {
+    bookingForm.addEventListener('submit', async function(e) {
         e.preventDefault();
 
         const formData = new FormData(this);
@@ -328,45 +230,57 @@ if (bookingForm) {
             service_type: formData.get('service_type'),
             budget_range: formData.get('budget_range') || 'ไม่ระบุ',
             message: formData.get('message') || '',
-            date: formData.get('date'),
-            time: formData.get('time'),
-            meeting_type: formData.get('meeting_type') || 'onsite'
+            source: 'website'
         };
 
-        // Save to CRM
-        const savedLead = CRM.saveLead(lead);
+        const submitBtn = this.querySelector('.btn-submit');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span>กำลังส่ง...</span>';
+        submitBtn.disabled = true;
 
-        // Save appointment
-        if (lead.date && lead.time) {
-            CRM.saveAppointment({
-                lead_id: savedLead.id,
-                lead_name: lead.name,
-                date: lead.date,
-                time: lead.time,
-                meeting_type: lead.meeting_type,
-                service_type: lead.service_type
-            });
+        try {
+            // Save lead to Supabase
+            const savedLead = await CRM.saveLead(lead);
+
+            // Save appointment if date provided
+            if (formData.get('date') && formData.get('time')) {
+                await CRM.saveAppointment({
+                    lead_id: savedLead.id,
+                    lead_name: lead.name,
+                    date: formData.get('date'),
+                    time: formData.get('time'),
+                    meeting_type: formData.get('meeting_type') || 'onsite',
+                    service_type: lead.service_type
+                });
+            }
+
+            // Show success
+            formSteps.forEach(s => s.classList.remove('active'));
+            const successEl = document.getElementById('formSuccess');
+            successEl.classList.add('active');
+
+            const summary = document.getElementById('successSummary');
+            summary.innerHTML = `
+                <div class="success-detail"><strong>บริการ:</strong> ${lead.service_type}</div>
+                <div class="success-detail"><strong>งบประมาณ:</strong> ${lead.budget_range}</div>
+                ${formData.get('date') ? `<div class="success-detail"><strong>วันนัด:</strong> ${formatDate(formData.get('date'))} เวลา ${formData.get('time')}</div>` : ''}
+                <div class="success-detail"><strong>รูปแบบ:</strong> ${getMeetingTypeLabel(formData.get('meeting_type'))}</div>
+            `;
+
+            // Reset form after delay
+            setTimeout(() => {
+                bookingForm.reset();
+                successEl.classList.remove('active');
+                goToStep(1);
+            }, 8000);
+
+        } catch (err) {
+            console.error('Booking error:', err);
+            alert('เกิดข้อผิดพลาด กรุณาลองใหม่ หรือโทร 02-123-4567');
+        } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         }
-
-        // Show success
-        formSteps.forEach(s => s.classList.remove('active'));
-        const successEl = document.getElementById('formSuccess');
-        successEl.classList.add('active');
-
-        const summary = document.getElementById('successSummary');
-        summary.innerHTML = `
-            <div class="success-detail"><strong>บริการ:</strong> ${lead.service_type}</div>
-            <div class="success-detail"><strong>งบประมาณ:</strong> ${lead.budget_range}</div>
-            ${lead.date ? `<div class="success-detail"><strong>วันนัด:</strong> ${formatDate(lead.date)} เวลา ${lead.time}</div>` : ''}
-            <div class="success-detail"><strong>รูปแบบ:</strong> ${getMeetingTypeLabel(lead.meeting_type)}</div>
-        `;
-
-        // Reset form after delay
-        setTimeout(() => {
-            bookingForm.reset();
-            successEl.classList.remove('active');
-            goToStep(1);
-        }, 8000);
     });
 }
 

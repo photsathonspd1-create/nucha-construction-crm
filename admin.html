@@ -5,361 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NUCHA CRM - Admin Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Thai:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <style>
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --red: #D60000; --red-dark: #B00000; --red-light: #FF1A1A;
-            --red-soft: #FFF0F0; --white: #FFFFFF; --off-white: #FAFAFA;
-            --gray-50: #F7F5F4; --gray-100: #F0EDEB; --gray-200: #E4E0DE;
-            --gray-300: #C8C2BF; --gray-400: #9B9593; --gray-500: #6E6866;
-            --gray-600: #4A4543; --green: #06C755; --green-soft: #E8F9EF;
-            --blue: #2563EB; --blue-soft: #EFF6FF; --orange: #F59E0B;
-            --orange-soft: #FFF7ED; --purple: #7C3AED; --purple-soft: #F5F3FF;
-            --font-thai: 'Noto Sans Thai', sans-serif;
-            --font-display: 'Inter', sans-serif;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
-            --shadow-lg: 0 8px 30px rgba(0,0,0,0.1);
-            --radius: 10px; --radius-lg: 16px;
-        }
-        html { font-size: 14px; }
-        body { font-family: var(--font-thai); color: var(--gray-600); background: var(--gray-50); min-height: 100vh; }
-
-        /* Layout */
-        .admin-layout { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
-
-        /* Sidebar */
-        .sidebar {
-            background: var(--gray-600); color: var(--white);
-            padding: 28px 20px; display: flex; flex-direction: column;
-            position: sticky; top: 0; height: 100vh; overflow-y: auto;
-        }
-        .sidebar-logo {
-            display: flex; align-items: center; gap: 12px;
-            margin-bottom: 36px; padding-bottom: 24px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .sidebar-logo-icon {
-            width: 40px; height: 40px; background: var(--red);
-            border-radius: 10px; display: flex; align-items: center;
-            justify-content: center; font-family: var(--font-display);
-            font-weight: 900; font-size: 1.2rem;
-        }
-        .sidebar-logo-text {
-            font-family: var(--font-display); font-size: 0.65rem;
-            font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
-            line-height: 1.3;
-        }
-        .sidebar-nav { flex: 1; }
-        .sidebar-section { margin-bottom: 28px; }
-        .sidebar-section-title {
-            font-size: 0.65rem; font-weight: 700; letter-spacing: 2px;
-            text-transform: uppercase; color: rgba(255,255,255,0.35);
-            margin-bottom: 12px; font-family: var(--font-display);
-        }
-        .sidebar-link {
-            display: flex; align-items: center; gap: 12px;
-            padding: 10px 14px; border-radius: 8px;
-            color: rgba(255,255,255,0.6); font-size: 0.9rem;
-            font-weight: 500; cursor: pointer; transition: all 0.3s;
-            margin-bottom: 2px;
-        }
-        .sidebar-link:hover { background: rgba(255,255,255,0.08); color: var(--white); }
-        .sidebar-link.active { background: rgba(214, 0, 0, 0.2); color: var(--white); }
-        .sidebar-link svg { width: 18px; height: 18px; flex-shrink: 0; }
-        .sidebar-link .badge {
-            margin-left: auto; background: var(--red);
-            color: var(--white); font-size: 0.7rem; font-weight: 700;
-            padding: 2px 8px; border-radius: 50px;
-        }
-        .sidebar-back {
-            margin-top: auto; padding-top: 20px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-        .sidebar-back a {
-            display: flex; align-items: center; gap: 10px;
-            color: rgba(255,255,255,0.45); font-size: 0.85rem;
-            transition: color 0.3s;
-        }
-        .sidebar-back a:hover { color: var(--white); }
-
-        /* Main Content */
-        .main { padding: 32px; overflow-x: hidden; }
-        .main-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 32px;
-        }
-        .main-header h1 {
-            font-size: 1.8rem; font-weight: 800; color: var(--gray-600);
-            font-family: var(--font-display);
-        }
-        .main-header-sub {
-            font-size: 0.88rem; color: var(--gray-400); margin-top: 4px;
-        }
-        .header-actions { display: flex; gap: 10px; }
-
-        /* Cards */
-        .card {
-            background: var(--white); border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-sm); border: 1px solid var(--gray-100);
-            overflow: hidden;
-        }
-
-        /* Stat Cards */
-        .stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
-        .stat-card {
-            background: var(--white); border-radius: var(--radius-lg);
-            padding: 24px; box-shadow: var(--shadow-sm);
-            border: 1px solid var(--gray-100);
-            transition: all 0.3s;
-        }
-        .stat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-        .stat-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-        .stat-card-icon {
-            width: 40px; height: 40px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .stat-card-icon svg { width: 20px; height: 20px; }
-        .stat-card-icon.red { background: var(--red-soft); color: var(--red); }
-        .stat-card-icon.green { background: var(--green-soft); color: var(--green); }
-        .stat-card-icon.blue { background: var(--blue-soft); color: var(--blue); }
-        .stat-card-icon.orange { background: var(--orange-soft); color: var(--orange); }
-        .stat-card-num {
-            font-family: var(--font-display); font-size: 2rem;
-            font-weight: 900; color: var(--gray-600); line-height: 1;
-        }
-        .stat-card-label {
-            font-size: 0.82rem; color: var(--gray-400); margin-top: 6px;
-        }
-        .stat-card-trend {
-            font-size: 0.75rem; font-weight: 600; padding: 3px 8px;
-            border-radius: 50px; display: inline-block; margin-top: 8px;
-        }
-        .stat-card-trend.up { background: var(--green-soft); color: var(--green); }
-        .stat-card-trend.down { background: var(--red-soft); color: var(--red); }
-
-        /* Pipeline View */
-        .pipeline-section { margin-bottom: 28px; }
-        .pipeline-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 16px;
-        }
-        .pipeline-header h2 { font-size: 1.2rem; font-weight: 700; }
-        .pipeline-grid {
-            display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px;
-        }
-        .pipeline-col {
-            background: var(--gray-50); border-radius: var(--radius-lg);
-            padding: 16px; min-height: 200px;
-        }
-        .pipeline-col-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 14px; padding-bottom: 10px;
-            border-bottom: 2px solid var(--gray-200);
-        }
-        .pipeline-col-title {
-            font-size: 0.78rem; font-weight: 700; color: var(--gray-500);
-        }
-        .pipeline-col-count {
-            font-family: var(--font-display); font-size: 0.75rem;
-            font-weight: 700; background: var(--gray-200);
-            color: var(--gray-500); padding: 2px 8px; border-radius: 50px;
-        }
-        .pipeline-card {
-            background: var(--white); border-radius: var(--radius);
-            padding: 14px; margin-bottom: 8px; box-shadow: var(--shadow-sm);
-            border: 1px solid var(--gray-100); cursor: pointer;
-            transition: all 0.3s;
-        }
-        .pipeline-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-        .pipeline-card-name { font-weight: 700; font-size: 0.88rem; color: var(--gray-600); margin-bottom: 4px; }
-        .pipeline-card-service { font-size: 0.75rem; color: var(--gray-400); margin-bottom: 6px; }
-        .pipeline-card-budget {
-            font-size: 0.72rem; font-weight: 600; color: var(--red);
-            padding: 3px 8px; background: var(--red-soft);
-            border-radius: 50px; display: inline-block;
-        }
-        .pipeline-card-score {
-            float: right; font-size: 0.7rem; font-weight: 700;
-            color: var(--orange); background: var(--orange-soft);
-            padding: 2px 8px; border-radius: 50px;
-        }
-
-        /* Leads Table */
-        .table-section { margin-bottom: 28px; }
-        .table-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 16px;
-        }
-        .table-header h2 { font-size: 1.2rem; font-weight: 700; }
-        .table-actions { display: flex; gap: 10px; }
-        .search-input {
-            padding: 8px 14px; border: 2px solid var(--gray-200);
-            border-radius: 8px; font-size: 0.85rem; font-family: var(--font-thai);
-            width: 240px; transition: border-color 0.3s;
-        }
-        .search-input:focus { outline: none; border-color: var(--red); }
-        .filter-select {
-            padding: 8px 14px; border: 2px solid var(--gray-200);
-            border-radius: 8px; font-size: 0.85rem; font-family: var(--font-thai);
-            background: var(--white); cursor: pointer;
-        }
-        .filter-select:focus { outline: none; border-color: var(--red); }
-
-        .data-table { width: 100%; border-collapse: collapse; }
-        .data-table th {
-            text-align: left; padding: 12px 16px;
-            font-size: 0.75rem; font-weight: 700; color: var(--gray-400);
-            text-transform: uppercase; letter-spacing: 1px;
-            border-bottom: 2px solid var(--gray-100);
-            font-family: var(--font-display);
-        }
-        .data-table td {
-            padding: 14px 16px; border-bottom: 1px solid var(--gray-100);
-            font-size: 0.88rem;
-        }
-        .data-table tr:hover { background: var(--red-soft); }
-        .data-table tr { transition: background 0.2s; }
-
-        /* Status badges */
-        .status-badge {
-            display: inline-block; padding: 4px 12px;
-            border-radius: 50px; font-size: 0.75rem;
-            font-weight: 600;
-        }
-        .status-badge.new { background: var(--blue-soft); color: var(--blue); }
-        .status-badge.contacted { background: var(--orange-soft); color: var(--orange); }
-        .status-badge.appointment { background: var(--purple-soft); color: var(--purple); }
-        .status-badge.proposal { background: #FEF3C7; color: #D97706; }
-        .status-badge.closed { background: var(--green-soft); color: var(--green); }
-        .status-badge.lost { background: var(--gray-100); color: var(--gray-400); }
-
-        .score-badge {
-            display: inline-flex; align-items: center; gap: 4px;
-            font-family: var(--font-display); font-weight: 700;
-            font-size: 0.82rem;
-        }
-        .score-dot {
-            width: 8px; height: 8px; border-radius: 50%;
-        }
-        .score-high { color: var(--red); }
-        .score-high .score-dot { background: var(--red); }
-        .score-mid { color: var(--orange); }
-        .score-mid .score-dot { background: var(--orange); }
-        .score-low { color: var(--gray-400); }
-        .score-low .score-dot { background: var(--gray-300); }
-
-        /* Table action buttons */
-        .table-btn {
-            padding: 5px 10px; border-radius: 6px; border: none;
-            font-size: 0.75rem; font-weight: 600; cursor: pointer;
-            transition: all 0.2s; font-family: var(--font-thai);
-        }
-        .table-btn-edit { background: var(--blue-soft); color: var(--blue); }
-        .table-btn-edit:hover { background: var(--blue); color: var(--white); }
-        .table-btn-delete { background: var(--red-soft); color: var(--red); }
-        .table-btn-delete:hover { background: var(--red); color: var(--white); }
-
-        /* Appointments */
-        .appts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
-        .appt-card {
-            background: var(--white); border-radius: var(--radius-lg);
-            padding: 20px; box-shadow: var(--shadow-sm);
-            border: 1px solid var(--gray-100); border-left: 4px solid var(--red);
-        }
-        .appt-card-date {
-            font-family: var(--font-display); font-size: 0.82rem;
-            font-weight: 700; color: var(--red); margin-bottom: 8px;
-        }
-        .appt-card-name { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
-        .appt-card-detail { font-size: 0.82rem; color: var(--gray-400); }
-
-        /* Notes */
-        .note-item {
-            padding: 14px; border-bottom: 1px solid var(--gray-100);
-        }
-        .note-item:last-child { border-bottom: none; }
-        .note-text { font-size: 0.88rem; color: var(--gray-600); margin-bottom: 6px; }
-        .note-meta { font-size: 0.75rem; color: var(--gray-400); }
-
-        /* Modal */
-        .modal-overlay {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.4); z-index: 1000;
-            align-items: center; justify-content: center;
-            backdrop-filter: blur(4px);
-        }
-        .modal-overlay.active { display: flex; }
-        .modal {
-            background: var(--white); border-radius: var(--radius-lg);
-            padding: 32px; width: 90%; max-width: 560px;
-            box-shadow: var(--shadow-lg); max-height: 80vh; overflow-y: auto;
-        }
-        .modal h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: 20px; }
-        .modal-close {
-            float: right; background: none; border: none;
-            font-size: 1.5rem; cursor: pointer; color: var(--gray-400);
-        }
-        .modal-close:hover { color: var(--red); }
-        .modal .form-group { margin-bottom: 16px; }
-        .modal label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; }
-        .modal input, .modal select, .modal textarea {
-            width: 100%; padding: 10px 14px; border: 2px solid var(--gray-200);
-            border-radius: 8px; font-size: 0.88rem; font-family: var(--font-thai);
-        }
-        .modal input:focus, .modal select:focus, .modal textarea:focus {
-            outline: none; border-color: var(--red);
-        }
-        .modal textarea { resize: vertical; min-height: 80px; }
-        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-        .btn-save {
-            padding: 10px 24px; background: var(--red); color: var(--white);
-            border: none; border-radius: 8px; font-weight: 600;
-            cursor: pointer; font-family: var(--font-thai);
-        }
-        .btn-save:hover { background: var(--red-dark); }
-        .btn-cancel {
-            padding: 10px 24px; background: var(--gray-100); color: var(--gray-500);
-            border: none; border-radius: 8px; font-weight: 600;
-            cursor: pointer; font-family: var(--font-thai);
-        }
-        .btn-cancel:hover { background: var(--gray-200); }
-
-        /* Page sections */
-        .page-section { display: none; }
-        .page-section.active { display: block; }
-
-        /* Empty state */
-        .empty-state {
-            text-align: center; padding: 60px 20px; color: var(--gray-400);
-        }
-        .empty-state svg { width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.3; }
-        .empty-state h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--gray-500); }
-        .empty-state p { font-size: 0.88rem; }
-
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .pipeline-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-        @media (max-width: 1024px) {
-            .admin-layout { grid-template-columns: 1fr; }
-            .sidebar {
-                position: fixed; left: -280px; top: 0; width: 260px;
-                z-index: 100; transition: left 0.3s;
-            }
-            .sidebar.open { left: 0; }
-            .stat-cards { grid-template-columns: repeat(2, 1fr); }
-            .appts-grid { grid-template-columns: 1fr 1fr; }
-        }
-        @media (max-width: 768px) {
-            .stat-cards { grid-template-columns: 1fr; }
-            .pipeline-grid { grid-template-columns: 1fr 1fr; }
-            .appts-grid { grid-template-columns: 1fr; }
-            .main { padding: 20px; }
-            .table-actions { flex-direction: column; }
-            .search-input { width: 100%; }
-        }
-    </style>
+    <link rel="stylesheet" href="admin.css">
 </head>
 <body>
     <div class="admin-layout">
@@ -393,19 +39,37 @@
                         <span>นัดหมาย</span>
                         <span class="badge" id="apptsCount">0</span>
                     </div>
+                    <div class="sidebar-link" data-page="proposals" onclick="showPage('proposals')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        <span>ใบเสนอราคา</span>
+                    </div>
+                    <div class="sidebar-link" data-page="followups" onclick="showPage('followups')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span>Follow-up</span>
+                        <span class="badge" id="followupCount">0</span>
+                    </div>
                 </div>
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">ข้อมูล</div>
-                    <div class="sidebar-link" data-page="services-page" onclick="showPage('services-page')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                        <span>บริการ</span>
-                    </div>
-                    <div class="sidebar-link" data-page="portfolio-page" onclick="showPage('portfolio-page')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-                        <span>ผลงาน</span>
+                    <div class="sidebar-link" data-page="activities" onclick="showPage('activities')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        <span>กิจกรรม</span>
                     </div>
                 </div>
             </nav>
+            <div class="sidebar-footer">
+                <div class="sidebar-user" id="sidebarUser">
+                    <div class="sidebar-user-avatar">A</div>
+                    <div class="sidebar-user-info">
+                        <div class="sidebar-user-name" id="userName">Admin</div>
+                        <div class="sidebar-user-role" id="userRole">admin</div>
+                    </div>
+                </div>
+                <a href="#" class="sidebar-logout" onclick="Auth.signOut()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    ออกจากระบบ
+                </a>
+            </div>
             <div class="sidebar-back">
                 <a href="index.html">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m7 7l-7-7 7-7"/></svg>
@@ -416,6 +80,12 @@
 
         <!-- Main Content -->
         <main class="main">
+            <!-- Loading overlay -->
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="loading-spinner"></div>
+                <p>กำลังโหลดข้อมูล...</p>
+            </div>
+
             <!-- DASHBOARD PAGE -->
             <div class="page-section active" id="page-dashboard">
                 <div class="main-header">
@@ -427,8 +97,6 @@
                         <button class="btn-save" onclick="openAddLeadModal()">+ เพิ่ม Lead</button>
                     </div>
                 </div>
-
-                <!-- Stats -->
                 <div class="stat-cards">
                     <div class="stat-card">
                         <div class="stat-card-header">
@@ -467,8 +135,6 @@
                         <div class="stat-card-label">New Leads</div>
                     </div>
                 </div>
-
-                <!-- Recent Leads -->
                 <div class="card" style="padding: 24px;">
                     <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px;">Leads ล่าสุด</h3>
                     <div id="recentLeadsList"></div>
@@ -484,9 +150,9 @@
                     </div>
                     <div class="header-actions">
                         <button class="btn-save" onclick="openAddLeadModal()">+ เพิ่ม Lead</button>
+                        <button class="btn-cancel" onclick="exportLeadsCSV()">📥 Export CSV</button>
                     </div>
                 </div>
-
                 <div class="table-section">
                     <div class="table-header">
                         <div class="table-actions">
@@ -497,8 +163,8 @@
                                 <option value="Contacted">Contacted</option>
                                 <option value="Appointment Set">Appointment Set</option>
                                 <option value="Proposal Sent">Proposal Sent</option>
-                                <option value="Closed">Closed</option>
-                                <option value="Lost">Lost</option>
+                                <option value="Closed Won">Closed Won</option>
+                                <option value="Closed Lost">Closed Lost</option>
                             </select>
                             <select class="filter-select" id="serviceFilter" onchange="renderLeadsTable()">
                                 <option value="">ทุกบริการ</option>
@@ -554,72 +220,58 @@
                 <div class="appts-grid" id="apptsGrid"></div>
             </div>
 
-            <!-- SERVICES PAGE -->
-            <div class="page-section" id="page-services-page">
+            <!-- PROPOSALS PAGE -->
+            <div class="page-section" id="page-proposals">
                 <div class="main-header">
                     <div>
-                        <h1>บริการ</h1>
-                        <div class="main-header-sub">รายการบริการทั้งหมด</div>
+                        <h1>ใบเสนอราคา</h1>
+                        <div class="main-header-sub">จัดการใบเสนอราคา</div>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-save" onclick="openNewProposalModal()">+ สร้างใบเสนอราคา</button>
                     </div>
                 </div>
-                <div class="stat-cards">
-                    <div class="stat-card">
-                        <div style="font-size: 2rem; margin-bottom: 8px;">🏗️</div>
-                        <div style="font-weight: 700; margin-bottom: 4px;">รับเหมาก่อสร้าง</div>
-                        <div style="font-size: 0.82rem; color: var(--gray-400);">บ้าน อาคาร สำนักงาน โรงงาน</div>
-                        <div style="margin-top: 8px; font-size: 0.78rem; color: var(--red); font-weight: 600;">เริ่มต้น 500,000 บาท</div>
-                    </div>
-                    <div class="stat-card">
-                        <div style="font-size: 2rem; margin-bottom: 8px;">🪑</div>
-                        <div style="font-weight: 700; margin-bottom: 4px;">บิ้วอิน</div>
-                        <div style="font-size: 0.82rem; color: var(--gray-400);">ครัว ตู้เสื้อผ้า ชั้นวาง</div>
-                        <div style="margin-top: 8px; font-size: 0.78rem; color: var(--red); font-weight: 600;">เริ่มต้น 200,000 บาท</div>
-                    </div>
-                    <div class="stat-card">
-                        <div style="font-size: 2rem; margin-bottom: 8px;">✏️</div>
-                        <div style="font-weight: 700; margin-bottom: 4px;">ออกแบบ</div>
-                        <div style="font-size: 0.82rem; color: var(--gray-400);">สถาปัตย์ ภายใน 3D</div>
-                        <div style="margin-top: 8px; font-size: 0.78rem; color: var(--red); font-weight: 600;">เริ่มต้น 100,000 บาท</div>
-                    </div>
-                    <div class="stat-card">
-                        <div style="font-size: 2rem; margin-bottom: 8px;">🎨</div>
-                        <div style="font-weight: 700; margin-bottom: 4px;">ตกแต่ง</div>
-                        <div style="font-size: 0.82rem; color: var(--gray-400);">ปรับปรุง รีโนเวท</div>
-                        <div style="margin-top: 8px; font-size: 0.78rem; color: var(--red); font-weight: 600;">เริ่มต้น 150,000 บาท</div>
-                    </div>
-                    <div class="stat-card">
-                        <div style="font-size: 2rem; margin-bottom: 8px;">📋</div>
-                        <div style="font-weight: 700; margin-bottom: 4px;">บริหารโครงการ</div>
-                        <div style="font-size: 0.82rem; color: var(--gray-400);">วางแผน ควบคุม ตรวจสอบ</div>
-                        <div style="margin-top: 8px; font-size: 0.78rem; color: var(--red); font-weight: 600;">ตามขนาดโครงการ</div>
-                    </div>
+                <div class="card" style="padding: 24px;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>เลขที่</th>
+                                <th>ชื่อ</th>
+                                <th>Lead</th>
+                                <th>ยอดรวม</th>
+                                <th>สถานะ</th>
+                                <th>วันที่</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="proposalsTableBody"></tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- PORTFOLIO PAGE -->
-            <div class="page-section" id="page-portfolio-page">
+            <!-- FOLLOW-UPS PAGE -->
+            <div class="page-section" id="page-followups">
                 <div class="main-header">
                     <div>
-                        <h1>ผลงาน</h1>
-                        <div class="main-header-sub">Portfolio ของบริษัท</div>
+                        <h1>Follow-up</h1>
+                        <div class="main-header-sub">รายการติดตามที่ต้องทำ</div>
                     </div>
                 </div>
-                <div class="stat-cards">
-                    <div class="stat-card">
-                        <div style="font-size: 0.82rem; color: var(--gray-400); margin-bottom: 8px;">รับเหมาก่อสร้าง</div>
-                        <div style="font-weight: 700; font-size: 1rem;">บ้านโมเดิร์น วิลล่า</div>
-                        <div style="font-size: 0.78rem; color: var(--gray-400); margin-top: 4px;">สุขุมวิท 50 · 8.5 ล้าน</div>
+                <div class="card" style="padding: 24px;">
+                    <div id="followupsList"></div>
+                </div>
+            </div>
+
+            <!-- ACTIVITIES PAGE -->
+            <div class="page-section" id="page-activities">
+                <div class="main-header">
+                    <div>
+                        <h1>กิจกรรม</h1>
+                        <div class="main-header-sub">บันทึกการเปลี่ยนแปลงทั้งหมด</div>
                     </div>
-                    <div class="stat-card">
-                        <div style="font-size: 0.82rem; color: var(--gray-400); margin-bottom: 8px;">บิ้วอิน + ตกแต่ง</div>
-                        <div style="font-weight: 700; font-size: 1rem;">คอนโด ลักชัวรี่</div>
-                        <div style="font-size: 0.78rem; color: var(--gray-400); margin-top: 4px;">พระราม 9 · 2.8 ล้าน</div>
-                    </div>
-                    <div class="stat-card">
-                        <div style="font-size: 0.82rem; color: var(--gray-400); margin-bottom: 8px;">รีโนเวท</div>
-                        <div style="font-weight: 700; font-size: 1rem;">บ้านเก่า → ใหม่</div>
-                        <div style="font-size: 0.78rem; color: var(--gray-400); margin-top: 4px;">ลาดพร้าว 71 · 1.5 ล้าน</div>
-                    </div>
+                </div>
+                <div class="card" style="padding: 24px;">
+                    <div id="activitiesList"></div>
                 </div>
             </div>
         </main>
@@ -639,6 +291,10 @@
                 <div class="form-group">
                     <label>เบอร์โทรศัพท์ *</label>
                     <input type="tel" id="modalPhone" required>
+                </div>
+                <div class="form-group">
+                    <label>อีเมล</label>
+                    <input type="email" id="modalEmail">
                 </div>
                 <div class="form-group">
                     <label>บริการที่สนใจ</label>
@@ -670,13 +326,17 @@
                         <option value="Contacted">Contacted</option>
                         <option value="Appointment Set">Appointment Set</option>
                         <option value="Proposal Sent">Proposal Sent</option>
-                        <option value="Closed">Closed</option>
-                        <option value="Lost">Lost</option>
+                        <option value="Closed Won">Closed Won</option>
+                        <option value="Closed Lost">Closed Lost</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>หมายเหตุ</label>
+                    <label>บันทึก / Follow-up</label>
                     <textarea id="modalNote" placeholder="เพิ่มบันทึก..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>วันนัดติดตาม (ถ้ามี)</label>
+                    <input type="date" id="modalFollowUpDate">
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel" onclick="closeLeadModal()">ยกเลิก</button>
@@ -686,370 +346,92 @@
         </div>
     </div>
 
-    <script>
-        // ===== CRM Data (same as main site — localStorage) =====
-        const CRM = {
-            KEY: 'nucha_crm_leads',
-            APPT_KEY: 'nucha_crm_appointments',
-            NOTES_KEY: 'nucha_crm_notes',
-
-            getLeads() {
-                try { return JSON.parse(localStorage.getItem(this.KEY)) || []; } catch { return []; }
-            },
-            saveLead(lead) {
-                const leads = this.getLeads();
-                if (!lead.id) {
-                    lead.id = 'LEAD-' + Date.now();
-                    lead.created_at = new Date().toISOString();
-                }
-                if (!lead.score) lead.score = this.calculateScore(lead);
-                leads.unshift(lead);
-                localStorage.setItem(this.KEY, JSON.stringify(leads));
-                return lead;
-            },
-            updateLead(id, updates) {
-                const leads = this.getLeads();
-                const idx = leads.findIndex(l => l.id === id);
-                if (idx !== -1) {
-                    Object.assign(leads[idx], updates);
-                    leads[idx].updated_at = new Date().toISOString();
-                    leads[idx].score = this.calculateScore(leads[idx]);
-                    localStorage.setItem(this.KEY, JSON.stringify(leads));
-                }
-            },
-            deleteLead(id) {
-                let leads = this.getLeads();
-                leads = leads.filter(l => l.id !== id);
-                localStorage.setItem(this.KEY, JSON.stringify(leads));
-            },
-            addNote(leadId, note) {
-                const notes = JSON.parse(localStorage.getItem(this.NOTES_KEY)) || [];
-                notes.push({
-                    id: 'NOTE-' + Date.now(),
-                    lead_id: leadId,
-                    note: note,
-                    created_at: new Date().toISOString()
-                });
-                localStorage.setItem(this.NOTES_KEY, JSON.stringify(notes));
-            },
-            getNotes(leadId) {
-                const notes = JSON.parse(localStorage.getItem(this.NOTES_KEY)) || [];
-                return notes.filter(n => n.lead_id === leadId);
-            },
-            getAppointments() {
-                try { return JSON.parse(localStorage.getItem(this.APPT_KEY)) || []; } catch { return []; }
-            },
-            calculateScore(lead) {
-                let score = 0;
-                const budgetScores = {
-                    'มากกว่า 10,000,000': 5,
-                    '5,000,000 - 10,000,000': 4,
-                    '3,000,000 - 5,000,000': 3,
-                    '1,000,000 - 3,000,000': 2,
-                    '500,000 - 1,000,000': 1,
-                    'ต่ำกว่า 500,000': 0.5
-                };
-                score += budgetScores[lead.budget_range] || 0;
-                if (lead.service_type && lead.service_type !== 'อื่นๆ') score += 2;
-                if (lead.message && lead.message.length > 10) score += 1;
-                if (lead.date) score += 2;
-                return Math.round(score * 10) / 10;
-            }
-        };
-
-        // ===== Page Navigation =====
-        function showPage(pageId) {
-            document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
-
-            const page = document.getElementById('page-' + pageId);
-            if (page) page.classList.add('active');
-
-            const link = document.querySelector(`.sidebar-link[data-page="${pageId}"]`);
-            if (link) link.classList.add('active');
-
-            refreshData();
-        }
-
-        // ===== Refresh All Data =====
-        function refreshData() {
-            const leads = CRM.getLeads();
-            const appts = CRM.getAppointments();
-            const today = new Date().toISOString().split('T')[0];
-
-            // Stats
-            document.getElementById('totalLeads').textContent = leads.length;
-            document.getElementById('closedDeals').textContent = leads.filter(l => l.status === 'Closed').length;
-            document.getElementById('todayAppts').textContent = appts.filter(a => a.date === today).length;
-            document.getElementById('newLeads').textContent = leads.filter(l => l.status === 'New Lead').length;
-            document.getElementById('leadsCount').textContent = leads.length;
-            document.getElementById('apptsCount').textContent = appts.length;
-
-            // Recent leads
-            renderRecentLeads(leads.slice(0, 5));
-
-            // Leads table
-            renderLeadsTable();
-
-            // Pipeline
-            renderPipeline();
-
-            // Appointments
-            renderAppointments();
-        }
-
-        // ===== Render Recent Leads (Dashboard) =====
-        function renderRecentLeads(leads) {
-            const container = document.getElementById('recentLeadsList');
-            if (leads.length === 0) {
-                container.innerHTML = '<div class="empty-state"><h3>ยังไม่มี Lead</h3><p>Lead จะปรากฏที่นี่เมื่อมีลูกค้ากรอกฟอร์ม</p></div>';
-                return;
-            }
-            container.innerHTML = leads.map(l => `
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--gray-100);">
-                    <div>
-                        <div style="font-weight: 700;">${l.name}</div>
-                        <div style="font-size: 0.82rem; color: var(--gray-400);">${l.service_type} · ${l.phone}</div>
+    <!-- Proposal Modal -->
+    <div class="modal-overlay" id="proposalModal">
+        <div class="modal" style="max-width: 700px;">
+            <button class="modal-close" onclick="closeProposalModal()">&times;</button>
+            <h2>สร้างใบเสนอราคา</h2>
+            <form id="proposalForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Lead *</label>
+                        <select id="proposalLead" required></select>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <span class="status-badge ${getStatusClass(l.status)}">${l.status}</span>
-                        ${getScoreHTML(l.score)}
+                    <div class="form-group">
+                        <label>วันหมดอายุ</label>
+                        <input type="date" id="proposalValidUntil">
                     </div>
                 </div>
-            `).join('');
-        }
-
-        // ===== Render Leads Table =====
-        function renderLeadsTable() {
-            let leads = CRM.getLeads();
-            const search = document.getElementById('leadSearch')?.value?.toLowerCase() || '';
-            const statusF = document.getElementById('statusFilter')?.value || '';
-            const serviceF = document.getElementById('serviceFilter')?.value || '';
-
-            if (search) leads = leads.filter(l =>
-                l.name?.toLowerCase().includes(search) ||
-                l.phone?.includes(search)
-            );
-            if (statusF) leads = leads.filter(l => l.status === statusF);
-            if (serviceF) leads = leads.filter(l => l.service_type === serviceF);
-
-            const tbody = document.getElementById('leadsTableBody');
-            if (!tbody) return;
-
-            if (leads.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><h3>ไม่พบข้อมูล</h3></div></td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = leads.map(l => `
-                <tr>
-                    <td><strong>${l.name}</strong></td>
-                    <td>${l.phone}</td>
-                    <td>${l.service_type || '-'}</td>
-                    <td>${l.budget_range || '-'}</td>
-                    <td>${getScoreHTML(l.score)}</td>
-                    <td>
-                        <select class="filter-select" style="padding:4px 8px; font-size:0.78rem;" onchange="changeStatus('${l.id}', this.value)">
-                            ${['New Lead','Contacted','Appointment Set','Proposal Sent','Closed','Lost'].map(s =>
-                                `<option value="${s}" ${l.status === s ? 'selected' : ''}>${s}</option>`
-                            ).join('')}
-                        </select>
-                    </td>
-                    <td style="font-size: 0.82rem; color: var(--gray-400);">${formatDate(l.created_at)}</td>
-                    <td>
-                        <button class="table-btn table-btn-edit" onclick="openEditLeadModal('${l.id}')">แก้ไข</button>
-                        <button class="table-btn table-btn-delete" onclick="deleteLeadConfirm('${l.id}')">ลบ</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        // ===== Render Pipeline =====
-        function renderPipeline() {
-            const leads = CRM.getLeads();
-            const stages = ['New Lead', 'Contacted', 'Appointment Set', 'Proposal Sent', 'Closed', 'Lost'];
-            const grid = document.getElementById('pipelineGrid');
-            if (!grid) return;
-
-            grid.innerHTML = stages.map(stage => {
-                const stageLeads = leads.filter(l => l.status === stage);
-                return `
-                    <div class="pipeline-col">
-                        <div class="pipeline-col-header">
-                            <span class="pipeline-col-title">${stage}</span>
-                            <span class="pipeline-col-count">${stageLeads.length}</span>
+                <div class="form-group">
+                    <label>หัวข้อ *</label>
+                    <input type="text" id="proposalTitle" placeholder="เช่น ใบเสนอราคา บ้าน 2 ชั้น สุขุมวิท 50" required>
+                </div>
+                <div class="form-group">
+                    <label>รายการ</label>
+                    <div id="proposalItems">
+                        <div class="proposal-item-row">
+                            <input type="text" placeholder="รายการ" class="proposal-item-name" style="flex:2">
+                            <input type="number" placeholder="จำนวน" class="proposal-item-qty" style="flex:1" value="1">
+                            <input type="number" placeholder="ราคา/หน่วย" class="proposal-item-price" style="flex:1">
+                            <button type="button" class="table-btn table-btn-delete" onclick="removeProposalItem(this)">ลบ</button>
                         </div>
-                        ${stageLeads.map(l => `
-                            <div class="pipeline-card" onclick="openEditLeadModal('${l.id}')">
-                                ${l.score >= 5 ? '<span class="pipeline-card-score">🔥 ' + l.score + '</span>' : ''}
-                                <div class="pipeline-card-name">${l.name}</div>
-                                <div class="pipeline-card-service">${l.service_type || '-'}</div>
-                                <span class="pipeline-card-budget">${l.budget_range || 'ไม่ระบุ'}</span>
-                            </div>
-                        `).join('')}
                     </div>
-                `;
-            }).join('');
-        }
-
-        // ===== Render Appointments =====
-        function renderAppointments() {
-            const appts = CRM.getAppointments();
-            const grid = document.getElementById('apptsGrid');
-            if (!grid) return;
-
-            if (appts.length === 0) {
-                grid.innerHTML = '<div class="empty-state"><h3>ยังไม่มีนัดหมาย</h3><p>นัดหมายจะปรากฏที่นี่เมื่อลูกค้าจองคิว</p></div>';
-                return;
-            }
-
-            grid.innerHTML = appts.map(a => `
-                <div class="appt-card">
-                    <div class="appt-card-date">📅 ${formatDate(a.date)} เวลา ${a.time}</div>
-                    <div class="appt-card-name">${a.lead_name || 'ไม่ระบุ'}</div>
-                    <div class="appt-card-detail">${a.service_type || ''} · ${getMeetingLabel(a.meeting_type)}</div>
+                    <button type="button" class="btn-cancel" style="margin-top:8px" onclick="addProposalItem()">+ เพิ่มรายการ</button>
                 </div>
-            `).join('');
-        }
+                <div class="form-group">
+                    <label>หมายเหตุ</label>
+                    <textarea id="proposalNotes" placeholder="เงื่อนไข ข้อตกลง..."></textarea>
+                </div>
+                <div style="text-align:right;font-size:1.2rem;font-weight:800;margin:16px 0;">
+                    ยอดรวม: <span id="proposalTotal">฿0</span>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeProposalModal()">ยกเลิก</button>
+                    <button type="submit" class="btn-save">บันทึกใบเสนอราคา</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        // ===== Helpers =====
-        function getStatusClass(status) {
-            const map = {
-                'New Lead': 'new', 'Contacted': 'contacted',
-                'Appointment Set': 'appointment', 'Proposal Sent': 'proposal',
-                'Closed': 'closed', 'Lost': 'lost'
-            };
-            return map[status] || 'new';
-        }
+    <!-- Note Detail Modal -->
+    <div class="modal-overlay" id="noteModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeNoteModal()">&times;</button>
+            <h2>บันทึก Lead</h2>
+            <div id="noteModalContent"></div>
+            <form id="noteForm" style="margin-top: 20px;">
+                <input type="hidden" id="noteLeadId">
+                <div class="form-group">
+                    <label>เพิ่มบันทึก</label>
+                    <textarea id="newNoteText" placeholder="บันทึก..." required></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ประเภท</label>
+                        <select id="newNoteType">
+                            <option value="general">ทั่วไป</option>
+                            <option value="follow_up">Follow-up</option>
+                            <option value="call">โทรศัพท์</option>
+                            <option value="meeting">นัดหมาย</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>วันนัดติดตาม</label>
+                        <input type="date" id="newNoteFollowUp">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn-save">เพิ่มบันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        function getScoreHTML(score) {
-            if (!score) return '';
-            const cls = score >= 5 ? 'score-high' : score >= 3 ? 'score-mid' : 'score-low';
-            return `<span class="score-badge ${cls}"><span class="score-dot"></span>${score}</span>`;
-        }
-
-        function formatDate(iso) {
-            if (!iso) return '-';
-            const d = new Date(iso);
-            return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()+543}`;
-        }
-
-        function getMeetingLabel(type) {
-            const labels = { 'onsite': 'เข้าดูหน้างาน', 'online': 'วิดีโอคอล', 'phone': 'โทรศัพท์' };
-            return labels[type] || type || '-';
-        }
-
-        // ===== Modal =====
-        function openAddLeadModal() {
-            document.getElementById('modalTitle').textContent = 'เพิ่ม Lead ใหม่';
-            document.getElementById('modalLeadForm').reset();
-            document.getElementById('editLeadId').value = '';
-            document.getElementById('leadModal').classList.add('active');
-        }
-
-        function openEditLeadModal(id) {
-            const leads = CRM.getLeads();
-            const lead = leads.find(l => l.id === id);
-            if (!lead) return;
-
-            document.getElementById('modalTitle').textContent = 'แก้ไข Lead';
-            document.getElementById('editLeadId').value = id;
-            document.getElementById('modalName').value = lead.name || '';
-            document.getElementById('modalPhone').value = lead.phone || '';
-            document.getElementById('modalService').value = lead.service_type || 'อื่นๆ';
-            document.getElementById('modalBudget').value = lead.budget_range || 'ไม่ระบุ';
-            document.getElementById('modalStatus').value = lead.status || 'New Lead';
-            document.getElementById('modalNote').value = '';
-
-            // Show existing notes
-            const notes = CRM.getNotes(id);
-            if (notes.length > 0) {
-                document.getElementById('modalNote').placeholder = 'บันทึกล่าสุด: ' + notes[notes.length - 1].note;
-            }
-
-            document.getElementById('leadModal').classList.add('active');
-        }
-
-        function closeLeadModal() {
-            document.getElementById('leadModal').classList.remove('active');
-        }
-
-        // Form submit
-        document.getElementById('modalLeadForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const editId = document.getElementById('editLeadId').value;
-            const data = {
-                name: document.getElementById('modalName').value,
-                phone: document.getElementById('modalPhone').value,
-                service_type: document.getElementById('modalService').value,
-                budget_range: document.getElementById('modalBudget').value,
-                status: document.getElementById('modalStatus').value
-            };
-
-            const note = document.getElementById('modalNote').value.trim();
-
-            if (editId) {
-                CRM.updateLead(editId, data);
-                if (note) CRM.addNote(editId, note);
-            } else {
-                const lead = CRM.saveLead(data);
-                if (note) CRM.addNote(lead.id, note);
-            }
-
-            closeLeadModal();
-            refreshData();
-        });
-
-        function changeStatus(id, status) {
-            CRM.updateLead(id, { status });
-            refreshData();
-        }
-
-        function deleteLeadConfirm(id) {
-            if (confirm('ลบ Lead นี้?')) {
-                CRM.deleteLead(id);
-                refreshData();
-            }
-        }
-
-        // ===== Seed demo data if empty =====
-        function seedDemoData() {
-            if (CRM.getLeads().length > 0) return;
-
-            const demoLeads = [
-                { name: 'สมชาย วงศ์สุข', phone: '081-234-5678', service_type: 'รับเหมาก่อสร้าง', budget_range: '3,000,000 - 5,000,000', status: 'New Lead', message: 'ต้องการสร้างบ้าน 2 ชั้น ซอยสุขุมวิท 50' },
-                { name: 'ประภา ศรีสุวรรณ', phone: '089-876-5432', service_type: 'บิ้วอิน', budget_range: '500,000 - 1,000,000', status: 'Contacted', message: 'บิ้วอินครัวและตู้เสื้อผ้า' },
-                { name: 'วิชัย พัฒนาทรัพย์', phone: '092-345-6789', service_type: 'ออกแบบ', budget_range: '1,000,000 - 3,000,000', status: 'Appointment Set', date: '2026-05-02', time: '10:00', message: 'ออกแบบบ้านโมเดิร์น' },
-                { name: 'อรุณ จันทร์เจริญ', phone: '085-678-9012', service_type: 'ตกแต่ง', budget_range: '500,000 - 1,000,000', status: 'Proposal Sent', message: 'รีโนเวทคอนโด' },
-                { name: 'สุดา มั่นคง', phone: '093-456-7890', service_type: 'รับเหมาก่อสร้าง', budget_range: '5,000,000 - 10,000,000', status: 'New Lead', message: 'สร้างออฟฟิศ 3 ชั้น' },
-                { name: 'กมล ศิริพร', phone: '087-890-1234', service_type: 'บริหารโครงการ', budget_range: 'มากกว่า 10,000,000', status: 'Contacted', message: 'บริหารโครงการหมู่บ้านจัดสรร' },
-            ];
-
-            demoLeads.forEach(l => CRM.saveLead(l));
-
-            // Seed appointments
-            const leads = CRM.getLeads();
-            const apptLead = leads.find(l => l.date);
-            if (apptLead) {
-                const appts = JSON.parse(localStorage.getItem(CRM.APPT_KEY)) || [];
-                appts.push({
-                    id: 'APT-DEMO',
-                    lead_id: apptLead.id,
-                    lead_name: apptLead.name,
-                    date: apptLead.date,
-                    time: apptLead.time,
-                    meeting_type: 'onsite',
-                    service_type: apptLead.service_type,
-                    status: 'confirmed',
-                    created_at: new Date().toISOString()
-                });
-                localStorage.setItem(CRM.APPT_KEY, JSON.stringify(appts));
-            }
-        }
-
-        // ===== Init =====
-        seedDemoData();
-        refreshData();
-    </script>
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase/config.js"></script>
+    <script src="supabase/auth.js"></script>
+    <script src="supabase/crm.js"></script>
+    <script src="admin.js"></script>
 </body>
 </html>

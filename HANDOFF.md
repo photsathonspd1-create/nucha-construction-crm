@@ -1,150 +1,189 @@
 # 🔄 HANDOFF — NUCHA INNOVATION Construction CRM
 
-> อัปเดต: 2026-04-28 23:59 GMT+8
+> อัปเดต: 2026-04-29 02:10 GMT+8
 > Agent: Main session (webchat)
 > Repo: https://github.com/dmz2001TH/nucha-construction-crm
 
 ---
 
-## 📌 สถานะปัจจุบัน: Frontend + localStorage CRM เสร็จ 100%
+## 📌 สถานะปัจจุบัน: Supabase Backend + Auth + Full CRM เสร็จ
 
 ---
 
 ## 🏗️ สิ่งที่เสร็จแล้ว (DONE)
 
-### 1. หน้าเว็บหลัก (`index.html`)
-- [x] Hero section — "สร้างทุกความฝัน" (ไม่ใช่ขายบ้าน)
-- [x] Break scene — Philosophy WOW moment
-- [x] **Services section (5 บริการ)** — รับเหมาก่อสร้าง, บิ้วอิน, ออกแบบ, ตกแต่ง, บริหารโครงการ
-- [x] Sticky story — Process 3 ขั้นตอน (รับฟัง → ออกแบบ → ส่งมอบ)
-- [x] Portfolio section — ผลงาน (ไม่ใช่สินค้าขาย)
-- [x] **Multi-step booking form** — 3 steps: เลือกบริการ → กรอกข้อมูล + งบ → นัดวัน
-- [x] Stats section — 120+ โครงการ, 10+ ปี, 500+ ลูกค้า
-- [x] Testimonials — 3 รีวิว (เน้นบริการ ไม่ใช่ขายบ้าน)
-- [x] Closing section — Conversion closer
-- [x] Trust badges — SCG, TOA, COTTO, etc.
-- [x] Footer + Floating CTA (LINE + โทร)
-- [x] Custom cursor, GSAP animations, scroll effects (ทั้งหมดจากเว็บเดิม)
+### 1. Supabase Database (`supabase/schema.sql`)
+- [x] **leads** table — name, phone, email, service_type, budget_range, status, score
+- [x] **appointments** table — date, time, meeting_type, linked to lead
+- [x] **proposals** table — items (JSONB), total, status, valid_until
+- [x] **notes** table — note_type, follow_up_date, follow_up_done
+- [x] **activities** table — auto-logged on status change (DB trigger)
+- [x] **profiles** table — auto-created on signup
+- [x] **RLS policies** — authenticated for admin, public insert for website form
+- [x] **Lead scoring function** — budget + service + engagement + appointment
+- [x] **Demo data** — 6 seed leads
+- [x] **Indexes** — status, created_at, score, date, follow_up
 
-### 2. CRM Logic (`script.js`)
-- [x] **localStorage-based CRM** — leads, appointments, notes
-- [x] Lead scoring system (งบสูง +3, บริการชัด +2, มีข้อความ +1, นัดคิว +2)
-- [x] Pipeline stages: New Lead → Contacted → Appointment Set → Proposal Sent → Closed → Lost
-- [x] Multi-step form validation + navigation
-- [x] Service card → pre-select booking form
-- [x] Budget filter options: ต่ำกว่า 500K / 500K–1M / 1M–3M / 3M–5M / 5M–10M / 10M+
-- [x] Meeting types: onsite / online / phone
-- [x] Auto-reply message on submit
-- [x] Success state with summary
+### 2. Supabase Client (`supabase/crm.js`)
+- [x] Full async CRM module replacing localStorage
+- [x] getLeads, saveLead, updateLead, deleteLead, searchLeads
+- [x] getAppointments, saveAppointment, updateAppointment
+- [x] getNotes, addNote, getPendingFollowUps, markFollowUpDone
+- [x] getProposals, saveProposal, updateProposal
+- [x] getActivities, logActivity
+- [x] getStats, getPipelineStats
+- [x] calculateScore, formatDate, getMeetingLabel
+- [x] notifyNewLead (calls Edge Function)
 
-### 3. Admin Dashboard (`admin.html`)
-- [x] Sidebar navigation
-- [x] **Dashboard** — Stats cards + Recent leads
-- [x] **Leads page** — Table with search, filter by status/service, edit, delete, change status
-- [x] **Pipeline view** — 6-column kanban style
-- [x] **Appointments page** — แสดงนัดหมายทั้งหมด
-- [x] **Services page** — ข้อมูลบริการทั้งหมด
-- [x] **Portfolio page** — ผลงาน
-- [x] Add/Edit lead modal
-- [x] Demo data seeding (6 leads + 1 appointment)
+### 3. Authentication (`supabase/auth.js` + `admin-login.html`)
+- [x] Supabase Auth (email + password)
+- [x] Login page with error handling
+- [x] Auto-redirect to admin if already logged in
+- [x] Profile loading (name, role)
+- [x] Sign out
 
-### 4. Styling (`style.css`)
-- [x] Service cards with budget tags
-- [x] Multi-step form styles (service options, budget pills, meeting options)
-- [x] Booking section layout
-- [x] Responsive design (mobile/tablet/desktop)
-- [x] All original animations and effects preserved
+### 4. Admin Dashboard (`admin.html` + `admin.js` + `admin.css`)
+- [x] Auth-gated (redirects to login if not authenticated)
+- [x] **Dashboard** — stats cards + recent leads
+- [x] **Leads** — table with search, filter, status change, edit, delete
+- [x] **Pipeline** — 6-column kanban (New Lead → Closed Won/Lost)
+- [x] **Appointments** — grid view
+- [x] **Proposals** — create, edit status, item-based quotation
+- [x] **Follow-ups** — pending follow-ups with mark-done
+- [x] **Activities** — auto-logged status changes
+- [x] **Export CSV** — download leads data
+- [x] **Notes modal** — per-lead notes with follow-up dates
+- [x] Loading overlay
+- [x] User profile in sidebar
+
+### 5. Website Form (`script.js` + `index.html`)
+- [x] Supabase SDK loaded
+- [x] Form submission → CRM.saveLead() → Supabase
+- [x] Appointment creation → CRM.saveAppointment() → Supabase
+- [x] All GSAP animations preserved
+- [x] All existing UI unchanged
+
+### 6. Edge Functions (`supabase/functions/`)
+- [x] **notify** — LINE Notify + Email on new lead
+- [x] **followup-reminder** — daily check for overdue follow-ups
+- [x] **daily-summary** — evening CRM summary
+
+### 7. Styling
+- [x] Admin CSS extracted to `admin.css`
+- [x] All original styles preserved
+- [x] New styles for proposals, follow-ups, activities
 
 ---
 
-## ❌ สิ่งที่ลบออก (Bias ขายอสังหา)
-
-- [x] "PROJECTS FOR SALE" section
-- [x] Project cards with urgency badges ("เหลือ X ยูนิต")
-- [x] Perks like "ฟรีค่าโอน", "ฟรีเฟอร์นิเจอร์"
-- [x] Pipeline แบบ New → Interested → Closed (เปลี่ยนเป็น 6 stages)
-
----
-
-## ⚙️ Flow การทำงาน
+## ⚙️ Architecture
 
 ```
-[User หน้าเว็บ]
-    ↓
-เลือกบริการ (6 ตัวเลือก)
-    ↓
-กรอกชื่อ + เบอร์ + งบประมาณ
-    ↓
-นัดวัน + เวลา + รูปแบบ (onsite/online/phone)
-    ↓
-Submit → CRM.saveLead() + CRM.saveAppointment()
-    ↓
-[localStorage] ← Admin Dashboard อ่าน
-    ↓
-[Admin] ดู Dashboard → จัดการ Leads → Pipeline → นัดหมาย
+[Website Visitor]
+    ↓ fills form
+[index.html + script.js]
+    ↓ CRM.saveLead() / CRM.saveAppointment()
+[Supabase JS Client]
+    ↓ REST API
+[Supabase PostgreSQL]
+    ├── leads table (with RLS)
+    ├── appointments table
+    ├── proposals table
+    ├── notes table
+    └── activities table (auto-trigger)
+         ↓
+[Edge Functions] → LINE Notify / Email
+
+[Admin]
+    ↓ login
+[admin-login.html] → Supabase Auth
+    ↓ session
+[admin.html + admin.js]
+    ↓ reads/writes
+[Supabase PostgreSQL]
 ```
 
 ---
 
-## 📋 สิ่งที่ต้องทำต่อ (TODO — ถ้ามี)
+## 📋 ตั้งค่า Supabase (ขั้นตอน)
 
-### Priority 1: Backend Integration
-- [ ] **Replace localStorage ด้วย Database จริง** (Supabase / Firebase / PostgreSQL)
-- [ ] **API endpoints** สำหรับ leads, appointments, notes
-- [ ] **Authentication** สำหรับ admin panel
+1. สร้าง project ที่ supabase.com
+2. รัน `supabase/schema.sql` ใน SQL Editor
+3. แก้ `supabase/config.js` — ใส่ URL + Anon Key
+4. สร้าง admin user ใน Authentication
+5. Deploy Edge Functions (ถ้าต้องการ notifications)
+6. Upload ไฟล์ไป Hostinger
+
+---
+
+## 📋 สิ่งที่ต้องทำต่อ (TODO)
+
+### Priority 1: ตั้งค่า Production
+- [ ] สร้าง Supabase project จริง
+- [ ] ใส่ credentials ใน config.js
+- [ ] สร้าง admin user
+- [ ] Deploy บน Hostinger
+- [ ] ทดสอบ form submission → admin dashboard
 
 ### Priority 2: Notifications
-- [ ] **LINE Notify** — ส่งแจ้งเตือนเมื่อมี lead ใหม่
-- [ ] **Email notification** — ส่งอีเมลแจ้งเตือน
-- [ ] **Auto-reply** จริง (LINE / SMS)
+- [ ] สร้าง LINE Notify token
+- [ ] Deploy notify Edge Function
+- [ ] ตั้งค่า SMTP สำหรับ email
+- [ ] Deploy followup-reminder (cron)
+- [ ] Deploy daily-summary (cron)
 
-### Priority 3: Enhanced CRM
-- [ ] **CRM Notes** ใน admin panel (แสดง/เพิ่ม notes ต่อ lead)
-- [ ] **Follow-up reminders** — แจ้งเตือนนัดติดตาม
-- [ ] **Lead activity log** — บันทึกการเปลี่ยนแปลงสถานะ
-- [ ] **Export CSV** — ส่งออกข้อมูล leads
-
-### Priority 4: UX Improvements
-- [ ] **Google Maps** ในส่วน onsite booking
-- [ ] **Calendar view** สำหรับ appointments
-- [ ] **Drag & drop** ใน pipeline view
-- [ ] **Dark mode** สำหรับ admin
-
-### Priority 5: Analytics
-- [ ] **Dashboard charts** — Leads by month, conversion rate
-- [ ] **Service popularity** — บริการไหนมี lead มากสุด
-- [ ] **Budget distribution** — งบประมาณเฉลี่ย
+### Priority 3: Enhancements
+- [ ] Drag & drop ใน pipeline view
+- [ ] Calendar view สำหรับ appointments
+- [ ] Dark mode สำหรับ admin
+- [ ] Google Maps ใน booking form
+- [ ] PDF export สำหรับ proposals
 
 ---
 
 ## 🗂️ โครงสร้างไฟล์
 
 ```
-construction-crm/
-├── index.html        ← หน้าเว็บหลัก (Service-based landing)
-├── style.css         ← สไตล์ทั้งหมด
-├── script.js         ← CRM logic + animations
-├── admin.html        ← Admin Dashboard (standalone, no build)
+nucha-crm/
+├── index.html              ← Landing page
+├── style.css               ← Landing page styles
+├── script.js               ← Landing page JS (Supabase form)
+├── admin.html              ← Admin dashboard
+├── admin.css               ← Admin styles
+├── admin.js                ← Admin logic (async)
+├── admin-login.html        ← Login page
+├── supabase/
+│   ├── config.js           ← Supabase credentials
+│   ├── crm.js              ← CRM module (all DB ops)
+│   ├── auth.js             ← Auth module
+│   ├── schema.sql          ← DB schema + seed
+│   └── functions/
+│       ├── notify/index.ts
+│       ├── followup-reminder/index.ts
+│       └── daily-summary/index.ts
+├── .env.example
 ├── .gitignore
-└── HANDOFF.md        ← ไฟล์นี้
+├── README.md
+└── HANDOFF.md              ← ไฟล์นี้
 ```
 
 ---
 
 ## 🔑 ข้อมูลสำคัญ
 
-- **Data store**: localStorage (browser-based)
-- **CRM Key**: `nucha_crm_leads`, `nucha_crm_appointments`, `nucha_crm_notes`
-- **Demo data**: auto-seed 6 leads เมื่อเปิด admin.html ครั้งแรก
-- **No build step**: เปิด HTML ตรง ๆ ได้เลย
-- **Dependencies**: GSAP 3.12.5 (CDN), Google Fonts (CDN)
+- **Backend**: Supabase (PostgreSQL + Auth + Edge Functions)
+- **Hosting**: Hostinger (static HTML/JS/CSS)
+- **Auth**: Supabase Auth (email/password)
+- **Data**: All in Supabase — no localStorage
+- **Notifications**: LINE Notify + Email via Edge Functions
+- **No build step**: เปิด HTML ตรง ๆ ได้เลย (Supabase JS จาก CDN)
 
 ---
 
-## 📝 Notes สำหรับ Agent ถัดไป
+## 📝 Notes
 
-1. **อย่าเปลี่ยน design system** — สีแดง (#D60000), font Inter + Noto Sans Thai, border-radius 12px
-2. **อย่าลบ GSAP animations** — มันทำงานได้ดีแล้ว
-3. **localStorage เป็น prototype** — พร้อม migrate ไป backend จริง
-4. **admin.html เป็น standalone** — ไม่ depend บน script.js ของหน้าเว็บ
-5. **Service-based เท่านั้น** — อย่าเพิ่ม "ขายบ้าน" หรือ "project cards" กลับมา
+1. **อย่าเปลี่ยน design system** — สีแดง (#D60000), font Inter + Noto Sans Thai
+2. **อย่าลบ GSAP animations** — ทำงานได้ดีแล้ว
+3. **Supabase JS จาก CDN** — ไม่ต้อง npm install
+4. **admin.html ต้อง login** — ใช้ Supabase Auth
+5. **Website form insert ได้** — public insert policy (RLS)
+6. **Service-based เท่านั้น** — ไม่ใช่ขายบ้าน
