@@ -301,7 +301,7 @@ const CRM = {
         return Math.round(score * 10) / 10;
     },
 
-    // ===== AI (PromptDee) =====
+    // ===== AI (PromptDee) — with Memory =====
     async aiAutoReply(lead) {
         try {
             const { data, error } = await supabase.functions.invoke('ai-reply', {
@@ -309,23 +309,17 @@ const CRM = {
             });
             if (error) throw error;
             return data?.reply || null;
-        } catch (e) {
-            console.error('aiAutoReply:', e);
-            return null;
-        }
+        } catch (e) { console.error('aiAutoReply:', e); return null; }
     },
 
-    async aiFollowUp(lead, daysSince, lastNote) {
+    async aiFollowUp(lead, daysSince) {
         try {
             const { data, error } = await supabase.functions.invoke('ai-reply', {
-                body: { type: 'follow_up', lead, context: { daysSince, lastNote } }
+                body: { type: 'follow_up', lead, context: { daysSince } }
             });
             if (error) throw error;
             return data?.reply || null;
-        } catch (e) {
-            console.error('aiFollowUp:', e);
-            return null;
-        }
+        } catch (e) { console.error('aiFollowUp:', e); return null; }
     },
 
     async aiFollowUpSequence(lead, day) {
@@ -335,10 +329,7 @@ const CRM = {
             });
             if (error) throw error;
             return data?.reply || null;
-        } catch (e) {
-            console.error('aiFollowUpSequence:', e);
-            return null;
-        }
+        } catch (e) { console.error('aiFollowUpSequence:', e); return null; }
     },
 
     async aiCopilot(prompt, lead = null) {
@@ -348,10 +339,7 @@ const CRM = {
             });
             if (error) throw error;
             return data?.reply || null;
-        } catch (e) {
-            console.error('aiCopilot:', e);
-            return null;
-        }
+        } catch (e) { console.error('aiCopilot:', e); return null; }
     },
 
     async aiAnalyzeLead(lead) {
@@ -360,11 +348,28 @@ const CRM = {
                 body: { type: 'analyze_lead', lead }
             });
             if (error) throw error;
+            return data?.parsed || data?.reply || null;
+        } catch (e) { console.error('aiAnalyzeLead:', e); return null; }
+    },
+
+    async aiClose(lead) {
+        try {
+            const { data, error } = await supabase.functions.invoke('ai-reply', {
+                body: { type: 'close', lead }
+            });
+            if (error) throw error;
             return data?.reply || null;
-        } catch (e) {
-            console.error('aiAnalyzeLead:', e);
-            return null;
-        }
+        } catch (e) { console.error('aiClose:', e); return null; }
+    },
+
+    async aiStrategy(lead) {
+        try {
+            const { data, error } = await supabase.functions.invoke('ai-reply', {
+                body: { type: 'strategy', lead }
+            });
+            if (error) throw error;
+            return data?.parsed || data?.reply || null;
+        } catch (e) { console.error('aiStrategy:', e); return null; }
     },
 
     // ===== SLA TRACKING =====

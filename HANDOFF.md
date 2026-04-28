@@ -87,20 +87,23 @@
 - [x] **followup-reminder** — daily 9 AM → overdue follow-ups
 - [x] **daily-summary** — daily 6 PM → pipeline + stats
 
-### 🤖 AI Integration (PromptDee GPT-4o-mini) (NEW)
-- [x] **ai-reply Edge Function** — 5 AI types:
-  - `auto_reply` — สร้างข้อความตอบกลับอัตโนมัติ
-  - `follow_up` — สร้างข้อความ follow-up ตามระยะเวลา
-  - `follow_up_sequence` — สร้าง follow-up 7 วัน
-  - `copilot` — ช่วยเขียนข้อความ (custom prompt)
-  - `analyze_lead` — วิเคราะห์ lead + ให้คำแนะนำ
-- [x] **AI Copilot ใน admin** — ปุ่ม 3 แบบใน note modal:
-  - 💬 สร้างข้อความตอบ
-  - ⏰ สร้าง follow-up
-  - 📊 วิเคราะห์ lead
-- [x] **Copy button** — คัดลอก AI reply ไป clipboard
-- [x] **Auto-reply** — ส่ง LINE อัตโนมัติเมื่อ lead ใหม่ (เปิด/ปิดได้)
-- [x] CRM module: aiAutoReply, aiFollowUp, aiFollowUpSequence, aiCopilot, aiAnalyzeLead
+### 🤖 AI Integration (PromptDee GPT-4o-mini) — with Memory + Strategy + Close
+- [x] **ai-reply Edge Function** — 7 AI types with full context:
+  - `auto_reply` — สร้างข้อความตอบกลับ (ดึง notes + activities จาก DB)
+  - `follow_up` — สร้าง follow-up ตามประวัติ
+  - `follow_up_sequence` — 7-day sequence
+  - `copilot` — custom prompt
+  - `analyze_lead` — วิเคราะห์เจาะลึก → priority, next_action, close_probability
+  - `close` — สร้างข้อความปิดดีล (urgency + incentive)
+  - `strategy` — วางแผนกลยุทธ์ปิดดีล (timeline, risk, mitigation, closing_tactic)
+- [x] **AI Memory** — ดึง notes + activities จาก DB ส่งเข้า AI ทุกครั้ง
+- [x] **AI Structured Output** — JSON response สำหรับ analyze + strategy
+- [x] **Admin AI Copilot** — 5 ปุ่มใน note modal:
+  - 💬 ตอบกลับ / ⏰ Follow-up / 💰 ปิดดีล / 📊 วิเคราะห์ / 🎯 กลยุทธ์
+- [x] **Priority badge** — 🔴/🟡/🟢 + close_probability
+- [x] **Copy button** — คัดลอกไป clipboard
+- [x] **Auto-reply** — ส่ง LINE อัตโนมัติเมื่อ lead ใหม่
+- [x] CRM: aiAutoReply, aiFollowUp, aiFollowUpSequence, aiCopilot, aiAnalyzeLead, aiClose, aiStrategy
 
 ### 👥 Team System
 - [x] profiles table

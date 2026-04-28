@@ -587,10 +587,10 @@ async function aiGenerateReply(type) {
     if (type === 'auto') {
         reply = await CRM.aiAutoReply(lead);
     } else if (type === 'follow_up') {
-        const notes = await CRM.getNotes(leadId);
-        const lastNote = notes[0]?.note || '';
         const daysSince = Math.round((Date.now() - new Date(lead.created_at)) / 86400000);
-        reply = await CRM.aiFollowUp(lead, daysSince, lastNote);
+        reply = await CRM.aiFollowUp(lead, daysSince);
+    } else if (type === 'close') {
+        reply = await CRM.aiClose(lead);
     }
 
     loading.style.display = 'none';
@@ -619,18 +619,25 @@ async function aiAnalyzeLead() {
     loading.style.display = 'none';
 
     if (analysis) {
-        // Try to parse as JSON for structured display
-        try {
-            const data = JSON.parse(analysis);
+        if (typeof analysis === 'object') {
+            const p = analysis.priority || 'medium';
+            const pColor = p === 'high' ? 'var(--red)' : p === 'medium' ? 'var(--orange)' : 'var(--green)';
             replyText.innerHTML = `
-                <div style="margin-bottom:8px;"><strong>📞 วิธีติดต่อ:</strong> ${esc(data.approach)}</div>
-                <div style="margin-bottom:8px;"><strong>💬 ประเด็นที่ควรพูด:</strong>
-                    <ul style="margin:4px 0 0 20px;">${(data.talking_points || []).map(p => `<li>${esc(p)}</li>`).join('')}</ul>
+                <div style="display:flex;gap:12px;margin-bottom:12px;">
+                    <div style="padding:6px 14px;background:${pColor}15;color:${pColor};border-radius:8px;font-weight:700;font-size:0.82rem;">
+                        ${p === 'high' ? '🔴' : p === 'medium' ? '🟡' : '🟢'} Priority: ${p.toUpperCase()}
+                    </div>
+                    ${analysis.close_probability ? `<div style="padding:6px 14px;background:var(--blue-soft);color:var(--blue);border-radius:8px;font-weight:700;font-size:0.82rem;">🎯 ${analysis.close_probability}</div>` : ''}
                 </div>
-                <div style="margin-bottom:8px;"><strong>⚠️ ความเสี่ยง:</strong> ${esc(data.risk)}</div>
-                <div><strong>💡 คำแนะนำ:</strong> ${esc(data.suggestion)}</div>
+                <div style="margin-bottom:10px;"><strong>📞 วิธีติดต่อ:</strong> ${esc(analysis.approach)}</div>
+                <div style="margin-bottom:10px;"><strong>💬 ประเด็นที่ควรพูด:</strong>
+                    <ul style="margin:4px 0 0 20px;">${(analysis.talking_points || []).map(p => `<li>${esc(p)}</li>`).join('')}</ul>
+                </div>
+                ${analysis.next_action ? `<div style="margin-bottom:10px;"><strong>🎯 ทำต่อไป:</strong> <span style="color:var(--red);font-weight:700;">${esc(analysis.next_action)}</span></div>` : ''}
+                <div style="margin-bottom:10px;"><strong>⚠️ ความเสี่ยง:</strong> ${esc(analysis.risk)}</div>
+                <div><strong>💡 คำแนะนำ:</strong> ${esc(analysis.suggestion)}</div>
             `;
-        } catch {
+        } else {
             replyText.textContent = analysis;
         }
         replyBox.style.display = 'block';
@@ -640,12 +647,55 @@ async function aiAnalyzeLead() {
     }
 }
 
+async function aiGetStrategy() {
+    const leadId = document.getElementById('noteLeadId').value;
+    const lead = cachedLeads.find(l => l.id === leadId);
+    if (!lead) { showToast('ไม่พบ lead', 'error'); return; }
+
+    const replyBox = document.getElementById('aiReplyBox');
+    const replyText = document.getElementById('aiReplyText');
+    const loading = document.getElementById('aiLoading');
+
+    replyBox.style.display = 'none';
+    loading.style.display = 'block';
+
+    const strategy = await CRM.aiStrategy(lead);
+    loading.style.display = 'none';
+
+    if (strategy) {
+        if (typeof strategy === 'object') {
+            const p = strategy.priority || 'medium';
+            const pColor = p === 'high' ? 'var(--red)' : p === 'medium' ? 'var(--orange)' : 'var(--green)';
+            replyText.innerHTML = `
+                <div style="display:flex;gap:12px;margin-bottom:12px;">
+                    <div style="padding:6px 14px;background:${pColor}15;color:${pColor};border-radius:8px;font-weight:700;font-size:0.82rem;">
+                        ${p === 'high' ? '🔴' : p === 'medium' ? '🟡' : '🟢'} ${p.toUpperCase()}
+                    </div>
+                    ${strategy.close_probability ? `<div style="padding:6px 14px;background:var(--blue-soft);color:var(--blue);border-radius:8px;font-weight:700;font-size:0.82rem;">🎯 ${strategy.close_probability}</div>` : ''}
+                    ${strategy.estimated_value ? `<div style="padding:6px 14px;background:var(--green-soft);color:var(--green);border-radius:8px;font-weight:700;font-size:0.82rem;">💰 ${strategy.estimated_value}</div>` : ''}
+                </div>
+                <div style="margin-bottom:10px;"><strong>🎯 กลยุทธ์:</strong> ${esc(strategy.strategy)}</div>
+                <div style="margin-bottom:10px;"><strong>⚡ ทำทันที:</strong> <span style="color:var(--red);font-weight:700;">${esc(strategy.next_action)}</span></div>
+                ${strategy.timeline ? `<div style="margin-bottom:10px;"><strong>⏰ กรอบเวลา:</strong> ${esc(strategy.timeline)}</div>` : ''}
+                <div style="margin-bottom:10px;"><strong>⚠️ ความเสี่ยง:</strong> ${esc(strategy.risk)}</div>
+                ${strategy.mitigation ? `<div style="margin-bottom:10px;"><strong>🛡️ ลดความเสี่ยง:</strong> ${esc(strategy.mitigation)}</div>` : ''}
+                ${strategy.closing_tactic ? `<div><strong>💰 เทคนิคปิด:</strong> ${esc(strategy.closing_tactic)}</div>` : ''}
+            `;
+        } else {
+            replyText.textContent = strategy;
+        }
+        replyBox.style.display = 'block';
+        showToast('AI สร้างกลยุทธ์สำเร็จ', 'success');
+    } else {
+        showToast('AI ไม่สามารถสร้างกลยุทธ์ได้', 'error');
+    }
+}
+
 function copyAIReply() {
     const text = document.getElementById('aiReplyText').textContent;
     navigator.clipboard.writeText(text).then(() => {
         showToast('คัดลอกแล้ว', 'success');
     }).catch(() => {
-        // Fallback
         const textarea = document.createElement('textarea');
         textarea.value = text;
         document.body.appendChild(textarea);

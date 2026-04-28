@@ -584,9 +584,11 @@
                     <strong style="font-size: 0.9rem;">AI Copilot</strong>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button type="button" class="table-btn table-btn-edit" onclick="aiGenerateReply('auto')">💬 สร้างข้อความตอบ</button>
-                    <button type="button" class="table-btn table-btn-edit" onclick="aiGenerateReply('follow_up')">⏰ สร้าง follow-up</button>
-                    <button type="button" class="table-btn table-btn-edit" onclick="aiAnalyzeLead()">📊 วิเคราะห์ lead</button>
+                    <button type="button" class="table-btn table-btn-edit" onclick="aiGenerateReply('auto')">💬 ตอบกลับ</button>
+                    <button type="button" class="table-btn table-btn-edit" onclick="aiGenerateReply('follow_up')">⏰ Follow-up</button>
+                    <button type="button" class="table-btn btn-accept" onclick="aiGenerateReply('close')">💰 ปิดดีล</button>
+                    <button type="button" class="table-btn table-btn-edit" onclick="aiAnalyzeLead()">📊 วิเคราะห์</button>
+                    <button type="button" class="table-btn table-btn-edit" onclick="aiGetStrategy()">🎯 กลยุทธ์</button>
                 </div>
                 <div id="aiReplyBox" style="display:none; margin-top: 12px; padding: 12px; background: white; border-radius: 8px; border: 1px solid var(--gray-200);">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
