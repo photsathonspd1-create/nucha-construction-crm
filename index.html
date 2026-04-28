@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NUCHA INNOVATION - บริการออกแบบ ก่อสร้าง ตกแต่งครบวงจร</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Thai:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Custom Cursor (desktop only) -->
+    <div class="cursor" id="cursor"></div>
+    <div class="cursor-follower" id="cursorFollower"></div>
+
+    <!-- Scroll Progress -->
+    <div class="scroll-progress" id="scrollProgress"></div>
+
+    <!-- Signature Red Line -->
+    <div class="signature-line" id="signatureLine"></div>
+
+    <!-- Loader -->
+    <div class="loader" id="loader">
+        <div class="loader-inner">
+            <span class="loader-logo">N</span>
+            <div class="loader-bar"><div class="loader-progress"></div></div>
+            <p class="loader-text">NUCHA INNOVATION</p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <span class="logo-icon">N</span>
+                <span class="logo-text">NUCHA<br>INNOVATION</span>
+            </a>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="#home" class="active">หน้าหลัก</a></li>
+                <li><a href="#services">บริการ</a></li>
+                <li><a href="#story">กระบวนการ</a></li>
+                <li><a href="#portfolio">ผลงาน</a></li>
+                <li><a href="#booking">จองคิว</a></li>
+                <li><a href="#contact">ติดต่อเรา</a></li>
+            </ul>
+            <a href="#booking" class="nav-cta magnetic-btn">จองคิวปรึกษาฟรี</a>
+            <button class="hamburger" id="hamburger" aria-label="Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ========== HERO ========== -->
+    <section class="hero" id="home">
+        <div class="hero-bg">
+            <div class="hero-diagonal"></div>
+            <div class="hero-gradient"></div>
+            <div class="hero-sweep"></div>
+            <div class="hero-dots"></div>
+            <div class="hero-grid-overlay"></div>
+        </div>
+        <div class="hero-title-sweep"></div>
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <span class="badge-dot"></span>
+                    บริษัทชั้นนำด้านการออกแบบและก่อสร้าง
+                </div>
+                <h1 class="hero-title">
+                    <div class="title-mask">
+                        <span class="title-line">สร้าง</span>
+                    </div>
+                    <div class="title-mask">
+                        <span class="title-line accent">ทุกความฝัน</span>
+                    </div>
+                </h1>
+                <div class="hero-subtitle-mask">
+                    <p class="hero-subtitle">รับเหมาก่อสร้าง · บิ้วอิน · ออกแบบ · ตกแต่ง · บริหารโครงการ</p>
+                </div>
+                <div class="hero-desc-mask">
+                    <p class="hero-desc">ทีมสถาปนิกและวิศวกรมืออาชีพ ดูแลครบทุกขั้นตอน ตั้งแต่ออกแบบจนส่งมอบ พร้อมรับประกันคุณภาพ</p>
+                </div>
+                <div class="hero-buttons">
+                    <a href="#booking" class="btn btn-primary magnetic-btn">
+                        <span>จองคิวปรึกษาฟรี</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </a>
+                    <a href="#services" class="btn btn-outline magnetic-btn">
+                        <span>ดูบริการทั้งหมด</span>
+                    </a>
+                </div>
+                <div class="hero-stats-row">
+                    <div class="hero-stat">
+                        <span class="hero-stat-num">120+</span>
+                        <span class="hero-stat-label">โครงการสำเร็จ</span>
+                    </div>
+                    <div class="hero-stat-divider"></div>
+                    <div class="hero-stat">
+                        <span class="hero-stat-num">10+</span>
+                        <span class="hero-stat-label">ปีประสบการณ์</span>
+                    </div>
+                    <div class="hero-stat-divider"></div>
+                    <div class="hero-stat">
+                        <span class="hero-stat-num">500+</span>
+                        <span class="hero-stat-label">ลูกค้าไว้วางใจ</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="hero-image-wrapper">
+                    <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=900&q=85" alt="Modern House" class="hero-img">
+                    <div class="hero-image-overlay"></div>
+                    <div class="hero-image-sweep"></div>
+                </div>
+                <div class="hero-float-card">
+                    <div class="float-icon">
+                        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div>
+                        <div class="float-title">ครบวงจร</div>
+                        <div class="float-desc">ออกแบบ → ก่อสร้าง → ส่งมอบ</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <a href="#break-scene" class="scroll-indicator">
+            <span class="scroll-text">เลื่อนลง</span>
+            <span class="scroll-line"></span>
+        </a>
+    </section>
+
+    <!-- ========== BREAK SCENE ========== -->
+    <section class="break-scene" id="break-scene">
+        <div class="break-scene-bg">
+            <div class="break-gradient"></div>
+        </div>
+        <div class="break-scene-content">
+            <p class="break-scene-tag">OUR PHILOSOPHY</p>
+            <h2 class="break-scene-text">
+                <span class="break-line">เราไม่ได้สร้าง</span>
+                <span class="break-line accent">แค่อาคาร</span>
+            </h2>
+            <p class="break-scene-sub">เราสร้างพื้นที่ที่ชีวิตและธุรกิจเติบโต</p>
+            <div class="break-scene-line"></div>
+        </div>
+    </section>
+
+    <!-- ========== SERVICES (Core — Service-based, not product-based) ========== -->
+    <section class="services" id="services">
+        <div class="container">
+            <div class="section-header" data-animate="fade-up">
+                <span class="section-tag">OUR SERVICES</span>
+                <h2>บริการของเรา</h2>
+                <p class="section-desc">เลือกบริการที่ตรงกับความต้องการของคุณ — ปรึกษาฟรี ไม่มีค่าใช้จ่าย</p>
+            </div>
+            <div class="services-grid">
+                <div class="service-card" data-animate="fade-up" data-service="construction">
+                    <div class="service-number">01</div>
+                    <div class="service-icon">
+                        <svg viewBox="0 0 64 64" fill="none"><path d="M8 56V28L32 8l24 20v28H40V40H24v16H8z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <h3>รับเหมาก่อสร้าง</h3>
+                    <p>รับเหมาก่อสร้างครบวงจร บ้าน อาคาร สำนักงาน โรงงาน ด้วยทีมวิศวกรมืออาชีพ</p>
+                    <div class="service-budget">งบประมาณเริ่มต้น 500,000 บาท</div>
+                    <a href="#booking" class="service-link magnetic-btn" data-booking-service="construction">
+                        <span>จองคิวปรึกษา</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </a>
+                </div>
+                <div class="service-card" data-animate="fade-up" data-service="builtin">
+                    <div class="service-number">02</div>
+                    <div class="service-icon">
+                        <svg viewBox="0 0 64 64" fill="none"><rect x="8" y="8" width="48" height="48" rx="2" stroke="currentColor" stroke-width="2.5"/><path d="M8 24h48M24 8v48" stroke="currentColor" stroke-width="2.5"/><circle cx="40" cy="40" r="8" stroke="currentColor" stroke-width="2.5"/></svg>
+                    </div>
+                    <h3>บิ้วอิน</h3>
+                    <p>ออกแบบและติดตั้งเฟอร์นิเจอร์บิ้วอิน ครัว ตู้เสื้อผ้า ชั้นวาง วัสดุคุณภาพสูง</p>
+                    <div class="service-budget">งบประมาณเริ่มต้น 200,000 บาท</div>
+                    <a href="#booking" class="service-link magnetic-btn" data-booking-service="builtin">
+                        <span>จองคิวปรึกษา</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </a>
+                </div>
+                <div class="service-card" data-animate="fade-up" data-service="design">
+                    <div class="service-number">03</div>
+                    <div class="service-icon">
+                        <svg viewBox="0 0 64 64" fill="none"><path d="M12 52L32 12l20 40H12z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 52l8-16 8 16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <h3>ออกแบบ</h3>
+                    <p>ออกแบบสถาปัตยกรรม ตกแต่งภายใน 3D Rendering ครบวงจร โดยทีมดีไซเนอร์มืออาชีพ</p>
+                    <div class="service-budget">งบประมาณเริ่มต้น 100,000 บาท</div>
+                    <a href="#booking" class="service-link magnetic-btn" data-booking-service="design">
+                        <span>จองคิวปรึกษา</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </a>
+                </div>
+                <div class="service-card" data-animate="fade-up" data-service="decoration">
+                    <div class="service-number">04</div>
+                    <div class="service-icon">
+                        <svg viewBox="0 0 64 64" fill="none"><rect x="12" y="12" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2.5"/><rect x="36" y="12" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2.5"/><rect x="12" y="36" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2.5"/><rect x="36" y="36" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2.5"/></svg>
+                    </div>
+                    <h3>ตกแต่ง</h3>
+                    <p>ตกแต่งภายในและภายนอก ปรับปรุง รีโนเวท เปลี่ยนพื้นที่เดิมให้สวยงามทันสมัย</p>
+                    <div class="service-budget">งบประมาณเริ่มต้น 150,000 บาท</div>
+                    <a href="#booking" class="service-link magnetic-btn" data-booking-service="decoration">
+                        <span>จองคิวปรึกษา</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </a>
+                </div>
+                <div class="service-card service-card-highlight" data-animate="fade-up" data-service="project-management">
+                    <div class="service-number">05</div>
+                    <div class="service-icon">
+                        <svg viewBox="0 0 64 64" fill="none"><path d="M32 8v24l16 8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="32" r="24" stroke="currentColor" stroke-width="2.5"/></svg>
+                    </div>
+                    <h3>บริหารงานขายโครงการ</h3>
+                    <p>บริหารจัดการโครงการก่อสร้างครบวงจร วางแผน ควบคุมงาน ตรวจสอบคุณภาพ ดูแลงบประมาณ</p>
+                    <div class="service-budget">งบประมาณตามขนาดโครงการ</div>
+                    <a href="#booking" class="service-link magnetic-btn" data-booking-service="project-management">
+                        <span>จองคิวปรึกษา</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== STICKY STORY ========== -->
+    <section class="story" id="story">
+        <div class="story-sticky">
+            <div class="story-bg">
+                <div class="story-gradient"></div>
+            </div>
+            <div class="story-container">
+                <div class="story-content">
+                    <div class="story-step active" data-step="0">
+                        <span class="story-tag">OUR PROCESS</span>
+                        <h2 class="story-title">ขั้นตอนการทำงาน<br>ที่คุณวางใจได้</h2>
+                        <p class="story-desc">ทุกโครงการเริ่มต้นจากการรับฟัง — เข้าใจความต้องการ เข้าใจงบประมาณ เข้าใจคุณ</p>
+                    </div>
+                    <div class="story-step" data-step="1">
+                        <span class="story-tag">STEP 01</span>
+                        <h2 class="story-title">รับฟัง<br>และวางแผน</h2>
+                        <p class="story-desc">พูดคุยความต้องการ สำรวจหน้างาน ประเมินงบประมาณ วางแผนงานอย่างละเอียด</p>
+                    </div>
+                    <div class="story-step" data-step="2">
+                        <span class="story-tag">STEP 02</span>
+                        <h2 class="story-title">ออกแบบ<br>และเสนอราคา</h2>
+                        <p class="story-desc">ออกแบบตามความต้องการ นำเสนอแบบ 3D พร้อมใบเสนอราคาที่โปร่งใส ไม่มีบวกราคา</p>
+                    </div>
+                    <div class="story-step" data-step="3">
+                        <span class="story-tag">STEP 03</span>
+                        <h2 class="story-title">ก่อสร้าง<br>และส่งมอบ</h2>
+                        <p class="story-desc">ก่อสร้างตามมาตรฐาน ตรวจสอบทุกขั้นตอน ส่งมอบงานคุณภาพ พร้อมรับประกัน</p>
+                    </div>
+                </div>
+                <div class="story-visual">
+                    <div class="story-image-stack">
+                        <div class="story-img-wrapper active" data-step="0">
+                            <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=700&q=85" alt="Process">
+                        </div>
+                        <div class="story-img-wrapper" data-step="1">
+                            <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=700&q=85" alt="Design">
+                        </div>
+                        <div class="story-img-wrapper" data-step="2">
+                            <img src="https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=700&q=85" alt="Build">
+                        </div>
+                        <div class="story-img-wrapper" data-step="3">
+                            <img src="https://images.unsplash.com/photo-1600573472592-401b489a3cdc?w=700&q=85" alt="Deliver">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="story-progress">
+                <div class="story-progress-bar"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== PORTFOLIO (Works, not products for sale) ========== -->
+    <section class="portfolio" id="portfolio">
+        <div class="container">
+            <div class="portfolio-header" data-animate="fade-up">
+                <div class="section-header left-align">
+                    <span class="section-tag">OUR WORKS</span>
+                    <h2>ผลงานของเรา</h2>
+                    <p class="section-desc">รวมโครงการที่เราภูมิใจ — ทุกชิ้นงานคือมาตรฐานของเรา</p>
+                </div>
+            </div>
+            <div class="portfolio-grid">
+                <div class="portfolio-item portfolio-large">
+                    <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=85" alt="Modern Villa">
+                    <div class="portfolio-overlay">
+                        <span class="portfolio-tag">รับเหมาก่อสร้าง</span>
+                        <h3>บ้านโมเดิร์น วิลล่า</h3>
+                        <p>สุขุมวิท 50 · งบ 8.5 ล้านบาท</p>
+                    </div>
+                </div>
+                <div class="portfolio-item">
+                    <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=500&q=85" alt="Interior Design">
+                    <div class="portfolio-overlay">
+                        <span class="portfolio-tag">บิ้วอิน + ตกแต่ง</span>
+                        <h3>คอนโด ลักชัวรี่</h3>
+                    </div>
+                </div>
+                <div class="portfolio-item">
+                    <img src="https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=500&q=85" alt="Renovation">
+                    <div class="portfolio-overlay">
+                        <span class="portfolio-tag">รีโนเวท</span>
+                        <h3>บ้านเก่า → ใหม่</h3>
+                    </div>
+                </div>
+                <div class="portfolio-item">
+                    <img src="https://images.unsplash.com/photo-1600573472592-401b489a3cdc?w=500&q=85" alt="Commercial">
+                    <div class="portfolio-overlay">
+                        <span class="portfolio-tag">ออกแบบ + บริหาร</span>
+                        <h3>ออฟฟิศ ดีไซน์</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== BOOKING / LEAD FORM (Core conversion point) ========== -->
+    <section class="booking" id="booking">
+        <div class="container">
+            <div class="booking-wrapper">
+                <div class="booking-info">
+                    <span class="section-tag">FREE CONSULTATION</span>
+                    <h2>จองคิวปรึกษาฟรี<br>ไม่มีค่าใช้จ่าย</h2>
+                    <p>เลือกบริการ ระบุงบประมาณ นัดวันสะดวก — ทีมผู้เชี่ยวชาญจะติดต่อกลับภายใน 24 ชั่วโมง</p>
+                    <div class="booking-benefits">
+                        <div class="booking-benefit">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>ปรึกษาฟรี ไม่มีค่าใช้จ่าย</span>
+                        </div>
+                        <div class="booking-benefit">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>ประเมินราคาเบื้องต้นทันที</span>
+                        </div>
+                        <div class="booking-benefit">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>นัดเข้าดูหน้างานได้ทันที</span>
+                        </div>
+                    </div>
+                    <div class="booking-trust">
+                        <div class="booking-trust-item">
+                            <span class="booking-trust-num">500+</span>
+                            <span class="booking-trust-label">ลูกค้าไว้วางใจ</span>
+                        </div>
+                        <div class="booking-trust-item">
+                            <span class="booking-trust-num">10+</span>
+                            <span class="booking-trust-label">ปีประสบการณ์</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Multi-step booking form -->
+                <div class="booking-form-container">
+                    <div class="booking-steps">
+                        <div class="booking-step active" data-step="1">
+                            <span class="step-num">1</span>
+                            <span class="step-label">เลือกบริการ</span>
+                        </div>
+                        <div class="booking-step-line"></div>
+                        <div class="booking-step" data-step="2">
+                            <span class="step-num">2</span>
+                            <span class="step-label">กรอกข้อมูล</span>
+                        </div>
+                        <div class="booking-step-line"></div>
+                        <div class="booking-step" data-step="3">
+                            <span class="step-num">3</span>
+                            <span class="step-label">นัดวัน</span>
+                        </div>
+                    </div>
+
+                    <form class="booking-form" id="bookingForm">
+                        <!-- Step 1: Service Selection -->
+                        <div class="form-step active" data-step="1">
+                            <h3 class="form-step-title">เลือกบริการที่สนใจ</h3>
+                            <div class="service-select-grid">
+                                <label class="service-option">
+                                    <input type="radio" name="service_type" value="รับเหมาก่อสร้าง" required>
+                                    <div class="service-option-card">
+                                        <div class="service-option-icon">🏗️</div>
+                                        <div class="service-option-name">รับเหมาก่อสร้าง</div>
+                                        <div class="service-option-desc">บ้าน อาคาร สำนักงาน</div>
+                                    </div>
+                                </label>
+                                <label class="service-option">
+                                    <input type="radio" name="service_type" value="บิ้วอิน">
+                                    <div class="service-option-card">
+                                        <div class="service-option-icon">🪑</div>
+                                        <div class="service-option-name">บิ้วอิน</div>
+                                        <div class="service-option-desc">ครัว ตู้ ชั้นวาง</div>
+                                    </div>
+                                </label>
+                                <label class="service-option">
+                                    <input type="radio" name="service_type" value="ออกแบบ">
+                                    <div class="service-option-card">
+                                        <div class="service-option-icon">✏️</div>
+                                        <div class="service-option-name">ออกแบบ</div>
+                                        <div class="service-option-desc">สถาปัตย์ ภายใน 3D</div>
+                                    </div>
+                                </label>
+                                <label class="service-option">
+                                    <input type="radio" name="service_type" value="ตกแต่ง">
+                                    <div class="service-option-card">
+                                        <div class="service-option-icon">🎨</div>
+                                        <div class="service-option-name">ตกแต่ง</div>
+                                        <div class="service-option-desc">ปรับปรุง รีโนเวท</div>
+                                    </div>
+                                </label>
+                                <label class="service-option">
+                                    <input type="radio" name="service_type" value="บริหารโครงการ">
+                                    <div class="service-option-card">
+                                        <div class="service-option-icon">📋</div>
+                                        <div class="service-option-name">บริหารโครงการ</div>
+                                        <div class="service-option-desc">วางแผน ควบคุม ตรวจสอบ</div>
+                                    </div>
+                                </label>
+                                <label class="service-option">
+                                    <input type="radio" name="service_type" value="อื่นๆ">
+                                    <div class="service-option-card">
+                                        <div class="service-option-icon">💬</div>
+                                        <div class="service-option-name">อื่นๆ</div>
+                                        <div class="service-option-desc">ปรึกษาเรื่องอื่น</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="form-step-nav">
+                                <button type="button" class="btn btn-primary btn-next" data-next="2">
+                                    <span>ถัดไป</span>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Contact Info + Budget -->
+                        <div class="form-step" data-step="2">
+                            <h3 class="form-step-title">ข้อมูลติดต่อ</h3>
+                            <div class="form-group">
+                                <label for="bookingName">ชื่อ-นามสกุล *</label>
+                                <input type="text" id="bookingName" name="name" placeholder="กรอกชื่อของคุณ" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="bookingPhone">เบอร์โทรศัพท์ *</label>
+                                <input type="tel" id="bookingPhone" name="phone" placeholder="0XX-XXX-XXXX" required>
+                            </div>
+                            <div class="form-group">
+                                <label>งบประมาณที่ตั้งไว้</label>
+                                <div class="budget-options">
+                                    <label class="budget-option">
+                                        <input type="radio" name="budget_range" value="ต่ำกว่า 500,000">
+                                        <span class="budget-tag">ต่ำกว่า 500K</span>
+                                    </label>
+                                    <label class="budget-option">
+                                        <input type="radio" name="budget_range" value="500,000 - 1,000,000">
+                                        <span class="budget-tag">500K – 1M</span>
+                                    </label>
+                                    <label class="budget-option">
+                                        <input type="radio" name="budget_range" value="1,000,000 - 3,000,000">
+                                        <span class="budget-tag">1M – 3M</span>
+                                    </label>
+                                    <label class="budget-option">
+                                        <input type="radio" name="budget_range" value="3,000,000 - 5,000,000">
+                                        <span class="budget-tag">3M – 5M</span>
+                                    </label>
+                                    <label class="budget-option">
+                                        <input type="radio" name="budget_range" value="5,000,000 - 10,000,000">
+                                        <span class="budget-tag">5M – 10M</span>
+                                    </label>
+                                    <label class="budget-option">
+                                        <input type="radio" name="budget_range" value="มากกว่า 10,000,000">
+                                        <span class="budget-tag">10M+</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="bookingMessage">รายละเอียดเพิ่มเติม</label>
+                                <textarea id="bookingMessage" name="message" placeholder="บอกเราเกี่ยวกับโครงการของคุณ..." rows="3"></textarea>
+                            </div>
+                            <div class="form-step-nav">
+                                <button type="button" class="btn btn-outline btn-back" data-back="1">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5m7 7l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    <span>ย้อนกลับ</span>
+                                </button>
+                                <button type="button" class="btn btn-primary btn-next" data-next="3">
+                                    <span>ถัดไป</span>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Appointment -->
+                        <div class="form-step" data-step="3">
+                            <h3 class="form-step-title">นัดวันปรึกษา</h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="bookingDate">วันที่สะดวก *</label>
+                                    <input type="date" id="bookingDate" name="date" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="bookingTime">เวลา *</label>
+                                    <select id="bookingTime" name="time" required>
+                                        <option value="" disabled selected>เลือกเวลา</option>
+                                        <option value="09:00">09:00</option>
+                                        <option value="10:00">10:00</option>
+                                        <option value="11:00">11:00</option>
+                                        <option value="13:00">13:00</option>
+                                        <option value="14:00">14:00</option>
+                                        <option value="15:00">15:00</option>
+                                        <option value="16:00">16:00</option>
+                                        <option value="17:00">17:00</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>รูปแบบการนัดหมาย</label>
+                                <div class="meeting-options">
+                                    <label class="meeting-option">
+                                        <input type="radio" name="meeting_type" value="onsite" checked>
+                                        <div class="meeting-option-card">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2"/></svg>
+                                            <span>เข้าดูหน้างาน</span>
+                                        </div>
+                                    </label>
+                                    <label class="meeting-option">
+                                        <input type="radio" name="meeting_type" value="online">
+                                        <div class="meeting-option-card">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                            <span>วิดีโอคอล</span>
+                                        </div>
+                                    </label>
+                                    <label class="meeting-option">
+                                        <input type="radio" name="meeting_type" value="phone">
+                                        <div class="meeting-option-card">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke="currentColor" stroke-width="2"/></svg>
+                                            <span>โทรศัพท์</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-step-nav">
+                                <button type="button" class="btn btn-outline btn-back" data-back="2">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 12H5m7 7l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    <span>ย้อนกลับ</span>
+                                </button>
+                                <button type="submit" class="btn btn-primary btn-submit">
+                                    <span>ส่งข้อมูลและจองคิว</span>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Success State -->
+                        <div class="form-success" id="formSuccess">
+                            <div class="success-icon">
+                                <svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="2.5"/><path d="M20 32l8 8 16-16" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+                            <h3>จองคิวสำเร็จ!</h3>
+                            <p>ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง</p>
+                            <div class="success-summary" id="successSummary"></div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== STATS ========== -->
+    <section class="stats" id="stats">
+        <div class="stats-bg">
+            <div class="stats-shape stats-shape-1"></div>
+            <div class="stats-shape stats-shape-2"></div>
+        </div>
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="1.5"/><path d="M24 14v10l7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    </div>
+                    <div class="stat-number" data-count="120">0</div>
+                    <div class="stat-suffix">+</div>
+                    <div class="stat-label">โครงการสำเร็จ</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 48 48" fill="none"><rect x="8" y="12" width="32" height="28" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 20h32M18 8v8M30 8v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    </div>
+                    <div class="stat-number" data-count="10">0</div>
+                    <div class="stat-suffix">+</div>
+                    <div class="stat-label">ปีเปิดทำงาน</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="16" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M8 40c0-8.8 7.2-16 16-16s16 7.2 16 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    </div>
+                    <div class="stat-number" data-count="500">0</div>
+                    <div class="stat-suffix">+</div>
+                    <div class="stat-label">ลูกค้าที่ไว้วางใจ</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 48 48" fill="none"><circle cx="16" cy="16" r="6" stroke="currentColor" stroke-width="1.5"/><circle cx="32" cy="16" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M4 38c0-6.6 5.4-12 12-12h16c6.6 0 12 5.4 12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    </div>
+                    <div class="stat-number" data-count="50">0</div>
+                    <div class="stat-suffix">+</div>
+                    <div class="stat-label">ทีมมืออาชีพ</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== TRUST / TESTIMONIALS ========== -->
+    <section class="trust" id="trust">
+        <div class="container">
+            <div class="section-header" data-animate="fade-up">
+                <span class="section-tag">TRUSTED BY 500+ CLIENTS</span>
+                <h2>เสียงจากลูกค้าจริง</h2>
+                <p class="section-desc">ลูกค้ากว่า 500+ ครอบครัวไว้วางใจให้เราดูแล</p>
+            </div>
+            <div class="trust-grid">
+                <div class="testimonial-card" data-animate="fade-up">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-quote">"สร้างบ้านกับ Nucha ประทับใจมาก ทีมงานมืออาชีพ ไม่บวกราคา ส่งมอบตรงเวลา แนะนำเลยครับ"</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">สม</div>
+                        <div>
+                            <div class="testimonial-name">สมชาย วงศ์สุข</div>
+                            <div class="testimonial-role">รับเหมาก่อสร้าง · สุขุมวิท 50</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card" data-animate="fade-up">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-quote">"บิ้วอินครัวสวยมาก วัสดุดี ทีมช่างทำงานเรียบร้อย ราคาสมเหตุสมผล คุ้มค่าจริงๆ ค่ะ"</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">ปร</div>
+                        <div>
+                            <div class="testimonial-name">ประภา ศรีสุวรรณ</div>
+                            <div class="testimonial-role">บิ้วอิน · พระราม 9</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card" data-animate="fade-up">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-quote">"ออกแบบได้ตรงใจมาก ฟังทุกความต้องการ ดีไซเนอร์เข้าใจ lifestyle เราจริงๆ ประทับใจครับ"</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">วิ</div>
+                        <div>
+                            <div class="testimonial-name">วิชัย พัฒนาทรัพย์</div>
+                            <div class="testimonial-role">ออกแบบ + ตกแต่ง · ลาดพร้าว 71</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== CLOSING ========== -->
+    <section class="closing" id="closing">
+        <div class="closing-bg">
+            <div class="closing-gradient"></div>
+            <div class="closing-particles"></div>
+        </div>
+        <div class="container">
+            <div class="closing-content" data-animate="fade-up">
+                <p class="closing-tag">START YOUR PROJECT</p>
+                <h2 class="closing-title">เริ่มต้นโครงการ<br><span class="accent">ของคุณวันนี้</span></h2>
+                <p class="closing-desc">ทีมงานพร้อมดูแลคุณตั้งแต่วันแรก — ปรึกษาฟรี ไม่มีค่าใช้จ่าย ไม่มีข้อผูกมัด</p>
+                <div class="closing-guarantee">
+                    <div class="guarantee-item">
+                        <div class="guarantee-icon">
+                            <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div>
+                            <strong>รับประกันคุณภาพ</strong>
+                            <span>โครงสร้างทั้งโครงการ</span>
+                        </div>
+                    </div>
+                    <div class="guarantee-item">
+                        <div class="guarantee-icon">
+                            <svg viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div>
+                            <strong>ส่งมอบตรงเวลา</strong>
+                            <span>ไม่เลื่อน ไม่บวกราคา</span>
+                        </div>
+                    </div>
+                    <div class="guarantee-item">
+                        <div class="guarantee-icon">
+                            <svg viewBox="0 0 24 24" fill="none"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div>
+                            <strong>ดูแลหลังส่งมอบ</strong>
+                            <span>ทีม Service ตลอดอายุใช้งาน</span>
+                        </div>
+                    </div>
+                </div>
+                <a href="#booking" class="btn btn-primary btn-lg closing-cta magnetic-btn">
+                    <span>จองคิวปรึกษาฟรี — ภายใน 24 ชม.</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </a>
+                <p class="closing-proof">✓ ลูกค้ากว่า 500+ ครอบครัวไว้วางใจเรา &nbsp;·&nbsp; ✓ ไม่มีค่าใช้จ่าย ไม่มีข้อผูกมัด</p>
+                <p class="closing-note">📞 หรือโทร <a href="tel:02-123-4567">02-123-4567</a> — พร้อมให้คำปรึกษาทุกวัน 09:00–18:00</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== TRUST BADGES ========== -->
+    <section class="trust-badges" id="trust-badges">
+        <div class="container">
+            <p class="trust-badges-label">วัสดุคุณภาพจากแบรนด์ชั้นนำ</p>
+            <div class="trust-badges-row">
+                <div class="trust-badge-item">
+                    <svg viewBox="0 0 120 40" fill="currentColor" opacity="0.35"><text x="10" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="18">SCG</text></svg>
+                </div>
+                <div class="trust-badge-item">
+                    <svg viewBox="0 0 120 40" fill="currentColor" opacity="0.35"><text x="10" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="16">TOA</text></svg>
+                </div>
+                <div class="trust-badge-item">
+                    <svg viewBox="0 0 120 40" fill="currentColor" opacity="0.35"><text x="10" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="14">COTTO</text></svg>
+                </div>
+                <div class="trust-badge-item">
+                    <svg viewBox="0 0 120 40" fill="currentColor" opacity="0.35"><text x="10" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="16">STIEBEL</text></svg>
+                </div>
+                <div class="trust-badge-item">
+                    <svg viewBox="0 0 120 40" fill="currentColor" opacity="0.35"><text x="10" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="16">DAIKIN</text></svg>
+                </div>
+                <div class="trust-badge-item">
+                    <svg viewBox="0 0 120 40" fill="currentColor" opacity="0.35"><text x="10" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="14">KARAT</text></svg>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="footer" id="contact">
+        <div class="container">
+            <div class="footer-top">
+                <div class="footer-brand">
+                    <a href="#" class="logo">
+                        <span class="logo-icon">N</span>
+                        <span class="logo-text">NUCHA<br>INNOVATION</span>
+                    </a>
+                    <p class="footer-desc">บริการออกแบบ สถาปัตยกรรม วิศวกรรม และสร้างบ้านครบวงจร โดยมืออาชีพ</p>
+                    <div class="social-links">
+                        <a href="#" aria-label="Facebook" class="magnetic-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg></a>
+                        <a href="#" aria-label="Instagram" class="magnetic-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg></a>
+                        <a href="#" aria-label="Line" class="magnetic-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 5.82 2 10.5c0 4.02 3.44 7.42 8.09 8.23.31.07.74.22.85.5.1.26.06.66.03.92l-.14.84c-.04.26-.2 1.01.9.55.37-.15 2.04-1.2 2.77-2.05.47-.28 1.13-.7 1.55-1.25C18.62 14.77 22 12.2 22 10.5 22 5.82 17.52 2 12 2z"/></svg></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <h4>เมนูลัด</h4>
+                    <ul>
+                        <li><a href="#home">หน้าหลัก</a></li>
+                        <li><a href="#services">บริการ</a></li>
+                        <li><a href="#portfolio">ผลงาน</a></li>
+                        <li><a href="#booking">จองคิว</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>บริการ</h4>
+                    <ul>
+                        <li><a href="#">รับเหมาก่อสร้าง</a></li>
+                        <li><a href="#">บิ้วอิน</a></li>
+                        <li><a href="#">ออกแบบ</a></li>
+                        <li><a href="#">ตกแต่ง</a></li>
+                        <li><a href="#">บริหารโครงการ</a></li>
+                    </ul>
+                </div>
+                <div class="footer-contact">
+                    <h4>ติดต่อเรา</h4>
+                    <div class="contact-item">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="1.5"/></svg>
+                        <span>123 ถนนสุขุมวิท แขวงคลองเตย กรุงเทพฯ 10110</span>
+                    </div>
+                    <div class="contact-item">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" stroke="currentColor" stroke-width="1.5"/></svg>
+                        <span>02-123-4567</span>
+                    </div>
+                    <div class="contact-item">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="1.5"/><path d="M22 6l-10 7L2 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <span>info@nuchainnovation.com</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <div class="container">
+                <p>© 2024 Nucha Innovation Co., Ltd. All Rights Reserved.</p>
+                <div class="footer-legal">
+                    <a href="#">นโยบายความเป็นส่วนตัว</a>
+                    <a href="#">ข้อตกลงการใช้บริการ</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Floating CTA -->
+    <div class="floating-cta" id="floatingCta">
+        <a href="https://line.me/ti/p/~@nuchainnovation" class="fab fab-line" aria-label="LINE" title="แชทผ่าน LINE">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 5.82 2 10.5c0 4.02 3.44 7.42 8.09 8.23.31.07.74.22.85.5.1.26.06.66.03.92l-.14.84c-.04.26-.2 1.01.9.55.37-.15 2.04-1.2 2.77-2.05.47-.28 1.13-.7 1.55-1.25C18.62 14.77 22 12.2 22 10.5 22 5.82 17.52 2 12 2z"/></svg>
+        </a>
+        <a href="tel:02-123-4567" class="fab fab-call" aria-label="โทร" title="โทรเลย">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+        </a>
+    </div>
+
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
