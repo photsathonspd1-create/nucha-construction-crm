@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NUCHA CRM - Admin Dashboard</title>
+    <title>NUCHA CRM — Admin CMS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Thai:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin.css">
 </head>
@@ -11,475 +11,154 @@
     <div class="admin-layout">
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
-            <div class="sidebar-logo">
-                <div class="sidebar-logo-icon">N</div>
-                <div class="sidebar-logo-text">NUCHA<br>INNOVATION</div>
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">N</div>
+                    <div class="sidebar-logo-text">NUCHA<br>INNOVATION</div>
+                </div>
+                <button class="sidebar-close" id="sidebarClose">✕</button>
             </div>
             <nav class="sidebar-nav">
                 <div class="sidebar-section">
-                    <div class="sidebar-section-title">ภาพรวม</div>
+                    <div class="sidebar-section-title">📊 ภาพรวม</div>
                     <div class="sidebar-link active" data-page="dashboard" onclick="showPage('dashboard')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                         <span>Dashboard</span>
                     </div>
                 </div>
                 <div class="sidebar-section">
-                    <div class="sidebar-section-title">จัดการ</div>
-                    <div class="sidebar-link" data-page="leads" onclick="showPage('leads')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                        <span>Leads</span>
-                        <span class="badge" id="leadsCount">0</span>
-                    </div>
-                    <div class="sidebar-link" data-page="pipeline" onclick="showPage('pipeline')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                        <span>Pipeline</span>
-                    </div>
-                    <div class="sidebar-link" data-page="appointments" onclick="showPage('appointments')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                        <span>นัดหมาย</span>
-                        <span class="badge" id="apptsCount">0</span>
-                    </div>
-                    <div class="sidebar-link" data-page="proposals" onclick="showPage('proposals')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                        <span>ใบเสนอราคา</span>
-                    </div>
-                    <div class="sidebar-link" data-page="followups" onclick="showPage('followups')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        <span>Follow-up</span>
-                        <span class="badge" id="followupCount">0</span>
-                    </div>
+                    <div class="sidebar-section-title">🎨 แก้ไขเว็บไซต์</div>
+                    <div class="sidebar-link" data-page="edit-site" onclick="showPage('edit-site')"><span>⚙️ ตั้งค่าเว็บ</span></div>
+                    <div class="sidebar-link" data-page="edit-hero" onclick="showPage('edit-hero')"><span>🏠 Hero</span></div>
+                    <div class="sidebar-link" data-page="edit-services" onclick="showPage('edit-services')"><span>🔧 บริการ</span></div>
+                    <div class="sidebar-link" data-page="edit-process" onclick="showPage('edit-process')"><span>📋 กระบวนการ</span></div>
+                    <div class="sidebar-link" data-page="edit-portfolio" onclick="showPage('edit-portfolio')"><span>🖼️ ผลงาน</span></div>
+                    <div class="sidebar-link" data-page="edit-testimonials" onclick="showPage('edit-testimonials')"><span>⭐ รีวิว</span></div>
+                    <div class="sidebar-link" data-page="edit-closing" onclick="showPage('edit-closing')"><span>🔚 ปิดท้าย</span></div>
+                    <div class="sidebar-link" data-page="edit-footer" onclick="showPage('edit-footer')"><span>📎 Footer</span></div>
+                    <div class="sidebar-link" data-page="edit-nav" onclick="showPage('edit-nav')"><span>📑 เมนูนำทาง</span></div>
                 </div>
                 <div class="sidebar-section">
-                    <div class="sidebar-section-title">ข้อมูล</div>
-                    <div class="sidebar-link" data-page="activities" onclick="showPage('activities')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                        <span>กิจกรรม</span>
-                    </div>
+                    <div class="sidebar-section-title">📋 จัดการลูกค้า</div>
+                    <div class="sidebar-link" data-page="leads" onclick="showPage('leads')"><span>👥 Leads</span><span class="badge" id="leadsCount">0</span></div>
+                    <div class="sidebar-link" data-page="bookings" onclick="showPage('bookings')"><span>📅 จองคิว</span><span class="badge" id="bookingsCount">0</span></div>
                 </div>
                 <div class="sidebar-section">
-                    <div class="sidebar-section-title">วิเคราะห์</div>
-                    <div class="sidebar-link" data-page="analytics" onclick="showPage('analytics')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-                        <span>Analytics</span>
-                    </div>
-                    <div class="sidebar-link" data-page="team" onclick="showPage('team')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                        <span>ทีม</span>
-                    </div>
+                    <div class="sidebar-section-title">🖼️ สื่อ</div>
+                    <div class="sidebar-link" data-page="media" onclick="showPage('media')"><span>📁 คลังรูปภาพ</span></div>
                 </div>
             </nav>
             <div class="sidebar-footer">
-                <div class="sidebar-user" id="sidebarUser">
+                <div class="sidebar-user">
                     <div class="sidebar-user-avatar">A</div>
                     <div class="sidebar-user-info">
                         <div class="sidebar-user-name" id="userName">Admin</div>
-                        <div class="sidebar-user-role" id="userRole">admin</div>
+                        <div class="sidebar-user-role">admin</div>
                     </div>
                 </div>
-                <a href="#" class="sidebar-logout" onclick="Auth.signOut()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                    ออกจากระบบ
-                </a>
-            </div>
-            <div class="sidebar-back">
-                <a href="index.html">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m7 7l-7-7 7-7"/></svg>
-                    กลับหน้าเว็บ
-                </a>
+                <div class="sidebar-actions">
+                    <a href="/" class="sidebar-btn" title="ดูเว็บไซต์">🌐</a>
+                    <button class="sidebar-btn" onclick="logout()" title="ออกจากระบบ">🚪</button>
+                </div>
             </div>
         </aside>
 
         <!-- Main Content -->
-        <main class="main">
-            <!-- Loading overlay -->
-            <div class="loading-overlay" id="loadingOverlay">
-                <div class="loading-spinner"></div>
-                <p>กำลังโหลดข้อมูล...</p>
+        <main class="main-content">
+            <!-- Mobile Header -->
+            <div class="mobile-header">
+                <button class="hamburger-btn" id="sidebarToggle">☰</button>
+                <span class="mobile-title">NUCHA CMS</span>
             </div>
 
-            <!-- DASHBOARD PAGE -->
+            <!-- Toast -->
+            <div class="toast" id="toast"></div>
+
+            <!-- Dashboard -->
             <div class="page-section active" id="page-dashboard">
-                <div class="main-header">
-                    <div>
-                        <h1>Dashboard</h1>
-                        <div class="main-header-sub">ภาพรวมระบบ CRM</div>
-                    </div>
-                    <div class="header-actions">
-                        <button class="btn-save" onclick="openAddLeadModal()">+ เพิ่ม Lead</button>
-                    </div>
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <p>ภาพรวมระบบ CRM</p>
                 </div>
-                <div class="stat-cards">
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <div class="stat-card-icon red">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                            </div>
-                        </div>
-                        <div class="stat-card-num" id="totalLeads">0</div>
-                        <div class="stat-card-label">Leads ทั้งหมด</div>
+                <div class="stats-cards" id="dashStats"></div>
+                <div class="dash-grid">
+                    <div class="dash-card">
+                        <h3>📊 Pipeline</h3>
+                        <div id="dashPipeline"></div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <div class="stat-card-icon green">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                            </div>
-                        </div>
-                        <div class="stat-card-num" id="closedDeals">0</div>
-                        <div class="stat-card-label">ปิดงานแล้ว</div>
-                        <div class="mini-funnel" id="dashMiniFunnel"></div>
+                    <div class="dash-card">
+                        <h3>📅 จองคิวล่าสุด</h3>
+                        <div id="dashRecentBookings"></div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <div class="stat-card-icon blue">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                            </div>
-                        </div>
-                        <div class="stat-card-num" id="todayAppts">0</div>
-                        <div class="stat-card-label">นัดหมายวันนี้</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <div class="stat-card-icon orange">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                            </div>
-                        </div>
-                        <div class="stat-card-num" id="newLeads">0</div>
-                        <div class="stat-card-label">New Leads</div>
-                    </div>
-                </div>
-                <div class="card" style="padding: 24px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                        <h3 style="font-size: 1.1rem; font-weight: 700;">Leads ล่าสุด</h3>
-                    </div>
-                    <div id="recentLeadsList"></div>
-                </div>
-
-                <!-- SLA Alerts -->
-                <div class="card" id="slaAlertsCard" style="padding: 24px; margin-top: 16px; display: none;">
-                    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: var(--red);">🚨 SLA Alerts — Leads ที่เกินเวลา</h3>
-                    <div id="slaAlertsList"></div>
                 </div>
             </div>
 
-            <!-- LEADS PAGE -->
+            <!-- Edit Site Config -->
+            <div class="page-section" id="page-edit-site">
+                <div class="page-header"><h1>⚙️ ตั้งค่าเว็บไซต์</h1><p>ข้อมูลทั่วไป, โลโก้, การติดต่อ</p></div>
+                <form class="cms-form" id="siteConfigForm"></form>
+            </div>
+
+            <!-- Edit Hero -->
+            <div class="page-section" id="page-edit-hero">
+                <div class="page-header"><h1>🏠 Hero Section</h1><p>ส่วนหัวเว็บไซต์</p></div>
+                <form class="cms-form" id="heroForm"></form>
+            </div>
+
+            <!-- Edit Services -->
+            <div class="page-section" id="page-edit-services">
+                <div class="page-header">
+                    <h1>🔧 บริการ</h1>
+                    <p>รายการบริการทั้งหมด</p>
+                </div>
+                <form class="cms-form" id="servicesForm"></form>
+            </div>
+
+            <!-- Edit Process -->
+            <div class="page-section" id="page-edit-process">
+                <div class="page-header"><h1>📋 กระบวนการ</h1><p>ขั้นตอนการทำงาน</p></div>
+                <form class="cms-form" id="processForm"></form>
+            </div>
+
+            <!-- Edit Portfolio -->
+            <div class="page-section" id="page-edit-portfolio">
+                <div class="page-header"><h1>🖼️ ผลงาน</h1><p>โครงการที่ผ่านมา</p></div>
+                <form class="cms-form" id="portfolioForm"></form>
+            </div>
+
+            <!-- Edit Testimonials -->
+            <div class="page-section" id="page-edit-testimonials">
+                <div class="page-header"><h1>⭐ รีวิวลูกค้า</h1><p>เสียงจากลูกค้าจริง</p></div>
+                <form class="cms-form" id="testimonialsForm"></form>
+            </div>
+
+            <!-- Edit Closing -->
+            <div class="page-section" id="page-edit-closing">
+                <div class="page-header"><h1>🔚 ปิดท้าย</h1><p>CTA สุดท้ายก่อน Footer</p></div>
+                <form class="cms-form" id="closingForm"></form>
+            </div>
+
+            <!-- Edit Footer -->
+            <div class="page-section" id="page-edit-footer">
+                <div class="page-header"><h1>📎 Footer</h1><p>ส่วนท้ายเว็บไซต์</p></div>
+                <form class="cms-form" id="footerForm"></form>
+            </div>
+
+            <!-- Edit Nav -->
+            <div class="page-section" id="page-edit-nav">
+                <div class="page-header"><h1>📑 เมนูนำทาง</h1><p>จัดการ Navbar</p></div>
+                <form class="cms-form" id="navForm"></form>
+            </div>
+
+            <!-- Leads -->
             <div class="page-section" id="page-leads">
-                <div class="main-header">
-                    <div>
-                        <h1>Leads</h1>
-                        <div class="main-header-sub">จัดการลูกค้าเป้าหมาย</div>
-                    </div>
-                    <div class="header-actions">
-                        <button class="btn-save" onclick="openAddLeadModal()">+ เพิ่ม Lead</button>
-                        <button class="btn-cancel" onclick="exportLeadsCSV()">📥 Export CSV</button>
-                    </div>
+                <div class="page-header">
+                    <h1>👥 Leads</h1>
+                    <p>จัดการลูกค้าเป้าหมาย</p>
                 </div>
-                <div class="table-section">
-                    <div class="table-header">
-                        <div class="table-actions">
-                            <input type="text" class="search-input" placeholder="ค้นหาชื่อ, เบอร์โทร..." id="leadSearch" oninput="renderLeadsTable()">
-                            <select class="filter-select" id="statusFilter" onchange="renderLeadsTable()">
-                                <option value="">ทุกสถานะ</option>
-                                <option value="New Lead">New Lead</option>
-                                <option value="Contacted">Contacted</option>
-                                <option value="Appointment Set">Appointment Set</option>
-                                <option value="Proposal Sent">Proposal Sent</option>
-                                <option value="Closed Won">Closed Won</option>
-                                <option value="Closed Lost">Closed Lost</option>
-                            </select>
-                            <select class="filter-select" id="serviceFilter" onchange="renderLeadsTable()">
-                                <option value="">ทุกบริการ</option>
-                                <option value="รับเหมาก่อสร้าง">รับเหมาก่อสร้าง</option>
-                                <option value="บิ้วอิน">บิ้วอิน</option>
-                                <option value="ออกแบบ">ออกแบบ</option>
-                                <option value="ตกแต่ง">ตกแต่ง</option>
-                                <option value="บริหารโครงการ">บริหารโครงการ</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>ชื่อ</th>
-                                    <th>เบอร์โทร</th>
-                                    <th>บริการ</th>
-                                    <th>งบประมาณ</th>
-                                    <th>คะแนน</th>
-                                    <th>สถานะ</th>
-                                    <th>วันที่</th>
-                                    <th>จัดการ</th>
-                                </tr>
-                            </thead>
-                            <tbody id="leadsTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PIPELINE PAGE -->
-            <div class="page-section" id="page-pipeline">
-                <div class="main-header">
-                    <div>
-                        <h1>Pipeline</h1>
-                        <div class="main-header-sub">มุมมอง CRM Pipeline</div>
-                    </div>
-                </div>
-                <div class="pipeline-section">
-                    <div class="pipeline-grid" id="pipelineGrid"></div>
-                </div>
-            </div>
-
-            <!-- APPOINTMENTS PAGE -->
-            <div class="page-section" id="page-appointments">
-                <div class="main-header">
-                    <div>
-                        <h1>นัดหมาย</h1>
-                        <div class="main-header-sub">รายการนัดหมายทั้งหมด</div>
-                    </div>
-                </div>
-                <div class="appts-grid" id="apptsGrid"></div>
-            </div>
-
-            <!-- PROPOSALS PAGE -->
-            <div class="page-section" id="page-proposals">
-                <div class="main-header">
-                    <div>
-                        <h1>ใบเสนอราคา</h1>
-                        <div class="main-header-sub">จัดการใบเสนอราคา</div>
-                    </div>
-                    <div class="header-actions">
-                        <button class="btn-save" onclick="openNewProposalModal()">+ สร้างใบเสนอราคา</button>
-                    </div>
-                </div>
-                <div class="card" style="padding: 24px;">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>เลขที่</th>
-                                <th>ชื่อ</th>
-                                <th>Lead</th>
-                                <th>ยอดรวม</th>
-                                <th>สถานะ</th>
-                                <th>วันที่</th>
-                                <th>จัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody id="proposalsTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- FOLLOW-UPS PAGE -->
-            <div class="page-section" id="page-followups">
-                <div class="main-header">
-                    <div>
-                        <h1>Follow-up</h1>
-                        <div class="main-header-sub">รายการติดตามที่ต้องทำ</div>
-                    </div>
-                </div>
-                <div class="card" style="padding: 24px;">
-                    <div id="followupsList"></div>
-                </div>
-            </div>
-
-            <!-- ACTIVITIES PAGE -->
-            <div class="page-section" id="page-activities">
-                <div class="main-header">
-                    <div>
-                        <h1>กิจกรรม</h1>
-                        <div class="main-header-sub">บันทึกการเปลี่ยนแปลงทั้งหมด</div>
-                    </div>
-                </div>
-                <div class="card" style="padding: 24px;">
-                    <div id="activitiesList"></div>
-                </div>
-            </div>
-
-            <!-- ANALYTICS PAGE -->
-            <div class="page-section" id="page-analytics">
-                <div class="main-header">
-                    <div>
-                        <h1>Analytics</h1>
-                        <div class="main-header-sub">วิเคราะห์ข้อมูลเชิงลึก</div>
-                    </div>
-                </div>
-
-                <!-- Top Stats -->
-                <div class="stat-cards">
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <div class="stat-card-icon green">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                            </div>
-                        </div>
-                        <div class="stat-card-num" id="conversionRate">0%</div>
-                        <div class="stat-card-label">Conversion Rate</div>
-                        <div class="mini-funnel" id="miniFunnel"></div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <div class="stat-card-icon blue">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                            </div>
-                        </div>
-                        <div class="stat-card-num" id="avgLeadsPerDay">0</div>
-                        <div class="stat-card-label">Leads/วัน (เฉลี่ย 7 วัน)</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <div class="stat-card-icon orange">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                            </div>
-                        </div>
-                        <div class="stat-card-num" id="avgResponseTime">-</div>
-                        <div class="stat-card-label">เวลาเฉลี่ยปิดดีล (วัน)</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-header">
-                            <div class="stat-card-icon red">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                            </div>
-                        </div>
-                        <div class="stat-card-num" id="totalRevenue">฿0</div>
-                        <div class="stat-card-label">มูลค่า Pipeline รวม</div>
-                    </div>
-                </div>
-
-                <div class="analytics-grid">
-                    <!-- Leads by Day Chart -->
-                    <div class="analytics-card">
-                        <h3>📊 Leads 7 วันล่าสุด</h3>
-                        <div class="bar-chart" id="leadsByDayChart"></div>
-                    </div>
-
-                    <!-- Conversion Funnel -->
-                    <div class="analytics-card">
-                        <h3>🔄 Conversion Funnel</h3>
-                        <div class="funnel" id="conversionFunnel"></div>
-                    </div>
-                </div>
-
-                <div class="analytics-grid">
-                    <!-- Service Popularity -->
-                    <div class="analytics-card">
-                        <h3>🏠 บริการยอดนิยม</h3>
-                        <div id="servicePopularity"></div>
-                    </div>
-
-                    <!-- Budget Distribution -->
-                    <div class="analytics-card">
-                        <h3>💰 การกระจายงบประมาณ</h3>
-                        <div id="budgetDistribution"></div>
-                    </div>
-                </div>
-
-                <!-- Lead Source -->
-                <div class="analytics-card" style="margin-bottom: 28px;">
-                    <h3>📡 แหล่งที่มาของ Leads</h3>
-                    <div id="leadSources" style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px;"></div>
-                </div>
-            </div>
-
-            <!-- TEAM PAGE -->
-            <div class="page-section" id="page-team">
-                <div class="main-header">
-                    <div>
-                        <h1>ทีม</h1>
-                        <div class="main-header-sub">ประสิทธิภาพทีมขาย</div>
-                    </div>
-                    <div class="header-actions">
-                        <select class="filter-select" id="leaderboardPeriod" onchange="renderTeam()">
-                            <option value="month">เดือนนี้</option>
-                            <option value="week">สัปดาห์นี้</option>
-                            <option value="year">ปีนี้</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Leaderboard -->
-                <div class="analytics-card" style="margin-bottom: 24px;">
-                    <h3>🏆 Leaderboard</h3>
-                    <div id="leaderboard"></div>
-                </div>
-
-                <!-- Lost Reasons -->
-                <div class="analytics-grid" style="margin-bottom: 24px;">
-                    <div class="analytics-card">
-                        <h3>📊 ผลงานทีม</h3>
-                        <div class="stat-cards" id="teamStats" style="margin-bottom:0;"></div>
-                    </div>
-                    <div class="analytics-card">
-                        <h3>❌ เหตุผลที่เสียดีล</h3>
-                        <div id="lostReasons"></div>
-                    </div>
-                </div>
-
-                <div class="card" style="padding: 24px;">
-                    <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px;">📋 รายละเอียดทีม</h3>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>ชื่อ</th>
-                                <th>บทบาท</th>
-                                <th>Leads</th>
-                                <th>ปิดดีล</th>
-                                <th>Conversion</th>
-                                <th>เวลาเฉลี่ยตอบ</th>
-                            </tr>
-                        </thead>
-                        <tbody id="teamTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Add/Edit Lead Modal -->
-    <div class="modal-overlay" id="leadModal">
-        <div class="modal">
-            <button class="modal-close" onclick="closeLeadModal()">&times;</button>
-            <h2 id="modalTitle">เพิ่ม Lead ใหม่</h2>
-            <form id="modalLeadForm">
-                <input type="hidden" id="editLeadId">
-                <div class="form-group">
-                    <label>ชื่อ-นามสกุล *</label>
-                    <input type="text" id="modalName" required>
-                </div>
-                <div class="form-group">
-                    <label>เบอร์โทรศัพท์ *</label>
-                    <input type="tel" id="modalPhone" required>
-                </div>
-                <div class="form-group">
-                    <label>อีเมล</label>
-                    <input type="email" id="modalEmail">
-                </div>
-                <div class="form-group">
-                    <label>บริการที่สนใจ</label>
-                    <select id="modalService">
-                        <option value="รับเหมาก่อสร้าง">รับเหมาก่อสร้าง</option>
-                        <option value="บิ้วอิน">บิ้วอิน</option>
-                        <option value="ออกแบบ">ออกแบบ</option>
-                        <option value="ตกแต่ง">ตกแต่ง</option>
-                        <option value="บริหารโครงการ">บริหารโครงการ</option>
-                        <option value="อื่นๆ">อื่นๆ</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>งบประมาณ</label>
-                    <select id="modalBudget">
-                        <option value="ไม่ระบุ">ไม่ระบุ</option>
-                        <option value="ต่ำกว่า 500,000">ต่ำกว่า 500K</option>
-                        <option value="500,000 - 1,000,000">500K – 1M</option>
-                        <option value="1,000,000 - 3,000,000">1M – 3M</option>
-                        <option value="3,000,000 - 5,000,000">3M – 5M</option>
-                        <option value="5,000,000 - 10,000,000">5M – 10M</option>
-                        <option value="มากกว่า 10,000,000">10M+</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>สถานะ</label>
-                    <select id="modalStatus" onchange="toggleLostReason()">
+                <div class="leads-toolbar">
+                    <input type="text" id="leadSearch" placeholder="🔍 ค้นหาชื่อ, เบอร์โทร..." class="search-input">
+                    <select id="leadFilter" class="filter-select">
+                        <option value="">ทุกสถานะ</option>
                         <option value="New Lead">New Lead</option>
                         <option value="Contacted">Contacted</option>
                         <option value="Appointment Set">Appointment Set</option>
@@ -488,157 +167,50 @@
                         <option value="Closed Lost">Closed Lost</option>
                     </select>
                 </div>
-                <div class="form-group" id="lostReasonGroup" style="display:none;">
-                    <label>❌ เหตุผลที่เสีย</label>
-                    <select id="modalLostReason">
-                        <option value="">-- เลือกเหตุผล --</option>
-                        <option value="ราคาแพง">ราคาแพง</option>
-                        <option value="คู่แข่งเร็วกว่า">คู่แข่งเร็วกว่า</option>
-                        <option value="ลูกค้ายังไม่พร้อม">ลูกค้ายังไม่พร้อม</option>
-                        <option value="งบประมาณไม่พอ">งบประมาณไม่พอ</option>
-                        <option value="ไม่ตอบกลับ">ไม่ตอบกลับ</option>
-                        <option value="โครงการเลื่อน">โครงการเลื่อน</option>
-                        <option value="อื่นๆ">อื่นๆ</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>บันทึก / Follow-up</label>
-                    <textarea id="modalNote" placeholder="เพิ่มบันทึก..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>วันนัดติดตาม (ถ้ามี)</label>
-                    <input type="date" id="modalFollowUpDate">
-                </div>
-                <div class="form-group">
-                    <label>มอบหมายให้</label>
-                    <select id="modalAssignedTo">
-                        <option value="">-- ไม่ระบุ --</option>
-                    </select>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn-cancel" onclick="closeLeadModal()">ยกเลิก</button>
-                    <button type="submit" class="btn-save">บันทึก</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Proposal Modal -->
-    <div class="modal-overlay" id="proposalModal">
-        <div class="modal" style="max-width: 700px;">
-            <button class="modal-close" onclick="closeProposalModal()">&times;</button>
-            <h2>สร้างใบเสนอราคา</h2>
-            <form id="proposalForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Lead *</label>
-                        <select id="proposalLead" required></select>
-                    </div>
-                    <div class="form-group">
-                        <label>วันหมดอายุ</label>
-                        <input type="date" id="proposalValidUntil">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>หัวข้อ *</label>
-                    <input type="text" id="proposalTitle" placeholder="เช่น ใบเสนอราคา บ้าน 2 ชั้น สุขุมวิท 50" required>
-                </div>
-                <div class="form-group">
-                    <label>รายการ</label>
-                    <div id="proposalItems">
-                        <div class="proposal-item-row">
-                            <input type="text" placeholder="รายการ" class="proposal-item-name" style="flex:2">
-                            <input type="number" placeholder="จำนวน" class="proposal-item-qty" style="flex:1" value="1">
-                            <input type="number" placeholder="ราคา/หน่วย" class="proposal-item-price" style="flex:1">
-                            <button type="button" class="table-btn table-btn-delete" onclick="removeProposalItem(this)">ลบ</button>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-cancel" style="margin-top:8px" onclick="addProposalItem()">+ เพิ่มรายการ</button>
-                </div>
-                <div class="form-group">
-                    <label>หมายเหตุ</label>
-                    <textarea id="proposalNotes" placeholder="เงื่อนไข ข้อตกลง..."></textarea>
-                </div>
-                <div style="text-align:right;font-size:1.2rem;font-weight:800;margin:16px 0;">
-                    ยอดรวม: <span id="proposalTotal">฿0</span>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn-cancel" onclick="closeProposalModal()">ยกเลิก</button>
-                    <button type="submit" class="btn-save">บันทึกใบเสนอราคา</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Note Detail Modal -->
-    <div class="modal-overlay" id="noteModal">
-        <div class="modal">
-            <button class="modal-close" onclick="closeNoteModal()">&times;</button>
-            <h2>บันทึก Lead</h2>
-            <div id="noteModalContent"></div>
-
-            <!-- AI Copilot -->
-            <div style="margin: 16px 0; padding: 16px; background: var(--blue-soft); border-radius: 12px;">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-                    <span style="font-size: 1.2rem;">🤖</span>
-                    <strong style="font-size: 0.9rem;">AI Copilot</strong>
-                </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button type="button" class="table-btn table-btn-edit" onclick="aiGenerateReply('auto')">💬 ตอบกลับ</button>
-                    <button type="button" class="table-btn table-btn-edit" onclick="aiGenerateReply('follow_up')">⏰ Follow-up</button>
-                    <button type="button" class="table-btn btn-accept" onclick="aiGenerateReply('close')">💰 ปิดดีล</button>
-                    <button type="button" class="table-btn table-btn-edit" onclick="aiAnalyzeLead()">📊 วิเคราะห์</button>
-                    <button type="button" class="table-btn table-btn-edit" onclick="aiGetStrategy()">🎯 กลยุทธ์</button>
-                </div>
-                <div id="aiReplyBox" style="display:none; margin-top: 12px; padding: 12px; background: white; border-radius: 8px; border: 1px solid var(--gray-200);">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-                        <strong style="font-size: 0.82rem; color: var(--blue);">AI Reply</strong>
-                        <button type="button" class="table-btn table-btn-edit" onclick="copyAIReply()">📋 Copy</button>
-                    </div>
-                    <div id="aiReplyText" style="font-size: 0.88rem; line-height: 1.6; white-space: pre-wrap;"></div>
-                </div>
-                <div id="aiLoading" style="display:none; text-align:center; padding:12px; color:var(--gray-400);">
-                    <div class="loading-spinner" style="width:20px;height:20px;margin:0 auto 8px;"></div>
-                    AI กำลังคิด...
+                <div class="leads-table-wrap">
+                    <table class="leads-table" id="leadsTable">
+                        <thead><tr><th>ชื่อ</th><th>โทร</th><th>บริการ</th><th>งบ</th><th>Score</th><th>สถานะ</th><th>วันที่</th><th>จัดการ</th></tr></thead>
+                        <tbody id="leadsBody"></tbody>
+                    </table>
                 </div>
             </div>
 
-            <form id="noteForm" style="margin-top: 20px;">
-                <input type="hidden" id="noteLeadId">
-                <div class="form-group">
-                    <label>เพิ่มบันทึก</label>
-                    <textarea id="newNoteText" placeholder="บันทึก..." required></textarea>
+            <!-- Bookings -->
+            <div class="page-section" id="page-bookings">
+                <div class="page-header"><h1>📅 จองคิว</h1><p>รายการนัดหมาย</p></div>
+                <div id="bookingsList"></div>
+            </div>
+
+            <!-- Media Library -->
+            <div class="page-section" id="page-media">
+                <div class="page-header">
+                    <h1>📁 คลังรูปภาพ</h1>
+                    <p>จัดการรูปภาพทั้งหมด</p>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>ประเภท</label>
-                        <select id="newNoteType">
-                            <option value="general">ทั่วไป</option>
-                            <option value="follow_up">Follow-up</option>
-                            <option value="call">โทรศัพท์</option>
-                            <option value="meeting">นัดหมาย</option>
-                        </select>
+                <div class="media-upload-area" id="mediaUploadArea">
+                    <input type="file" id="mediaFileInput" accept="image/*" multiple hidden>
+                    <div class="upload-placeholder" onclick="document.getElementById('mediaFileInput').click()">
+                        <span style="font-size:3rem">📤</span>
+                        <p>คลิกหรือลากไฟล์มาวางที่นี่</p>
+                        <small>รองรับ JPG, PNG, GIF, WebP (สูงสุด 5MB)</small>
                     </div>
-                    <div class="form-group">
-                        <label>วันนัดติดตาม</label>
-                        <input type="date" id="newNoteFollowUp">
-                    </div>
                 </div>
-                <div class="modal-actions">
-                    <button type="submit" class="btn-save">เพิ่มบันทึก</button>
-                </div>
-            </form>
+                <div class="media-grid" id="mediaGrid"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Lead Detail Modal -->
+    <div class="modal-overlay" id="leadModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">รายละเอียด Lead</h2>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
         </div>
     </div>
 
-    <!-- Toast Notification -->
-    <div class="toast" id="toast"></div>
-
-    <!-- Supabase JS SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase/config.js"></script>
-    <script src="supabase/auth.js"></script>
-    <script src="supabase/crm.js"></script>
     <script src="admin.js"></script>
 </body>
 </html>

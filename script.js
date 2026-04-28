@@ -218,7 +218,7 @@ if (dateInput) {
     dateInput.setAttribute('min', today);
 }
 
-// Form submission — NOW USING SUPABASE
+// Form submission — USING API (no Supabase needed)
 if (bookingForm) {
     bookingForm.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -230,7 +230,9 @@ if (bookingForm) {
             service_type: formData.get('service_type'),
             budget_range: formData.get('budget_range') || 'ไม่ระบุ',
             message: formData.get('message') || '',
-            source: 'website'
+            appointment_date: formData.get('date') || null,
+            appointment_time: formData.get('time') || null,
+            meeting_type: formData.get('meeting_type') || 'onsite'
         };
 
         const submitBtn = this.querySelector('.btn-submit');
@@ -239,33 +241,18 @@ if (bookingForm) {
         submitBtn.disabled = true;
 
         try {
-            // Save lead to Supabase
-            const savedLead = await CRM.saveLead(lead);
-
-            // Save appointment if date provided
-            if (formData.get('date') && formData.get('time')) {
-                await CRM.saveAppointment({
-                    lead_id: savedLead.id,
-                    lead_name: lead.name,
-                    date: formData.get('date'),
-                    time: formData.get('time'),
-                    meeting_type: formData.get('meeting_type') || 'onsite',
-                    service_type: lead.service_type
-                });
-            }
+            const res = await fetch('/api/leads', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(lead)
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Submit failed');
 
             // Show success
             formSteps.forEach(s => s.classList.remove('active'));
             const successEl = document.getElementById('formSuccess');
             successEl.classList.add('active');
-
-            const summary = document.getElementById('successSummary');
-            summary.innerHTML = `
-                <div class="success-detail"><strong>บริการ:</strong> ${lead.service_type}</div>
-                <div class="success-detail"><strong>งบประมาณ:</strong> ${lead.budget_range}</div>
-                ${formData.get('date') ? `<div class="success-detail"><strong>วันนัด:</strong> ${formatDate(formData.get('date'))} เวลา ${formData.get('time')}</div>` : ''}
-                <div class="success-detail"><strong>รูปแบบ:</strong> ${getMeetingTypeLabel(formData.get('meeting_type'))}</div>
-            `;
 
             // Reset form after delay
             setTimeout(() => {

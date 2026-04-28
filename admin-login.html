@@ -18,9 +18,7 @@
             font-family: var(--font-thai); background: var(--gray-50);
             min-height: 100vh; display: flex; align-items: center; justify-content: center;
         }
-        .login-container {
-            width: 100%; max-width: 420px; padding: 20px;
-        }
+        .login-container { width: 100%; max-width: 420px; padding: 20px; }
         .login-card {
             background: var(--white); border-radius: 20px; padding: 48px 40px;
             box-shadow: 0 8px 30px rgba(0,0,0,0.08);
@@ -73,9 +71,7 @@
             background: var(--red-dark); transform: translateY(-2px);
             box-shadow: 0 8px 30px rgba(214, 0, 0, 0.35);
         }
-        .btn-login:disabled {
-            opacity: 0.6; cursor: not-allowed; transform: none;
-        }
+        .btn-login:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         .error-msg {
             display: none; padding: 12px 16px; background: var(--red-soft);
             color: var(--red); border-radius: 10px; font-size: 0.85rem;
@@ -86,8 +82,13 @@
             display: block; text-align: center; margin-top: 24px;
             font-size: 0.85rem; color: var(--gray-400);
         }
-        .back-link a { color: var(--red); font-weight: 600; }
+        .back-link a { color: var(--red); font-weight: 600; text-decoration: none; }
         .back-link a:hover { text-decoration: underline; }
+        .hint {
+            text-align: center; margin-top: 16px; padding: 12px;
+            background: #f0f7ff; border-radius: 10px; font-size: 0.8rem;
+            color: #3b82f6;
+        }
     </style>
 </head>
 <body>
@@ -114,15 +115,16 @@
                 <button type="submit" class="btn-login" id="btnLogin">เข้าสู่ระบบ</button>
             </form>
 
+            <div class="hint">
+                💡 Default: admin@nuchainnovation.com / admin123
+            </div>
+
             <div class="back-link">
-                <a href="index.html">← กลับหน้าเว็บหลัก</a>
+                <a href="/">← กลับหน้าเว็บหลัก</a>
             </div>
         </div>
     </div>
 
-    <!-- Supabase JS SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase/config.js"></script>
     <script>
         const loginForm = document.getElementById('loginForm');
         const errorMsg = document.getElementById('errorMsg');
@@ -130,8 +132,10 @@
 
         // Check if already logged in
         (async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) window.location.href = 'admin.html';
+            try {
+                const res = await fetch('/api/auth/me');
+                if (res.ok) window.location.href = '/admin';
+            } catch {}
         })();
 
         loginForm.addEventListener('submit', async (e) => {
@@ -144,13 +148,16 @@
             const password = document.getElementById('password').value;
 
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) throw error;
-                window.location.href = 'admin.html';
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Login failed');
+                window.location.href = '/admin';
             } catch (err) {
-                errorMsg.textContent = err.message === 'Invalid login credentials'
-                    ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'
-                    : 'เกิดข้อผิดพลาด: ' + err.message;
+                errorMsg.textContent = err.message || 'เกิดข้อผิดพลาด';
                 errorMsg.classList.add('show');
             } finally {
                 btnLogin.disabled = false;

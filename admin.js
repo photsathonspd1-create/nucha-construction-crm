@@ -1,1016 +1,997 @@
 // ============================================
-// NUCHA CRM — Admin Dashboard (Enhanced)
-// Features: Kanban DnD, Analytics, Priority, Toast
+// NUCHA CRM — Admin CMS (No Supabase needed)
 // ============================================
 
-// ===== Cached Data =====
-let cachedLeads = [];
-let cachedAppts = [];
-let cachedProposals = [];
-let cachedUsers = [];
-let currentUserId = null;
+let allContent = {};
+let allLeads = [];
+let allNav = [];
 
-// ===== Auth Check =====
+// ===== INIT =====
 (async () => {
-    const session = await Auth.requireAuth();
-    if (!session) return;
-    currentUserId = session.user.id;
-    const profile = await Auth.getProfile();
-    if (profile) {
-        document.getElementById('userName').textContent = profile.full_name || 'Admin';
-        document.getElementById('userRole').textContent = profile.role || 'admin';
-    }
-    // Load team members
-    cachedUsers = await CRM.getUsers();
-    await refreshData();
-    hideLoading();
+  try {
+    const me = await api('/api/auth/me');
+    document.getElementById('userName').textContent = me.full_name || 'Admin';
+  } catch {
+    window.location.href = '/login';
+    return;
+  }
+  await loadAll();
+  renderDashboard();
+  renderAllForms();
 })();
 
-function showLoading() { document.getElementById('loadingOverlay')?.classList.add('show'); }
-function hideLoading() { document.getElementById('loadingOverlay')?.classList.remove('show'); }
-
-// ===== Toast =====
-function showToast(msg, type = 'info') {
-    const toast = document.getElementById('toast');
-    toast.textContent = msg;
-    toast.className = 'toast show ' + type;
-    setTimeout(() => toast.classList.remove('show'), 3500);
+async function loadAll() {
+  [allContent, allLeads, allNav] = await Promise.all([
+    api('/api/content'),
+    api('/api/leads'),
+    api('/api/nav')
+  ]);
 }
 
-// ===== Page Navigation =====
+// ===== API HELPER =====
+async function api(url, opts = {}) {
+  const res = await fetch(url, {
+    headers: { 'Content-Type': 'application/json', ...opts.headers },
+    ...opts
+  });
+  if (res.status === 401) { window.location.href = '/login'; throw new Error('Unauthorized'); }
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'API Error');
+  return data;
+}
+
+// ===== TOAST =====
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ===== PAGE NAVIGATION =====
 function showPage(pageId) {
-    document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
-    document.getElementById('page-' + pageId)?.classList.add('active');
-    document.querySelector(`.sidebar-link[data-page="${pageId}"]`)?.classList.add('active');
-    refreshData();
+  document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('page-' + pageId)?.classList.add('active');
+  document.querySelector(`.sidebar-link[data-page="${pageId}"]`)?.classList.add('active');
+  // Close mobile sidebar
+  document.getElementById('sidebar').classList.remove('open');
+  // Refresh data on page change
+  if (pageId === 'dashboard') renderDashboard();
+  if (pageId === 'leads') renderLeads();
+  if (pageId === 'bookings') renderBookings();
+  if (pageId === 'media') renderMedia();
 }
 
-// ===== Refresh All Data =====
-async function refreshData() {
+// ===== LOGOUT =====
+async function logout() {
+  await api('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/login';
+}
+
+// ===== DASHBOARD =====
+async function renderDashboard() {
+  try {
+    const stats = await api('/api/stats');
+    const pipeline = await api('/api/pipeline');
+    const bookings = allLeads.filter(l => l.appointment_date).sort((a, b) => a.appointment_date.localeCompare(b.appointment_date)).slice(0, 5);
+
+    document.getElementById('dashStats').innerHTML = `
+      <div class="stat-card"><div class="label">Leads ทั้งหมด</div><div class="value">${stats.totalLeads}</div></div>
+      <div class="stat-card"><div class="label">ปิดดีลสำเร็จ</div><div class="value green">${stats.closedDeals}</div></div>
+      <div class="stat-card"><div class="label">นัดวันนี้</div><div class="value">${stats.todayAppts}</div></div>
+      <div class="stat-card"><div class="label">Lead ใหม่</div><div class="value red">${stats.newLeads}</div></div>
+    `;
+
+    const colors = { 'New Lead': '#3b82f6', 'Contacted': '#eab308', 'Appointment Set': '#16a34a', 'Proposal Sent': '#8b5cf6', 'Closed Won': '#22c55e', 'Closed Lost': '#ef4444' };
+    document.getElementById('dashPipeline').innerHTML = pipeline.map(p => `
+      <div class="pipeline-bar">
+        <div class="pipeline-dot" style="background:${colors[p.stage] || '#999'}"></div>
+        <div class="pipeline-name">${p.stage}</div>
+        <div class="pipeline-count">${p.count}</div>
+      </div>
+    `).join('');
+
+    const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    document.getElementById('dashRecentBookings').innerHTML = bookings.length ? bookings.map(b => {
+      const d = new Date(b.appointment_date);
+      return `<div class="booking-item">
+        <div class="booking-date">${d.getDate()} ${months[d.getMonth()]}</div>
+        <div><div class="booking-name">${esc(b.name)}</div><div class="booking-service">${esc(b.service_type)} · ${esc(b.appointment_time || '')}</div></div>
+      </div>`;
+    }).join('') : '<p style="color:var(--gray-400);font-size:0.85rem">ยังไม่มีนัดหมาย</p>';
+
+    document.getElementById('leadsCount').textContent = allLeads.length;
+    document.getElementById('bookingsCount').textContent = allLeads.filter(l => l.appointment_date).length;
+  } catch (err) {
+    console.error('Dashboard error:', err);
+  }
+}
+
+// ===== RENDER ALL CMS FORMS =====
+function renderAllForms() {
+  renderSiteConfigForm();
+  renderHeroForm();
+  renderServicesForm();
+  renderProcessForm();
+  renderPortfolioForm();
+  renderTestimonialsForm();
+  renderClosingForm();
+  renderFooterForm();
+  renderNavForm();
+  renderLeads();
+  renderBookings();
+}
+
+// ===== SITE CONFIG FORM =====
+function renderSiteConfigForm() {
+  const c = allContent.site_config || {};
+  document.getElementById('siteConfigForm').innerHTML = `
+    <div class="form-section">
+      <h3>🏷️ ข้อมูลเว็บไซต์</h3>
+      <div class="form-row">
+        <div class="form-group"><label>ชื่อเว็บ</label><input type="text" id="sc_site_name" value="${esc(c.site_name || '')}"></div>
+        <div class="form-group"><label>Tagline</label><input type="text" id="sc_site_tagline" value="${esc(c.site_tagline || '')}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Logo Text (ตัวอักษร)</label><input type="text" id="sc_logo_text" value="${esc(c.logo_text || '')}"></div>
+        <div class="form-group"><label>Logo Full (ใช้ \\n ขึ้นบรรทัดใหม่)</label><input type="text" id="sc_logo_full" value="${esc(c.logo_full || '')}"></div>
+      </div>
+      ${imageField('sc_favicon', c.favicon, 'Favicon URL')}
+    </div>
+    <div class="form-section">
+      <h3>📞 ข้อมูลติดต่อ</h3>
+      <div class="form-row">
+        <div class="form-group"><label>เบอร์โทร</label><input type="text" id="sc_phone" value="${esc(c.phone || '')}"></div>
+        <div class="form-group"><label>Email</label><input type="text" id="sc_email" value="${esc(c.email || '')}"></div>
+      </div>
+      <div class="form-group"><label>ที่อยู่</label><input type="text" id="sc_address" value="${esc(c.address || '')}"></div>
+      <div class="form-group"><label>LINE ID</label><input type="text" id="sc_line_id" value="${esc(c.line_id || '')}"></div>
+    </div>
+    <div class="form-section">
+      <h3>🔗 Social Media</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Facebook URL</label><input type="text" id="sc_facebook" value="${esc(c.facebook_url || '')}"></div>
+        <div class="form-group"><label>Instagram URL</label><input type="text" id="sc_instagram" value="${esc(c.instagram_url || '')}"></div>
+      </div>
+      <div class="form-group"><label>Copyright</label><input type="text" id="sc_copyright" value="${esc(c.copyright || '')}"></div>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-primary" onclick="saveSiteConfig()">💾 บันทึก</button>
+    </div>
+  `;
+}
+
+async function saveSiteConfig() {
+  const data = {
+    site_name: gv('sc_site_name'), site_tagline: gv('sc_site_tagline'),
+    logo_text: gv('sc_logo_text'), logo_full: gv('sc_logo_full'),
+    phone: gv('sc_phone'), email: gv('sc_email'), address: gv('sc_address'),
+    line_id: gv('sc_line_id'), facebook_url: gv('sc_facebook'),
+    instagram_url: gv('sc_instagram'), copyright: gv('sc_copyright'),
+    favicon: gv('sc_favicon')
+  };
+  await api('/api/content/site_config', { method: 'PUT', body: JSON.stringify(data) });
+  allContent.site_config = data;
+  toast('✅ บันทึกข้อมูลเว็บไซต์สำเร็จ');
+}
+
+// ===== HERO FORM =====
+function renderHeroForm() {
+  const h = allContent.hero || {};
+  document.getElementById('heroForm').innerHTML = `
+    <div class="form-section">
+      <h3>🏠 Hero Section</h3>
+      <div class="form-group"><label>Badge Text</label><input type="text" id="h_badge" value="${esc(h.badge || '')}"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Title บรรทัด 1</label><input type="text" id="h_title1" value="${esc(h.title_line1 || '')}"></div>
+        <div class="form-group"><label>Title บรรทัด 2 (สี accent)</label><input type="text" id="h_title2" value="${esc(h.title_line2 || '')}"></div>
+      </div>
+      <div class="form-group"><label>Subtitle</label><input type="text" id="h_subtitle" value="${esc(h.subtitle || '')}"></div>
+      <div class="form-group"><label>Description</label><textarea id="h_desc">${esc(h.description || '')}</textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>CTA ปุ่มหลัก</label><input type="text" id="h_cta1" value="${esc(h.cta_primary || '')}"></div>
+        <div class="form-group"><label>CTA ปุ่มรอง</label><input type="text" id="h_cta2" value="${esc(h.cta_secondary || '')}"></div>
+      </div>
+      ${imageField('h_image', h.image_url, 'รูป Hero')}
+    </div>
+    <div class="form-section">
+      <h3>📊 สถิติ Hero</h3>
+      <div class="form-row">
+        <div class="form-group"><label>สถิติ 1 ตัวเลข</label><input type="text" id="h_s1n" value="${esc(h.stat1_number || '')}"></div>
+        <div class="form-group"><label>สถิติ 1 ป้าย</label><input type="text" id="h_s1l" value="${esc(h.stat1_label || '')}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>สถิติ 2 ตัวเลข</label><input type="text" id="h_s2n" value="${esc(h.stat2_number || '')}"></div>
+        <div class="form-group"><label>สถิติ 2 ป้าย</label><input type="text" id="h_s2l" value="${esc(h.stat2_label || '')}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>สถิติ 3 ตัวเลข</label><input type="text" id="h_s3n" value="${esc(h.stat3_number || '')}"></div>
+        <div class="form-group"><label>สถิติ 3 ป้าย</label><input type="text" id="h_s3l" value="${esc(h.stat3_label || '')}"></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <h3>🃏 Float Card</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Title</label><input type="text" id="h_ft" value="${esc(h.float_title || '')}"></div>
+        <div class="form-group"><label>Description</label><input type="text" id="h_fd" value="${esc(h.float_desc || '')}"></div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-primary" onclick="saveHero()">💾 บันทึก</button>
+    </div>
+  `;
+}
+
+async function saveHero() {
+  const data = {
+    badge: gv('h_badge'), title_line1: gv('h_title1'), title_line2: gv('h_title2'),
+    subtitle: gv('h_subtitle'), description: gv('h_desc'),
+    cta_primary: gv('h_cta1'), cta_secondary: gv('h_cta2'),
+    image_url: gv('h_image'),
+    stat1_number: gv('h_s1n'), stat1_label: gv('h_s1l'),
+    stat2_number: gv('h_s2n'), stat2_label: gv('h_s2l'),
+    stat3_number: gv('h_s3n'), stat3_label: gv('h_s3l'),
+    float_title: gv('h_ft'), float_desc: gv('h_fd')
+  };
+  await api('/api/content/hero', { method: 'PUT', body: JSON.stringify(data) });
+  allContent.hero = data;
+  toast('✅ บันทึก Hero สำเร็จ');
+}
+
+// ===== SERVICES FORM =====
+function renderServicesForm() {
+  const s = allContent.services || {};
+  const items = s.items || [];
+  document.getElementById('servicesForm').innerHTML = `
+    <div class="form-section">
+      <h3>📝 หัวข้อบริการ</h3>
+      <div class="form-group"><label>Section Tag</label><input type="text" id="sv_tag" value="${esc(s.section_tag || '')}"></div>
+      <div class="form-group"><label>Section Title</label><input type="text" id="sv_title" value="${esc(s.section_title || '')}"></div>
+      <div class="form-group"><label>Section Description</label><textarea id="sv_desc">${esc(s.section_desc || '')}</textarea></div>
+    </div>
+    <div class="form-section">
+      <h3>📋 รายการบริการ</h3>
+      <div id="servicesItemsList">
+        ${items.map((item, i) => `
+          <div class="repeatable-header" onclick="toggleRepeatable(this)">
+            <h4>${item.icon || '🔧'} ${esc(item.name || 'บริการ ' + (i + 1))}</h4>
+            <span class="toggle">▼</span>
+          </div>
+          <div class="repeatable-body">
+            <div class="form-row">
+              <div class="form-group"><label>ไอคอน (emoji)</label><input type="text" class="sv-item-icon" value="${esc(item.icon || '')}"></div>
+              <div class="form-group"><label>ชื่อบริการ</label><input type="text" class="sv-item-name" value="${esc(item.name || '')}"></div>
+            </div>
+            <div class="form-group"><label>รายละเอียด</label><textarea class="sv-item-desc">${esc(item.desc || '')}</textarea></div>
+            <div class="form-row">
+              <div class="form-group"><label>งบประมาณ</label><input type="text" class="sv-item-budget" value="${esc(item.budget || '')}"></div>
+              <div class="form-group"><label>Key (ภาษาอังกฤษ)</label><input type="text" class="sv-item-key" value="${esc(item.key || '')}"></div>
+            </div>
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeRepeatable(this)">🗑️ ลบ</button>
+          </div>
+        `).join('')}
+      </div>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addServiceItem()" style="margin-top:12px">+ เพิ่มบริการ</button>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-primary" onclick="saveServices()">💾 บันทึก</button>
+    </div>
+  `;
+}
+
+function addServiceItem() {
+  const list = document.getElementById('servicesItemsList');
+  const html = `
+    <div class="repeatable-header" onclick="toggleRepeatable(this)"><h4>🔧 บริการใหม่</h4><span class="toggle">▼</span></div>
+    <div class="repeatable-body open">
+      <div class="form-row">
+        <div class="form-group"><label>ไอคอน (emoji)</label><input type="text" class="sv-item-icon" value="🔧"></div>
+        <div class="form-group"><label>ชื่อบริการ</label><input type="text" class="sv-item-name" value=""></div>
+      </div>
+      <div class="form-group"><label>รายละเอียด</label><textarea class="sv-item-desc"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>งบประมาณ</label><input type="text" class="sv-item-budget" value=""></div>
+        <div class="form-group"><label>Key</label><input type="text" class="sv-item-key" value=""></div>
+      </div>
+      <button type="button" class="btn btn-danger btn-sm" onclick="removeRepeatable(this)">🗑️ ลบ</button>
+    </div>
+  `;
+  list.insertAdjacentHTML('beforeend', html);
+}
+
+async function saveServices() {
+  const items = [];
+  document.querySelectorAll('.sv-item-name').forEach((el, i) => {
+    items.push({
+      icon: document.querySelectorAll('.sv-item-icon')[i]?.value || '🔧',
+      name: el.value,
+      desc: document.querySelectorAll('.sv-item-desc')[i]?.value || '',
+      budget: document.querySelectorAll('.sv-item-budget')[i]?.value || '',
+      key: document.querySelectorAll('.sv-item-key')[i]?.value || ''
+    });
+  });
+  const data = { section_tag: gv('sv_tag'), section_title: gv('sv_title'), section_desc: gv('sv_desc'), items };
+  await api('/api/content/services', { method: 'PUT', body: JSON.stringify(data) });
+  allContent.services = data;
+  toast('✅ บันทึกบริการสำเร็จ');
+}
+
+// ===== PROCESS FORM =====
+function renderProcessForm() {
+  const p = allContent.process || {};
+  const steps = p.steps || [];
+  document.getElementById('processForm').innerHTML = `
+    <div class="form-section">
+      <h3>📝 หัวข้อกระบวนการ</h3>
+      <div class="form-group"><label>Section Title (ใช้ \\n ขึ้นบรรทัดใหม่)</label><input type="text" id="pr_title" value="${esc(p.section_title || '')}"></div>
+    </div>
+    <div class="form-section">
+      <h3>📋 ขั้นตอน</h3>
+      <div id="processStepsList">
+        ${steps.map((step, i) => `
+          <div class="repeatable-header" onclick="toggleRepeatable(this)"><h4>${esc(step.tag || 'STEP ' + (i + 1))}</h4><span class="toggle">▼</span></div>
+          <div class="repeatable-body">
+            <div class="form-row">
+              <div class="form-group"><label>Tag</label><input type="text" class="pr-step-tag" value="${esc(step.tag || '')}"></div>
+              <div class="form-group"><label>Title (ใช้ \\n ขึ้นบรรทัดใหม่)</label><input type="text" class="pr-step-title" value="${esc(step.title || '')}"></div>
+            </div>
+            <div class="form-group"><label>Description</label><textarea class="pr-step-desc">${esc(step.desc || '')}</textarea></div>
+            ${imageField('pr-step-img-' + i, step.image, 'รูปขั้นตอน')}
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeRepeatable(this)">🗑️ ลบ</button>
+          </div>
+        `).join('')}
+      </div>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addProcessStep()" style="margin-top:12px">+ เพิ่มขั้นตอน</button>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-primary" onclick="saveProcess()">💾 บันทึก</button>
+    </div>
+  `;
+}
+
+function addProcessStep() {
+  const list = document.getElementById('processStepsList');
+  const i = document.querySelectorAll('.pr-step-tag').length;
+  list.insertAdjacentHTML('beforeend', `
+    <div class="repeatable-header" onclick="toggleRepeatable(this)"><h4>STEP ใหม่</h4><span class="toggle">▼</span></div>
+    <div class="repeatable-body open">
+      <div class="form-row">
+        <div class="form-group"><label>Tag</label><input type="text" class="pr-step-tag" value=""></div>
+        <div class="form-group"><label>Title</label><input type="text" class="pr-step-title" value=""></div>
+      </div>
+      <div class="form-group"><label>Description</label><textarea class="pr-step-desc"></textarea></div>
+      ${imageField('pr-step-img-' + i, '', 'รูปขั้นตอน')}
+      <button type="button" class="btn btn-danger btn-sm" onclick="removeRepeatable(this)">🗑️ ลบ</button>
+    </div>
+  `);
+}
+
+async function saveProcess() {
+  const steps = [];
+  document.querySelectorAll('.pr-step-tag').forEach((el, i) => {
+    steps.push({
+      tag: el.value,
+      title: document.querySelectorAll('.pr-step-title')[i]?.value || '',
+      desc: document.querySelectorAll('.pr-step-desc')[i]?.value || '',
+      image: getImageValue('pr-step-img-' + i)
+    });
+  });
+  const data = { section_title: gv('pr_title'), steps };
+  await api('/api/content/process', { method: 'PUT', body: JSON.stringify(data) });
+  allContent.process = data;
+  toast('✅ บันทึกกระบวนการสำเร็จ');
+}
+
+// ===== PORTFOLIO FORM =====
+function renderPortfolioForm() {
+  const p = allContent.portfolio || {};
+  const items = p.items || [];
+  document.getElementById('portfolioForm').innerHTML = `
+    <div class="form-section">
+      <h3>📝 หัวข้อผลงาน</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Section Tag</label><input type="text" id="pf_tag" value="${esc(p.section_tag || '')}"></div>
+        <div class="form-group"><label>Section Title</label><input type="text" id="pf_title" value="${esc(p.section_title || '')}"></div>
+      </div>
+      <div class="form-group"><label>Section Description</label><textarea id="pf_desc">${esc(p.section_desc || '')}</textarea></div>
+    </div>
+    <div class="form-section">
+      <h3>🖼️ ผลงาน</h3>
+      <div id="portfolioItemsList">
+        ${items.map((item, i) => `
+          <div class="repeatable-header" onclick="toggleRepeatable(this)"><h4>${esc(item.title || 'ผลงาน ' + (i + 1))}</h4><span class="toggle">▼</span></div>
+          <div class="repeatable-body">
+            ${imageField('pf-item-img-' + i, item.image, 'รูปผลงาน')}
+            <div class="form-row">
+              <div class="form-group"><label>Tag</label><input type="text" class="pf-item-tag" value="${esc(item.tag || '')}"></div>
+              <div class="form-group"><label>Title</label><input type="text" class="pf-item-title" value="${esc(item.title || '')}"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Description</label><input type="text" class="pf-item-desc" value="${esc(item.desc || '')}"></div>
+              <div class="form-group"><label>Size</label><select class="pf-item-size"><option value="normal" ${item.size !== 'large' ? 'selected' : ''}>ปกติ</option><option value="large" ${item.size === 'large' ? 'selected' : ''}>ใหญ่</option></select></div>
+            </div>
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeRepeatable(this)">🗑️ ลบ</button>
+          </div>
+        `).join('')}
+      </div>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addPortfolioItem()" style="margin-top:12px">+ เพิ่มผลงาน</button>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-primary" onclick="savePortfolio()">💾 บันทึก</button>
+    </div>
+  `;
+}
+
+function addPortfolioItem() {
+  const list = document.getElementById('portfolioItemsList');
+  const i = document.querySelectorAll('.pf-item-tag').length;
+  list.insertAdjacentHTML('beforeend', `
+    <div class="repeatable-header" onclick="toggleRepeatable(this)"><h4>ผลงานใหม่</h4><span class="toggle">▼</span></div>
+    <div class="repeatable-body open">
+      ${imageField('pf-item-img-' + i, '', 'รูปผลงาน')}
+      <div class="form-row">
+        <div class="form-group"><label>Tag</label><input type="text" class="pf-item-tag" value=""></div>
+        <div class="form-group"><label>Title</label><input type="text" class="pf-item-title" value=""></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Description</label><input type="text" class="pf-item-desc" value=""></div>
+        <div class="form-group"><label>Size</label><select class="pf-item-size"><option value="normal">ปกติ</option><option value="large">ใหญ่</option></select></div>
+      </div>
+      <button type="button" class="btn btn-danger btn-sm" onclick="removeRepeatable(this)">🗑️ ลบ</button>
+    </div>
+  `);
+}
+
+async function savePortfolio() {
+  const items = [];
+  document.querySelectorAll('.pf-item-tag').forEach((el, i) => {
+    items.push({
+      image: getImageValue('pf-item-img-' + i),
+      tag: el.value,
+      title: document.querySelectorAll('.pf-item-title')[i]?.value || '',
+      desc: document.querySelectorAll('.pf-item-desc')[i]?.value || '',
+      size: document.querySelectorAll('.pf-item-size')[i]?.value || 'normal'
+    });
+  });
+  const data = { section_tag: gv('pf_tag'), section_title: gv('pf_title'), section_desc: gv('pf_desc'), items };
+  await api('/api/content/portfolio', { method: 'PUT', body: JSON.stringify(data) });
+  allContent.portfolio = data;
+  toast('✅ บันทึกผลงานสำเร็จ');
+}
+
+// ===== TESTIMONIALS FORM =====
+function renderTestimonialsForm() {
+  const t = allContent.testimonials || {};
+  const items = t.items || [];
+  document.getElementById('testimonialsForm').innerHTML = `
+    <div class="form-section">
+      <h3>📝 หัวข้อรีวิว</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Section Tag</label><input type="text" id="tm_tag" value="${esc(t.section_tag || '')}"></div>
+        <div class="form-group"><label>Section Title</label><input type="text" id="tm_title" value="${esc(t.section_title || '')}"></div>
+      </div>
+      <div class="form-group"><label>Section Description</label><textarea id="tm_desc">${esc(t.section_desc || '')}</textarea></div>
+    </div>
+    <div class="form-section">
+      <h3>⭐ รีวิว</h3>
+      <div id="testimonialsList">
+        ${items.map((item, i) => `
+          <div class="repeatable-header" onclick="toggleRepeatable(this)"><h4>⭐ ${esc(item.name || 'รีวิว ' + (i + 1))}</h4><span class="toggle">▼</span></div>
+          <div class="repeatable-body">
+            <div class="form-row">
+              <div class="form-group"><label>ชื่อ</label><input type="text" class="tm-item-name" value="${esc(item.name || '')}"></div>
+              <div class="form-group"><label>Avatar (2 ตัวอักษร)</label><input type="text" class="tm-item-avatar" value="${esc(item.avatar || '')}"></div>
+            </div>
+            <div class="form-group"><label>Role</label><input type="text" class="tm-item-role" value="${esc(item.role || '')}"></div>
+            <div class="form-group"><label>คำรีวิว</label><textarea class="tm-item-quote">${esc(item.quote || '')}</textarea></div>
+            <div class="form-group"><label>ดาว (1-5)</label><input type="number" class="tm-item-stars" min="1" max="5" value="${item.stars || 5}"></div>
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeRepeatable(this)">🗑️ ลบ</button>
+          </div>
+        `).join('')}
+      </div>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addTestimonial()" style="margin-top:12px">+ เพิ่มรีวิว</button>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-primary" onclick="saveTestimonials()">💾 บันทึก</button>
+    </div>
+  `;
+}
+
+function addTestimonial() {
+  const list = document.getElementById('testimonialsList');
+  list.insertAdjacentHTML('beforeend', `
+    <div class="repeatable-header" onclick="toggleRepeatable(this)"><h4>⭐ รีวิวใหม่</h4><span class="toggle">▼</span></div>
+    <div class="repeatable-body open">
+      <div class="form-row">
+        <div class="form-group"><label>ชื่อ</label><input type="text" class="tm-item-name" value=""></div>
+        <div class="form-group"><label>Avatar</label><input type="text" class="tm-item-avatar" value=""></div>
+      </div>
+      <div class="form-group"><label>Role</label><input type="text" class="tm-item-role" value=""></div>
+      <div class="form-group"><label>คำรีวิว</label><textarea class="tm-item-quote"></textarea></div>
+      <div class="form-group"><label>ดาว</label><input type="number" class="tm-item-stars" min="1" max="5" value="5"></div>
+      <button type="button" class="btn btn-danger btn-sm" onclick="removeRepeatable(this)">🗑️ ลบ</button>
+    </div>
+  `);
+}
+
+async function saveTestimonials() {
+  const items = [];
+  document.querySelectorAll('.tm-item-name').forEach((el, i) => {
+    items.push({
+      name: el.value,
+      avatar: document.querySelectorAll('.tm-item-avatar')[i]?.value || '',
+      role: document.querySelectorAll('.tm-item-role')[i]?.value || '',
+      quote: document.querySelectorAll('.tm-item-quote')[i]?.value || '',
+      stars: parseInt(document.querySelectorAll('.tm-item-stars')[i]?.value) || 5
+    });
+  });
+  const data = { section_tag: gv('tm_tag'), section_title: gv('tm_title'), section_desc: gv('tm_desc'), items };
+  await api('/api/content/testimonials', { method: 'PUT', body: JSON.stringify(data) });
+  allContent.testimonials = data;
+  toast('✅ บันทึกรีวิวสำเร็จ');
+}
+
+// ===== CLOSING FORM =====
+function renderClosingForm() {
+  const c = allContent.closing || {};
+  const guarantees = c.guarantees || [];
+  document.getElementById('closingForm').innerHTML = `
+    <div class="form-section">
+      <h3>🔚 ปิดท้าย</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Tag</label><input type="text" id="cl_tag" value="${esc(c.tag || '')}"></div>
+        <div class="form-group"><label>CTA Text</label><input type="text" id="cl_cta" value="${esc(c.cta_text || '')}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Title บรรทัด 1</label><input type="text" id="cl_t1" value="${esc(c.title_line1 || '')}"></div>
+        <div class="form-group"><label>Title บรรทัด 2 (accent)</label><input type="text" id="cl_t2" value="${esc(c.title_line2 || '')}"></div>
+      </div>
+      <div class="form-group"><label>Description</label><textarea id="cl_desc">${esc(c.description || '')}</textarea></div>
+      <div class="form-group"><label>Proof Text</label><input type="text" id="cl_proof" value="${esc(c.proof_text || '')}"></div>
+    </div>
+    <div class="form-section">
+      <h3>🛡️ ข้อรับประกัน</h3>
+      <div id="guaranteesList">
+        ${guarantees.map((g, i) => `
+          <div class="repeatable-header" onclick="toggleRepeatable(this)"><h4>🛡️ ${esc(g.title || '')}</h4><span class="toggle">▼</span></div>
+          <div class="repeatable-body">
+            <div class="form-row">
+              <div class="form-group"><label>Icon (shield/check/heart)</label><input type="text" class="cl-g-icon" value="${esc(g.icon || '')}"></div>
+              <div class="form-group"><label>Title</label><input type="text" class="cl-g-title" value="${esc(g.title || '')}"></div>
+            </div>
+            <div class="form-group"><label>Description</label><input type="text" class="cl-g-desc" value="${esc(g.desc || '')}"></div>
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeRepeatable(this)">🗑️ ลบ</button>
+          </div>
+        `).join('')}
+      </div>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addGuarantee()" style="margin-top:12px">+ เพิ่มข้อรับประกัน</button>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-primary" onclick="saveClosing()">💾 บันทึก</button>
+    </div>
+  `;
+}
+
+function addGuarantee() {
+  document.getElementById('guaranteesList').insertAdjacentHTML('beforeend', `
+    <div class="repeatable-header" onclick="toggleRepeatable(this)"><h4>🛡️ ใหม่</h4><span class="toggle">▼</span></div>
+    <div class="repeatable-body open">
+      <div class="form-row">
+        <div class="form-group"><label>Icon</label><input type="text" class="cl-g-icon" value="shield"></div>
+        <div class="form-group"><label>Title</label><input type="text" class="cl-g-title" value=""></div>
+      </div>
+      <div class="form-group"><label>Description</label><input type="text" class="cl-g-desc" value=""></div>
+      <button type="button" class="btn btn-danger btn-sm" onclick="removeRepeatable(this)">🗑️ ลบ</button>
+    </div>
+  `);
+}
+
+async function saveClosing() {
+  const guarantees = [];
+  document.querySelectorAll('.cl-g-title').forEach((el, i) => {
+    guarantees.push({
+      icon: document.querySelectorAll('.cl-g-icon')[i]?.value || 'shield',
+      title: el.value,
+      desc: document.querySelectorAll('.cl-g-desc')[i]?.value || ''
+    });
+  });
+  const data = {
+    tag: gv('cl_tag'), title_line1: gv('cl_t1'), title_line2: gv('cl_t2'),
+    description: gv('cl_desc'), cta_text: gv('cl_cta'), proof_text: gv('cl_proof'), guarantees
+  };
+  await api('/api/content/closing', { method: 'PUT', body: JSON.stringify(data) });
+  allContent.closing = data;
+  toast('✅ บันทึกปิดท้ายสำเร็จ');
+}
+
+// ===== FOOTER FORM =====
+function renderFooterForm() {
+  const f = allContent.footer || {};
+  document.getElementById('footerForm').innerHTML = `
+    <div class="form-section">
+      <h3>📎 Footer</h3>
+      <div class="form-group"><label>Description</label><textarea id="ft_desc">${esc(f.description || '')}</textarea></div>
+    </div>
+    <div class="form-section">
+      <h3>🔗 เมนูลัด</h3>
+      <div id="ftQuickLinks">
+        ${(f.quick_links || []).map((l, i) => `
+          <div class="form-row" style="margin-bottom:8px">
+            <div class="form-group"><label>Label</label><input type="text" class="ft-ql-label" value="${esc(l.label || '')}"></div>
+            <div class="form-group"><label>Href</label><input type="text" class="ft-ql-href" value="${esc(l.href || '')}"></div>
+          </div>
+        `).join('')}
+      </div>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addFooterLink('ftQuickLinks', 'ft-ql')">+ เพิ่มลิงก์</button>
+    </div>
+    <div class="form-section">
+      <h3>🔧 ลิงก์บริการ</h3>
+      <div id="ftServiceLinks">
+        ${(f.service_links || []).map(l => `
+          <div class="form-row" style="margin-bottom:8px">
+            <div class="form-group"><label>Label</label><input type="text" class="ft-sl-label" value="${esc(l.label || '')}"></div>
+            <div class="form-group"><label>Href</label><input type="text" class="ft-sl-href" value="${esc(l.href || '')}"></div>
+          </div>
+        `).join('')}
+      </div>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addFooterLink('ftServiceLinks', 'ft-sl')">+ เพิ่มลิงก์</button>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-primary" onclick="saveFooter()">💾 บันทึก</button>
+    </div>
+  `;
+}
+
+function addFooterLink(containerId, prefix) {
+  document.getElementById(containerId).insertAdjacentHTML('beforeend', `
+    <div class="form-row" style="margin-bottom:8px">
+      <div class="form-group"><label>Label</label><input type="text" class="${prefix}-label" value=""></div>
+      <div class="form-group"><label>Href</label><input type="text" class="${prefix}-href" value=""></div>
+    </div>
+  `);
+}
+
+async function saveFooter() {
+  const quick_links = collectLinks('ft-ql-label', 'ft-ql-href');
+  const service_links = collectLinks('ft-sl-label', 'ft-sl-href');
+  const data = { description: gv('ft_desc'), quick_links, service_links, legal_links: allContent.footer?.legal_links || [] };
+  await api('/api/content/footer', { method: 'PUT', body: JSON.stringify(data) });
+  allContent.footer = data;
+  toast('✅ บันทึก Footer สำเร็จ');
+}
+
+// ===== NAV FORM =====
+function renderNavForm() {
+  document.getElementById('navForm').innerHTML = `
+    <div class="form-section">
+      <h3>📑 เมนูนำทาง (Navbar)</h3>
+      <div id="navItemsList">
+        ${allNav.map((n, i) => `
+          <div class="form-row" style="margin-bottom:8px;align-items:end">
+            <div class="form-group"><label>Label</label><input type="text" class="nav-label" value="${esc(n.label || '')}"></div>
+            <div class="form-group"><label>Href</label><input type="text" class="nav-href" value="${esc(n.href || '')}"></div>
+            <div class="form-group"><label>แสดง</label><select class="nav-visible"><option value="1" ${n.is_visible ? 'selected' : ''}>✅</option><option value="0" ${!n.is_visible ? 'selected' : ''}>❌</option></select></div>
+            <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.form-row').remove()">🗑️</button>
+          </div>
+        `).join('')}
+      </div>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addNavItem()" style="margin-top:12px">+ เพิ่มเมนู</button>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-primary" onclick="saveNav()">💾 บันทึก</button>
+    </div>
+  `;
+}
+
+function addNavItem() {
+  document.getElementById('navItemsList').insertAdjacentHTML('beforeend', `
+    <div class="form-row" style="margin-bottom:8px;align-items:end">
+      <div class="form-group"><label>Label</label><input type="text" class="nav-label" value=""></div>
+      <div class="form-group"><label>Href</label><input type="text" class="nav-href" value="#"></div>
+      <div class="form-group"><label>แสดง</label><select class="nav-visible"><option value="1">✅</option><option value="0">❌</option></select></div>
+      <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.form-row').remove()">🗑️</button>
+    </div>
+  `);
+}
+
+async function saveNav() {
+  const items = [];
+  document.querySelectorAll('.nav-label').forEach((el, i) => {
+    items.push({
+      label: el.value,
+      href: document.querySelectorAll('.nav-href')[i]?.value || '#',
+      sort_order: i + 1,
+      is_visible: parseInt(document.querySelectorAll('.nav-visible')[i]?.value) || 1
+    });
+  });
+  await api('/api/nav', { method: 'PUT', body: JSON.stringify({ items }) });
+  allNav = items;
+  toast('✅ บันทึกเมนูสำเร็จ');
+}
+
+// ===== LEADS =====
+function renderLeads() {
+  const search = document.getElementById('leadSearch')?.value?.toLowerCase() || '';
+  const filter = document.getElementById('leadFilter')?.value || '';
+  let filtered = allLeads;
+  if (search) filtered = filtered.filter(l => l.name.toLowerCase().includes(search) || l.phone.includes(search));
+  if (filter) filtered = filtered.filter(l => l.status === filter);
+
+  const statusClass = s => ({ 'New Lead': 'new', 'Contacted': 'contacted', 'Appointment Set': 'appointment', 'Proposal Sent': 'proposal', 'Closed Won': 'won', 'Closed Lost': 'lost' }[s] || 'new');
+
+  document.getElementById('leadsBody').innerHTML = filtered.map(l => `
+    <tr>
+      <td><strong>${esc(l.name)}</strong></td>
+      <td>${esc(l.phone)}</td>
+      <td>${esc(l.service_type)}</td>
+      <td>${esc(l.budget_range)}</td>
+      <td><span class="score-dot ${l.score >= 5 ? 'high' : l.score >= 3 ? 'mid' : 'low'}"></span>${l.score}</td>
+      <td><span class="status-badge ${statusClass(l.status)}">${l.status}</span></td>
+      <td>${new Date(l.created_at).toLocaleDateString('th-TH')}</td>
+      <td><button class="btn btn-sm btn-outline" onclick="openLeadModal(${l.id})">📝</button></td>
+    </tr>
+  `).join('');
+}
+
+// Lead search/filter event listeners
+document.getElementById('leadSearch')?.addEventListener('input', renderLeads);
+document.getElementById('leadFilter')?.addEventListener('change', renderLeads);
+
+// ===== LEAD MODAL =====
+async function openLeadModal(id) {
+  const lead = allLeads.find(l => l.id === id);
+  if (!lead) return;
+
+  const notes = await api(`/api/leads/${id}/notes`).catch(() => []);
+
+  document.getElementById('modalTitle').textContent = `📝 ${lead.name}`;
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-row">
+      <div class="form-group"><label>ชื่อ</label><input type="text" id="lm_name" value="${esc(lead.name)}"></div>
+      <div class="form-group"><label>โทร</label><input type="text" id="lm_phone" value="${esc(lead.phone)}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>บริการ</label><input type="text" id="lm_service" value="${esc(lead.service_type)}"></div>
+      <div class="form-group"><label>งบ</label><input type="text" id="lm_budget" value="${esc(lead.budget_range)}"></div>
+    </div>
+    <div class="form-group"><label>สถานะ</label>
+      <select id="lm_status">
+        ${['New Lead', 'Contacted', 'Appointment Set', 'Proposal Sent', 'Closed Won', 'Closed Lost'].map(s => `<option value="${s}" ${lead.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group"><label>ข้อความ</label><textarea id="lm_message">${esc(lead.message || '')}</textarea></div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-primary btn-sm" onclick="updateLead(${id})">💾 บันทึก</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteLead(${id})">🗑️ ลบ Lead</button>
+    </div>
+    <hr style="margin:20px 0;border:none;border-top:2px solid var(--gray-100)">
+    <h4 style="margin-bottom:12px">📝 บันทึก (${notes.length})</h4>
+    <div style="margin-bottom:12px">
+      <textarea id="newNote" placeholder="เพิ่มบันทึก..." rows="2" style="width:100%;padding:8px;border:2px solid var(--gray-200);border-radius:8px;font-family:var(--font)"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:end">
+        <div style="flex:1"><label style="font-size:0.75rem;color:var(--gray-400)">Follow-up Date</label><input type="date" id="newFollowUp" style="width:100%;padding:6px;border:1px solid var(--gray-200);border-radius:6px"></div>
+        <button class="btn btn-sm btn-blue" onclick="addNote(${id})">+ เพิ่ม</button>
+      </div>
+    </div>
+    <div>${notes.map(n => `
+      <div style="padding:8px;background:var(--gray-50);border-radius:8px;margin-bottom:8px;font-size:0.82rem">
+        <div style="color:var(--gray-400);font-size:0.7rem;margin-bottom:4px">${new Date(n.created_at).toLocaleString('th-TH')} ${n.follow_up_date ? '· 📅 ' + n.follow_up_date : ''} ${n.follow_up_done ? '· ✅ done' : ''}</div>
+        ${esc(n.note)}
+      </div>
+    `).join('')}</div>
+  `;
+  document.getElementById('leadModal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('leadModal').classList.remove('show');
+}
+
+async function updateLead(id) {
+  const data = {
+    name: gv('lm_name'), phone: gv('lm_phone'), service_type: gv('lm_service'),
+    budget_range: gv('lm_budget'), status: gv('lm_status'), message: gv('lm_message')
+  };
+  await api(`/api/leads/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  Object.assign(allLeads.find(l => l.id === id), data);
+  renderLeads();
+  toast('✅ อัพเดท Lead สำเร็จ');
+}
+
+async function deleteLead(id) {
+  if (!confirm('ลบ Lead นี้?')) return;
+  await api(`/api/leads/${id}`, { method: 'DELETE' });
+  allLeads = allLeads.filter(l => l.id !== id);
+  closeModal();
+  renderLeads();
+  toast('🗑️ ลบ Lead สำเร็จ');
+}
+
+async function addNote(leadId) {
+  const note = document.getElementById('newNote').value.trim();
+  if (!note) return;
+  const follow_up_date = document.getElementById('newFollowUp').value || null;
+  await api(`/api/leads/${leadId}/notes`, { method: 'POST', body: JSON.stringify({ note, follow_up_date }) });
+  toast('✅ เพิ่มบันทึกสำเร็จ');
+  openLeadModal(leadId);
+}
+
+// ===== BOOKINGS =====
+function renderBookings() {
+  const bookings = allLeads.filter(l => l.appointment_date).sort((a, b) => a.appointment_date.localeCompare(b.appointment_date));
+  const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+  document.getElementById('bookingsList').innerHTML = bookings.length ? bookings.map(b => {
+    const d = new Date(b.appointment_date);
+    return `<div class="booking-card">
+      <div class="date-badge"><div class="day">${d.getDate()}</div><div class="month">${months[d.getMonth()]}</div></div>
+      <div class="info">
+        <h4>${esc(b.name)}</h4>
+        <p>${esc(b.service_type)} · ${esc(b.appointment_time || '')} · ${esc(b.meeting_type || 'onsite')} · ${esc(b.phone)}</p>
+      </div>
+      <span class="status-badge ${b.status === 'Closed Won' ? 'won' : 'new'}">${b.status}</span>
+    </div>`;
+  }).join('') : '<p style="color:var(--gray-400);text-align:center;padding:40px">ยังไม่มีการจองคิว</p>';
+}
+
+// ===== MEDIA LIBRARY =====
+async function renderMedia() {
+  try {
+    const files = await api('/api/media').catch(() => []);
+    document.getElementById('mediaGrid').innerHTML = files.map(f => `
+      <div class="media-item">
+        <img src="${f.url}" alt="${f.name}" loading="lazy">
+        <div class="media-info">
+          <div class="media-name">${esc(f.name)}</div>
+          <div class="media-actions">
+            <button class="copy-url" onclick="copyUrl('${f.url}')">📋 Copy URL</button>
+            <button class="delete-img" onclick="deleteMedia('${f.name}')">🗑️</button>
+          </div>
+        </div>
+      </div>
+    `).join('') || '<p style="color:var(--gray-400);text-align:center;padding:40px">ยังไม่มีรูปอัพโหลด</p>';
+  } catch {}
+}
+
+// Media upload
+document.getElementById('mediaFileInput')?.addEventListener('change', async (e) => {
+  for (const file of e.target.files) {
+    const formData = new FormData();
+    formData.append('image', file);
     try {
-        [cachedLeads, cachedAppts, cachedProposals] = await Promise.all([
-            CRM.getLeads(),
-            CRM.getAppointments(),
-            CRM.getProposals()
-        ]);
-        const today = new Date().toISOString().split('T')[0];
-
-        // Stats
-        document.getElementById('totalLeads').textContent = cachedLeads.length;
-        document.getElementById('closedDeals').textContent = cachedLeads.filter(l => l.status === 'Closed Won').length;
-        document.getElementById('todayAppts').textContent = cachedAppts.filter(a => a.date === today).length;
-        document.getElementById('newLeads').textContent = cachedLeads.filter(l => l.status === 'New Lead').length;
-        document.getElementById('leadsCount').textContent = cachedLeads.length;
-        document.getElementById('apptsCount').textContent = cachedAppts.length;
-
-        // Mini funnel on dashboard
-        renderMiniFunnel('dashMiniFunnel');
-        renderSLABreaches();
-
-        renderRecentLeads(cachedLeads.slice(0, 5));
-        renderLeadsTable();
-        renderPipeline();
-        renderAppointments();
-        renderProposals();
-        renderFollowUps();
-        renderActivities();
-        renderAnalytics();
-        renderTeam();
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.url) toast('✅ อัพโหลด ' + file.name + ' สำเร็จ');
     } catch (err) {
-        console.error('refreshData:', err);
+      toast('❌ อัพโหลดล้มเหลว: ' + err.message, 'error');
     }
-}
-
-// ===== Lead Priority =====
-function getPriority(score) {
-    if (score >= 5) return 'high';
-    if (score >= 3) return 'mid';
-    return 'low';
-}
-function getPriorityLabel(score) {
-    if (score >= 5) return '🔴 สูง';
-    if (score >= 3) return '🟡 กลาง';
-    return '🟢 ต่ำ';
-}
-
-// ===== Mini Funnel =====
-function renderMiniFunnel(containerId) {
-    const el = document.getElementById(containerId);
-    if (!el) return;
-    const stages = ['New Lead', 'Contacted', 'Appointment Set', 'Proposal Sent', 'Closed Won'];
-    const colors = ['#2563EB', '#F59E0B', '#7C3AED', '#D97706', '#06C755'];
-    const total = cachedLeads.length || 1;
-    el.innerHTML = stages.map((s, i) => {
-        const count = cachedLeads.filter(l => l.status === s).length;
-        const pct = Math.max((count / total) * 100, 2);
-        return `<div class="mini-funnel-seg" style="width:${pct}%; background:${colors[i]}"></div>`;
-    }).join('');
-}
-
-// ===== Render Recent Leads =====
-function renderRecentLeads(leads) {
-    const c = document.getElementById('recentLeadsList');
-    if (leads.length === 0) { c.innerHTML = '<div class="empty-state"><h3>ยังไม่มี Lead</h3></div>'; return; }
-    c.innerHTML = leads.map(l => {
-        const p = getPriority(l.score);
-        return `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray-100);">
-            <div style="display:flex;align-items:center;gap:10px;">
-                <span class="priority-dot ${p}"></span>
-                <div>
-                    <div style="font-weight:700;">${esc(l.name)}</div>
-                    <div style="font-size:0.82rem;color:var(--gray-400);">${esc(l.service_type)} · ${esc(l.phone)}</div>
-                </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;">
-                <span class="status-badge ${getStatusClass(l.status)}">${esc(l.status)}</span>
-                ${getScoreHTML(l.score)}
-            </div>
-        </div>`;
-    }).join('');
-}
-
-// ===== Render Leads Table =====
-function renderLeadsTable() {
-    let leads = [...cachedLeads];
-    const search = document.getElementById('leadSearch')?.value?.toLowerCase() || '';
-    const statusF = document.getElementById('statusFilter')?.value || '';
-    const serviceF = document.getElementById('serviceFilter')?.value || '';
-    if (search) leads = leads.filter(l => l.name?.toLowerCase().includes(search) || l.phone?.includes(search));
-    if (statusF) leads = leads.filter(l => l.status === statusF);
-    if (serviceF) leads = leads.filter(l => l.service_type === serviceF);
-
-    const tbody = document.getElementById('leadsTableBody');
-    if (!tbody) return;
-    if (leads.length === 0) { tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><h3>ไม่พบข้อมูล</h3></div></td></tr>'; return; }
-
-    tbody.innerHTML = leads.map(l => {
-        const p = getPriority(l.score);
-        return `
-        <tr>
-            <td><span class="priority-dot ${p}"></span><strong>${esc(l.name)}</strong></td>
-            <td>${esc(l.phone)}</td>
-            <td>${esc(l.service_type || '-')}</td>
-            <td>${esc(l.budget_range || '-')}</td>
-            <td>${getScoreHTML(l.score)}</td>
-            <td>
-                <select class="filter-select" style="padding:4px 8px;font-size:0.78rem;" onchange="changeStatus('${l.id}',this.value)">
-                    ${['New Lead','Contacted','Appointment Set','Proposal Sent','Closed Won','Closed Lost'].map(s =>
-                        `<option value="${s}" ${l.status === s ? 'selected' : ''}>${s}</option>`
-                    ).join('')}
-                </select>
-            </td>
-            <td style="font-size:0.82rem;color:var(--gray-400);">${CRM.formatDate(l.created_at)}</td>
-            <td>
-                <button class="table-btn table-btn-note" onclick="openNoteModal('${l.id}')">📝</button>
-                <button class="table-btn table-btn-edit" onclick="openEditLeadModal('${l.id}')">แก้ไข</button>
-                <button class="table-btn table-btn-delete" onclick="deleteLeadConfirm('${l.id}')">ลบ</button>
-            </td>
-        </tr>`;
-    }).join('');
-}
-
-// ===== Kanban Pipeline with Drag & Drop =====
-function renderPipeline() {
-    const stages = ['New Lead', 'Contacted', 'Appointment Set', 'Proposal Sent', 'Closed Won', 'Closed Lost'];
-    const grid = document.getElementById('pipelineGrid');
-    if (!grid) return;
-
-    grid.innerHTML = stages.map(stage => {
-        const stageLeads = cachedLeads.filter(l => l.status === stage);
-        return `
-        <div class="pipeline-col" data-status="${stage}"
-             ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
-            <div class="pipeline-col-header">
-                <span class="pipeline-col-title">${stage}</span>
-                <span class="pipeline-col-count">${stageLeads.length}</span>
-            </div>
-            ${stageLeads.map(l => {
-                const p = getPriority(l.score);
-                return `
-                <div class="pipeline-card priority-${p}" draggable="true"
-                     data-id="${l.id}" ondragstart="handleDragStart(event)"
-                     onclick="openEditLeadModal('${l.id}')">
-                    ${l.score >= 5 ? '<span class="pipeline-card-score">🔥 ' + l.score + '</span>' : ''}
-                    <div class="pipeline-card-name">${esc(l.name)}</div>
-                    <div class="pipeline-card-service">${esc(l.service_type || '-')}</div>
-                    <span class="pipeline-card-budget">${esc(l.budget_range || 'ไม่ระบุ')}</span>
-                    <div class="pipeline-card-phone">📞 ${esc(l.phone)}</div>
-                </div>`;
-            }).join('')}
-        </div>`;
-    }).join('');
-}
-
-// Drag & Drop handlers
-let draggedId = null;
-function handleDragStart(e) {
-    draggedId = e.target.dataset.id;
-    e.target.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-}
-function handleDragOver(e) {
-    e.preventDefault();
-    e.currentTarget.classList.add('drag-over');
-}
-function handleDragLeave(e) {
-    e.currentTarget.classList.remove('drag-over');
-}
-async function handleDrop(e) {
-    e.preventDefault();
-    e.currentTarget.classList.remove('drag-over');
-    const newStatus = e.currentTarget.dataset.status;
-    if (!draggedId || !newStatus) return;
-    document.querySelectorAll('.pipeline-card.dragging').forEach(el => el.classList.remove('dragging'));
-
-    try {
-        await CRM.updateLead(draggedId, { status: newStatus });
-        showToast(`เปลี่ยนสถานะเป็น "${newStatus}" สำเร็จ`, 'success');
-        await refreshData();
-    } catch (err) {
-        showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
-    }
-    draggedId = null;
-}
-
-// ===== Render Appointments =====
-function renderAppointments() {
-    const grid = document.getElementById('apptsGrid');
-    if (!grid) return;
-    if (cachedAppts.length === 0) { grid.innerHTML = '<div class="empty-state"><h3>ยังไม่มีนัดหมาย</h3></div>'; return; }
-    grid.innerHTML = cachedAppts.map(a => `
-        <div class="appt-card">
-            <div class="appt-card-date">📅 ${CRM.formatDate(a.date)} เวลา ${a.time}</div>
-            <div class="appt-card-name">${esc(a.lead_name || 'ไม่ระบุ')}</div>
-            <div class="appt-card-detail">${esc(a.service_type || '')} · ${CRM.getMeetingLabel(a.meeting_type)}</div>
-        </div>
-    `).join('');
-}
-
-// ===== Render Proposals (with Accept/Reject) =====
-function renderProposals() {
-    const tbody = document.getElementById('proposalsTableBody');
-    if (!tbody) return;
-    if (cachedProposals.length === 0) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><h3>ยังไม่มีใบเสนอราคา</h3></div></td></tr>'; return; }
-
-    tbody.innerHTML = cachedProposals.map(p => {
-        const statusMap = { draft: 'new', sent: 'contacted', accepted: 'closed', rejected: 'lost', expired: 'lost' };
-        const statusLabel = { draft: 'ร่าง', sent: 'ส่งแล้ว', accepted: 'ยอมรับ', rejected: 'ปฏิเสธ', expired: 'หมดอายุ' };
-        return `
-        <tr>
-            <td><strong>${esc(p.proposal_number)}</strong></td>
-            <td>${esc(p.title)}</td>
-            <td style="font-size:0.82rem;">${esc(p.lead_id || '-')}</td>
-            <td style="font-weight:700;color:var(--red);">฿${Number(p.total).toLocaleString()}</td>
-            <td><span class="status-badge ${statusMap[p.status] || 'new'}">${statusLabel[p.status] || p.status}</span></td>
-            <td style="font-size:0.82rem;color:var(--gray-400);">${CRM.formatDate(p.created_at)}</td>
-            <td>
-                <div class="proposal-actions">
-                    ${p.status === 'draft' ? `<button class="table-btn btn-accept" onclick="updateProposalStatus('${p.id}','sent')">📤 ส่ง</button>` : ''}
-                    ${p.status === 'sent' ? `
-                        <button class="table-btn btn-accept" onclick="updateProposalStatus('${p.id}','accepted')">✅ ยอมรับ</button>
-                        <button class="table-btn btn-reject" onclick="updateProposalStatus('${p.id}','rejected')">❌ ปฏิเสธ</button>
-                    ` : ''}
-                    ${p.status === 'accepted' ? '<span style="color:var(--green);font-weight:700;">✅ ปิดดีล</span>' : ''}
-                    ${p.status === 'rejected' ? '<span style="color:var(--gray-400);">❌ ถูกปฏิเสธ</span>' : ''}
-                </div>
-            </td>
-        </tr>`;
-    }).join('');
-}
-
-// ===== Render Follow-ups =====
-async function renderFollowUps() {
-    const c = document.getElementById('followupsList');
-    if (!c) return;
-    const followUps = await CRM.getPendingFollowUps();
-    document.getElementById('followupCount').textContent = followUps.length;
-
-    if (followUps.length === 0) { c.innerHTML = '<div class="empty-state"><h3>ไม่มีรายการติดตาม</h3></div>'; return; }
-
-    // Sort by priority
-    followUps.sort((a, b) => (b.leads?.score || 0) - (a.leads?.score || 0));
-
-    c.innerHTML = followUps.map(n => {
-        const p = getPriority(n.leads?.score || 0);
-        return `
-        <div class="followup-item priority-${p}">
-            <div class="followup-info">
-                <div class="followup-name"><span class="priority-dot ${p}"></span>${esc(n.leads?.name || 'N/A')}</div>
-                <div class="followup-detail">${esc(n.note)} · ${esc(n.leads?.service_type || '')}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;">
-                <span class="followup-date">📅 ${CRM.formatDate(n.follow_up_date)}</span>
-                <a href="tel:${n.leads?.phone}" class="table-btn table-btn-edit" style="text-decoration:none;">📞 โทร</a>
-                <button class="table-btn table-btn-note" onclick="markFollowUpDone('${n.id}')">✓ เสร็จ</button>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-// ===== Render Activities =====
-async function renderActivities() {
-    const c = document.getElementById('activitiesList');
-    if (!c) return;
-    const activities = await CRM.getActivities(null, 30);
-    if (activities.length === 0) { c.innerHTML = '<div class="empty-state"><h3>ยังไม่มีกิจกรรม</h3></div>'; return; }
-    c.innerHTML = activities.map(a => {
-        let desc = a.action;
-        if (a.action === 'status_changed' && a.details) desc = `เปลี่ยนสถานะ: ${a.details.old_status} → ${a.details.new_status}`;
-        else if (a.action === 'lead_created') desc = 'สร้าง Lead ใหม่';
-        return `
-        <div class="activity-item">
-            <div class="activity-dot"></div>
-            <div>
-                <div class="activity-text">${esc(desc)}</div>
-                <div class="activity-time">${CRM.formatDate(a.created_at)}</div>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-// ===== Analytics =====
-function renderAnalytics() {
-    renderConversionRate();
-    renderLeadsPerDay();
-    renderAvgCloseTime();
-    renderPipelineValue();
-    renderMiniFunnel('miniFunnel');
-    renderConversionFunnel();
-    renderLeadsByDayChart();
-    renderServicePopularity();
-    renderBudgetDistribution();
-    renderLeadSources();
-}
-
-function renderConversionRate() {
-    const el = document.getElementById('conversionRate');
-    if (!el) return;
-    const total = cachedLeads.length;
-    const closed = cachedLeads.filter(l => l.status === 'Closed Won').length;
-    el.textContent = total > 0 ? Math.round((closed / total) * 100) + '%' : '0%';
-}
-
-function renderLeadsPerDay() {
-    const el = document.getElementById('avgLeadsPerDay');
-    if (!el) return;
-    const now = Date.now();
-    const weekAgo = now - 7 * 86400000;
-    const recent = cachedLeads.filter(l => new Date(l.created_at).getTime() > weekAgo);
-    el.textContent = (recent.length / 7).toFixed(1);
-}
-
-function renderAvgCloseTime() {
-    const el = document.getElementById('avgResponseTime');
-    if (!el) return;
-    const closed = cachedLeads.filter(l => l.status === 'Closed Won' && l.updated_at && l.created_at);
-    if (closed.length === 0) { el.textContent = '-'; return; }
-    const avgDays = closed.reduce((sum, l) => {
-        return sum + (new Date(l.updated_at) - new Date(l.created_at)) / 86400000;
-    }, 0) / closed.length;
-    el.textContent = Math.round(avgDays);
-}
-
-function renderPipelineValue() {
-    const el = document.getElementById('totalRevenue');
-    if (!el) return;
-    const budgetValues = {
-        'มากกว่า 10,000,000': 12000000,
-        '5,000,000 - 10,000,000': 7500000,
-        '3,000,000 - 5,000,000': 4000000,
-        '1,000,000 - 3,000,000': 2000000,
-        '500,000 - 1,000,000': 750000,
-        'ต่ำกว่า 500,000': 300000
-    };
-    const active = cachedLeads.filter(l => !['Closed Won', 'Closed Lost'].includes(l.status));
-    const total = active.reduce((sum, l) => sum + (budgetValues[l.budget_range] || 0), 0);
-    el.textContent = '฿' + (total / 1000000).toFixed(1) + 'M';
-}
-
-function renderLeadsByDayChart() {
-    const c = document.getElementById('leadsByDayChart');
-    if (!c) return;
-    const days = [];
-    const labels = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
-    for (let i = 6; i >= 0; i--) {
-        const d = new Date(); d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
-        const count = cachedLeads.filter(l => l.created_at?.startsWith(dateStr)).length;
-        days.push({ label: labels[d.getDay()], count });
-    }
-    const max = Math.max(...days.map(d => d.count), 1);
-    c.innerHTML = days.map(d => `
-        <div class="bar-item">
-            <div class="bar-fill" style="height:${(d.count / max) * 150}px" data-value="${d.count}"></div>
-            <div class="bar-label">${d.label}</div>
-        </div>
-    `).join('');
-}
-
-function renderConversionFunnel() {
-    const c = document.getElementById('conversionFunnel');
-    if (!c) return;
-    const stages = [
-        { label: 'New Lead', color: '#2563EB' },
-        { label: 'Contacted', color: '#F59E0B' },
-        { label: 'Appointment', color: '#7C3AED' },
-        { label: 'Proposal', color: '#D97706' },
-        { label: 'Closed Won', color: '#06C755' }
-    ];
-    const total = cachedLeads.length || 1;
-    c.innerHTML = stages.map(s => {
-        const count = cachedLeads.filter(l => l.status === s.label).length;
-        const pct = Math.max((count / total) * 100, 3);
-        return `
-        <div class="funnel-row">
-            <div class="funnel-label">${s.label}</div>
-            <div class="funnel-bar-wrap">
-                <div class="funnel-bar" style="width:${pct}%;background:${s.color}">${count}</div>
-            </div>
-            <div class="funnel-count">${Math.round(pct)}%</div>
-        </div>`;
-    }).join('');
-}
-
-function renderServicePopularity() {
-    const c = document.getElementById('servicePopularity');
-    if (!c) return;
-    const services = {};
-    cachedLeads.forEach(l => { services[l.service_type] = (services[l.service_type] || 0) + 1; });
-    const sorted = Object.entries(services).sort((a, b) => b[1] - a[1]);
-    const max = sorted[0]?.[1] || 1;
-    c.innerHTML = sorted.map(([name, count]) => `
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-            <div style="width:100px;font-size:0.82rem;font-weight:600;text-align:right;">${esc(name)}</div>
-            <div style="flex:1;height:24px;background:var(--gray-100);border-radius:6px;overflow:hidden;">
-                <div style="height:100%;width:${(count/max)*100}%;background:linear-gradient(90deg,var(--red),var(--red-light));border-radius:6px;display:flex;align-items:center;padding-left:8px;">
-                    <span style="font-size:0.72rem;font-weight:700;color:white;">${count}</span>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-function renderBudgetDistribution() {
-    const c = document.getElementById('budgetDistribution');
-    if (!c) return;
-    const budgets = {};
-    cachedLeads.forEach(l => { budgets[l.budget_range || 'ไม่ระบุ'] = (budgets[l.budget_range || 'ไม่ระบุ'] || 0) + 1; });
-    const sorted = Object.entries(budgets).sort((a, b) => b[1] - a[1]);
-    const total = cachedLeads.length || 1;
-    c.innerHTML = sorted.map(([name, count]) => `
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-100);">
-            <span style="font-size:0.85rem;">${esc(name)}</span>
-            <span style="font-weight:700;font-family:var(--font-display);">${count} (${Math.round(count/total*100)}%)</span>
-        </div>
-    `).join('');
-}
-
-function renderLeadSources() {
-    const c = document.getElementById('leadSources');
-    if (!c) return;
-    const sources = {};
-    cachedLeads.forEach(l => { sources[l.source || 'website'] = (sources[l.source || 'website'] || 0) + 1; });
-    const total = cachedLeads.length || 1;
-    c.innerHTML = Object.entries(sources).map(([src, count]) => `
-        <div style="text-align:center;padding:16px 24px;background:var(--white);border-radius:12px;border:1px solid var(--gray-100);">
-            <div style="font-size:1.8rem;font-weight:900;color:var(--red);font-family:var(--font-display);">${count}</div>
-            <div style="font-size:0.78rem;color:var(--gray-400);margin-top:4px;">${esc(src)}</div>
-            <div style="font-size:0.72rem;color:var(--gray-300);">${Math.round(count/total*100)}%</div>
-        </div>
-    `).join('');
-}
-
-// ===== Helpers =====
-function getStatusClass(s) {
-    return { 'New Lead':'new','Contacted':'contacted','Appointment Set':'appointment','Proposal Sent':'proposal','Closed Won':'closed','Closed Lost':'lost','Closed':'closed' }[s]||'new';
-}
-function getScoreHTML(score) {
-    if (!score) return '';
-    const cls = score >= 5 ? 'score-high' : score >= 3 ? 'score-mid' : 'score-low';
-    return `<span class="score-badge ${cls}"><span class="score-dot"></span>${score}</span>`;
-}
-function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-
-// ===== Modal: Lead =====
-function openAddLeadModal() {
-    document.getElementById('modalTitle').textContent = 'เพิ่ม Lead ใหม่';
-    document.getElementById('modalLeadForm').reset();
-    document.getElementById('editLeadId').value = '';
-    populateTeamDropdown();
-    document.getElementById('leadModal').classList.add('active');
-}
-
-async function openEditLeadModal(id) {
-    const lead = await CRM.getLeadById(id);
-    if (!lead) return;
-    document.getElementById('modalTitle').textContent = 'แก้ไข Lead';
-    document.getElementById('editLeadId').value = id;
-    document.getElementById('modalName').value = lead.name || '';
-    document.getElementById('modalPhone').value = lead.phone || '';
-    document.getElementById('modalEmail').value = lead.email || '';
-    document.getElementById('modalService').value = lead.service_type || 'อื่นๆ';
-    document.getElementById('modalBudget').value = lead.budget_range || 'ไม่ระบุ';
-    document.getElementById('modalStatus').value = lead.status || 'New Lead';
-    document.getElementById('modalNote').value = '';
-    document.getElementById('modalFollowUpDate').value = '';
-    populateTeamDropdown(lead.assigned_to);
-    // Lost reason
-    const lostReasonEl = document.getElementById('modalLostReason');
-    if (lostReasonEl) lostReasonEl.value = lead.lost_reason || '';
-    toggleLostReason();
-    document.getElementById('leadModal').classList.add('active');
-}
-
-function closeLeadModal() { document.getElementById('leadModal').classList.remove('active'); }
-
-document.getElementById('modalLeadForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const editId = document.getElementById('editLeadId').value;
-    const data = {
-        name: document.getElementById('modalName').value,
-        phone: document.getElementById('modalPhone').value,
-        email: document.getElementById('modalEmail').value || null,
-        service_type: document.getElementById('modalService').value,
-        budget_range: document.getElementById('modalBudget').value,
-        status: document.getElementById('modalStatus').value,
-        assigned_to: document.getElementById('modalAssignedTo').value || null,
-        lost_reason: document.getElementById('modalStatus').value === 'Closed Lost'
-            ? (document.getElementById('modalLostReason')?.value || null)
-            : null
-    };
-    const note = document.getElementById('modalNote').value.trim();
-    const followUpDate = document.getElementById('modalFollowUpDate').value || null;
-    try {
-        if (editId) {
-            await CRM.updateLead(editId, data);
-            if (note) await CRM.addNote(editId, note, 'general', followUpDate);
-            showToast('อัพเดท Lead สำเร็จ', 'success');
-        } else {
-            const lead = await CRM.saveLead({ ...data, source: 'admin' });
-            if (note) await CRM.addNote(lead.id, note, 'general', followUpDate);
-            showToast('สร้าง Lead ใหม่สำเร็จ', 'success');
-        }
-        closeLeadModal();
-        await refreshData();
-    } catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
+  }
+  renderMedia();
+  e.target.value = '';
 });
 
-async function changeStatus(id, status) {
-    try { await CRM.updateLead(id, { status }); showToast(`เปลี่ยนสถานะเป็น "${status}"`, 'success'); await refreshData(); }
-    catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
-}
-
-async function deleteLeadConfirm(id) {
-    if (!confirm('ลบ Lead นี้?')) return;
-    try { await CRM.deleteLead(id); showToast('ลบ Lead สำเร็จ', 'success'); await refreshData(); }
-    catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
-}
-
-// ===== AI Copilot =====
-let currentNoteLeadId = null;
-
-async function aiGenerateReply(type) {
-    const leadId = document.getElementById('noteLeadId').value;
-    const lead = cachedLeads.find(l => l.id === leadId);
-    if (!lead) { showToast('ไม่พบ lead', 'error'); return; }
-
-    const replyBox = document.getElementById('aiReplyBox');
-    const replyText = document.getElementById('aiReplyText');
-    const loading = document.getElementById('aiLoading');
-
-    replyBox.style.display = 'none';
-    loading.style.display = 'block';
-
-    let reply;
-    if (type === 'auto') {
-        reply = await CRM.aiAutoReply(lead);
-    } else if (type === 'follow_up') {
-        const daysSince = Math.round((Date.now() - new Date(lead.created_at)) / 86400000);
-        reply = await CRM.aiFollowUp(lead, daysSince);
-    } else if (type === 'close') {
-        reply = await CRM.aiClose(lead);
-    }
-
-    loading.style.display = 'none';
-    if (reply) {
-        replyText.textContent = reply;
-        replyBox.style.display = 'block';
-        showToast('AI สร้างข้อความสำเร็จ', 'success');
-    } else {
-        showToast('AI ไม่สามารถสร้างข้อความได้', 'error');
-    }
-}
-
-async function aiAnalyzeLead() {
-    const leadId = document.getElementById('noteLeadId').value;
-    const lead = cachedLeads.find(l => l.id === leadId);
-    if (!lead) { showToast('ไม่พบ lead', 'error'); return; }
-
-    const replyBox = document.getElementById('aiReplyBox');
-    const replyText = document.getElementById('aiReplyText');
-    const loading = document.getElementById('aiLoading');
-
-    replyBox.style.display = 'none';
-    loading.style.display = 'block';
-
-    const analysis = await CRM.aiAnalyzeLead(lead);
-    loading.style.display = 'none';
-
-    if (analysis) {
-        if (typeof analysis === 'object') {
-            const p = analysis.priority || 'medium';
-            const pColor = p === 'high' ? 'var(--red)' : p === 'medium' ? 'var(--orange)' : 'var(--green)';
-            replyText.innerHTML = `
-                <div style="display:flex;gap:12px;margin-bottom:12px;">
-                    <div style="padding:6px 14px;background:${pColor}15;color:${pColor};border-radius:8px;font-weight:700;font-size:0.82rem;">
-                        ${p === 'high' ? '🔴' : p === 'medium' ? '🟡' : '🟢'} Priority: ${p.toUpperCase()}
-                    </div>
-                    ${analysis.close_probability ? `<div style="padding:6px 14px;background:var(--blue-soft);color:var(--blue);border-radius:8px;font-weight:700;font-size:0.82rem;">🎯 ${analysis.close_probability}</div>` : ''}
-                </div>
-                <div style="margin-bottom:10px;"><strong>📞 วิธีติดต่อ:</strong> ${esc(analysis.approach)}</div>
-                <div style="margin-bottom:10px;"><strong>💬 ประเด็นที่ควรพูด:</strong>
-                    <ul style="margin:4px 0 0 20px;">${(analysis.talking_points || []).map(p => `<li>${esc(p)}</li>`).join('')}</ul>
-                </div>
-                ${analysis.next_action ? `<div style="margin-bottom:10px;"><strong>🎯 ทำต่อไป:</strong> <span style="color:var(--red);font-weight:700;">${esc(analysis.next_action)}</span></div>` : ''}
-                <div style="margin-bottom:10px;"><strong>⚠️ ความเสี่ยง:</strong> ${esc(analysis.risk)}</div>
-                <div><strong>💡 คำแนะนำ:</strong> ${esc(analysis.suggestion)}</div>
-            `;
-        } else {
-            replyText.textContent = analysis;
-        }
-        replyBox.style.display = 'block';
-        showToast('AI วิเคราะห์สำเร็จ', 'success');
-    } else {
-        showToast('AI ไม่สามารถวิเคราะห์ได้', 'error');
-    }
-}
-
-async function aiGetStrategy() {
-    const leadId = document.getElementById('noteLeadId').value;
-    const lead = cachedLeads.find(l => l.id === leadId);
-    if (!lead) { showToast('ไม่พบ lead', 'error'); return; }
-
-    const replyBox = document.getElementById('aiReplyBox');
-    const replyText = document.getElementById('aiReplyText');
-    const loading = document.getElementById('aiLoading');
-
-    replyBox.style.display = 'none';
-    loading.style.display = 'block';
-
-    const strategy = await CRM.aiStrategy(lead);
-    loading.style.display = 'none';
-
-    if (strategy) {
-        if (typeof strategy === 'object') {
-            const p = strategy.priority || 'medium';
-            const pColor = p === 'high' ? 'var(--red)' : p === 'medium' ? 'var(--orange)' : 'var(--green)';
-            replyText.innerHTML = `
-                <div style="display:flex;gap:12px;margin-bottom:12px;">
-                    <div style="padding:6px 14px;background:${pColor}15;color:${pColor};border-radius:8px;font-weight:700;font-size:0.82rem;">
-                        ${p === 'high' ? '🔴' : p === 'medium' ? '🟡' : '🟢'} ${p.toUpperCase()}
-                    </div>
-                    ${strategy.close_probability ? `<div style="padding:6px 14px;background:var(--blue-soft);color:var(--blue);border-radius:8px;font-weight:700;font-size:0.82rem;">🎯 ${strategy.close_probability}</div>` : ''}
-                    ${strategy.estimated_value ? `<div style="padding:6px 14px;background:var(--green-soft);color:var(--green);border-radius:8px;font-weight:700;font-size:0.82rem;">💰 ${strategy.estimated_value}</div>` : ''}
-                </div>
-                <div style="margin-bottom:10px;"><strong>🎯 กลยุทธ์:</strong> ${esc(strategy.strategy)}</div>
-                <div style="margin-bottom:10px;"><strong>⚡ ทำทันที:</strong> <span style="color:var(--red);font-weight:700;">${esc(strategy.next_action)}</span></div>
-                ${strategy.timeline ? `<div style="margin-bottom:10px;"><strong>⏰ กรอบเวลา:</strong> ${esc(strategy.timeline)}</div>` : ''}
-                <div style="margin-bottom:10px;"><strong>⚠️ ความเสี่ยง:</strong> ${esc(strategy.risk)}</div>
-                ${strategy.mitigation ? `<div style="margin-bottom:10px;"><strong>🛡️ ลดความเสี่ยง:</strong> ${esc(strategy.mitigation)}</div>` : ''}
-                ${strategy.closing_tactic ? `<div><strong>💰 เทคนิคปิด:</strong> ${esc(strategy.closing_tactic)}</div>` : ''}
-            `;
-        } else {
-            replyText.textContent = strategy;
-        }
-        replyBox.style.display = 'block';
-        showToast('AI สร้างกลยุทธ์สำเร็จ', 'success');
-    } else {
-        showToast('AI ไม่สามารถสร้างกลยุทธ์ได้', 'error');
-    }
-}
-
-function copyAIReply() {
-    const text = document.getElementById('aiReplyText').textContent;
-    navigator.clipboard.writeText(text).then(() => {
-        showToast('คัดลอกแล้ว', 'success');
-    }).catch(() => {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        showToast('คัดลอกแล้ว', 'success');
-    });
-}
-
-// ===== Modal: Notes =====
-async function openNoteModal(leadId) {
-    document.getElementById('noteLeadId').value = leadId;
-    const notes = await CRM.getNotes(leadId);
-    const c = document.getElementById('noteModalContent');
-    if (notes.length === 0) { c.innerHTML = '<p style="color:var(--gray-400);text-align:center;padding:20px;">ยังไม่มีบันทึก</p>'; }
-    else {
-        c.innerHTML = notes.map(n => `
-            <div class="note-item">
-                <div class="note-text">${esc(n.note)}</div>
-                <div class="note-meta">
-                    ${n.note_type !== 'general' ? `<span class="status-badge new" style="margin-right:8px">${n.note_type}</span>` : ''}
-                    ${n.follow_up_date ? `📅 Follow-up: ${CRM.formatDate(n.follow_up_date)}` : ''}
-                    · ${CRM.formatDate(n.created_at)} ${n.follow_up_done ? ' ✅' : ''}
-                </div>
-            </div>
-        `).join('');
-    }
-    document.getElementById('noteModal').classList.add('active');
-}
-function closeNoteModal() { document.getElementById('noteModal').classList.remove('active'); }
-
-document.getElementById('noteForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const leadId = document.getElementById('noteLeadId').value;
-    const note = document.getElementById('newNoteText').value.trim();
-    if (!note) return;
-    try {
-        await CRM.addNote(leadId, note, document.getElementById('newNoteType').value, document.getElementById('newNoteFollowUp').value || null);
-        document.getElementById('newNoteText').value = '';
-        document.getElementById('newNoteFollowUp').value = '';
-        showToast('เพิ่มบันทึกสำเร็จ', 'success');
-        await openNoteModal(leadId);
-        await refreshData();
-    } catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
+// Drag and drop
+document.getElementById('mediaUploadArea')?.addEventListener('dragover', (e) => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--red)'; });
+document.getElementById('mediaUploadArea')?.addEventListener('dragleave', (e) => { e.currentTarget.style.borderColor = 'var(--gray-300)'; });
+document.getElementById('mediaUploadArea')?.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = 'var(--gray-300)';
+  for (const file of e.dataTransfer.files) {
+    if (!file.type.startsWith('image/')) continue;
+    const formData = new FormData();
+    formData.append('image', file);
+    await fetch('/api/upload', { method: 'POST', body: formData });
+  }
+  renderMedia();
 });
 
-async function markFollowUpDone(noteId) {
-    try { await CRM.markFollowUpDone(noteId); showToast('ทำเครื่องหมายเสร็จแล้ว', 'success'); await refreshData(); }
-    catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
+function copyUrl(url) {
+  navigator.clipboard.writeText(window.location.origin + url);
+  toast('📋 คัดลอก URL แล้ว');
 }
 
-// ===== Modal: Proposal =====
-async function openNewProposalModal() {
-    const select = document.getElementById('proposalLead');
-    select.innerHTML = '<option value="">-- เลือก Lead --</option>' + cachedLeads.map(l => `<option value="${l.id}">${esc(l.name)} (${esc(l.service_type)})</option>`).join('');
-    document.getElementById('proposalForm').reset();
-    document.getElementById('proposalItems').innerHTML = `
-        <div class="proposal-item-row">
-            <input type="text" placeholder="รายการ" class="proposal-item-name" style="flex:2">
-            <input type="number" placeholder="จำนวน" class="proposal-item-qty" style="flex:1" value="1">
-            <input type="number" placeholder="ราคา/หน่วย" class="proposal-item-price" style="flex:1">
-            <button type="button" class="table-btn table-btn-delete" onclick="removeProposalItem(this)">ลบ</button>
-        </div>`;
-    updateProposalTotal();
-    document.getElementById('proposalModal').classList.add('active');
+async function deleteMedia(name) {
+  if (!confirm('ลบรูปนี้?')) return;
+  await api('/api/media/' + name, { method: 'DELETE' }).catch(() => {});
+  renderMedia();
+  toast('🗑️ ลบรูปสำเร็จ');
 }
-function closeProposalModal() { document.getElementById('proposalModal').classList.remove('active'); }
 
-function addProposalItem() {
-    const row = document.createElement('div'); row.className = 'proposal-item-row';
-    row.innerHTML = `
-        <input type="text" placeholder="รายการ" class="proposal-item-name" style="flex:2">
-        <input type="number" placeholder="จำนวน" class="proposal-item-qty" style="flex:1" value="1">
-        <input type="number" placeholder="ราคา/หน่วย" class="proposal-item-price" style="flex:1">
-        <button type="button" class="table-btn table-btn-delete" onclick="removeProposalItem(this)">ลบ</button>`;
-    document.getElementById('proposalItems').appendChild(row);
-    row.querySelectorAll('input').forEach(i => i.addEventListener('input', updateProposalTotal));
+// ===== IMAGE UPLOAD HELPER =====
+function imageField(id, currentUrl, label) {
+  const hasImage = currentUrl && currentUrl.trim();
+  return `
+    <div class="form-group">
+      <label>${label}</label>
+      <div class="image-upload ${hasImage ? 'has-image' : ''}" id="upload-${id}" onclick="triggerUpload('${id}')">
+        ${hasImage ? `<img src="${esc(currentUrl)}" id="preview-${id}"><button type="button" class="remove-btn" onclick="event.stopPropagation();clearImage('${id}')">✕</button>` : `<div class="upload-icon">📤</div><div class="upload-text">คลิกเพื่ออัพโหลด หรือใส่ URL ด้านล่าง</div>`}
+        <input type="file" id="file-${id}" accept="image/*" onchange="handleImageUpload('${id}', this)" style="display:none">
+      </div>
+      <input type="text" class="url-input" id="url-${id}" value="${esc(currentUrl || '')}" placeholder="หรือใส่ URL รูปภาพ..." oninput="updateImagePreview('${id}', this.value)" style="margin-top:8px;width:100%;padding:8px 12px;border:2px solid var(--gray-200);border-radius:8px;font-size:0.85rem">
+    </div>
+  `;
 }
-function removeProposalItem(btn) { if (document.querySelectorAll('.proposal-item-row').length > 1) { btn.closest('.proposal-item-row').remove(); updateProposalTotal(); } }
-function updateProposalTotal() {
-    let t = 0;
-    document.querySelectorAll('.proposal-item-row').forEach(r => {
-        t += (parseFloat(r.querySelector('.proposal-item-qty').value)||0) * (parseFloat(r.querySelector('.proposal-item-price').value)||0);
-    });
-    document.getElementById('proposalTotal').textContent = `฿${t.toLocaleString()}`; return t;
+
+function triggerUpload(id) {
+  document.getElementById('file-' + id)?.click();
 }
-document.addEventListener('input', e => { if (e.target.classList.contains('proposal-item-qty') || e.target.classList.contains('proposal-item-price')) updateProposalTotal(); });
 
-document.getElementById('proposalForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const items = [];
-    document.querySelectorAll('.proposal-item-row').forEach(r => {
-        const name = r.querySelector('.proposal-item-name').value;
-        const qty = parseFloat(r.querySelector('.proposal-item-qty').value)||0;
-        const price = parseFloat(r.querySelector('.proposal-item-price').value)||0;
-        if (name) items.push({ name, qty, price, total: qty*price });
-    });
-    const total = items.reduce((s, i) => s + i.total, 0);
-    try {
-        await CRM.saveProposal({
-            lead_id: document.getElementById('proposalLead').value || null,
-            title: document.getElementById('proposalTitle').value,
-            items, subtotal: total, tax: 0, total,
-            valid_until: document.getElementById('proposalValidUntil').value || null,
-            notes: document.getElementById('proposalNotes').value || null
-        });
-        closeProposalModal();
-        showToast('สร้างใบเสนอราคาสำเร็จ', 'success');
+async function handleImageUpload(id, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('image', file);
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.url) {
+      document.getElementById('url-' + id).value = data.url;
+      updateImagePreview(id, data.url);
+      toast('✅ อัพโหลดรูปสำเร็จ');
+    }
+  } catch (err) {
+    toast('❌ อัพโหลดล้มเหลว', 'error');
+  }
+}
 
-        // Notify new proposal
-        const leadName = cachedLeads.find(l => l.id === document.getElementById('proposalLead').value)?.name || 'N/A';
-        CRM.notifyNewProposal({ proposal_number: 'NP-xxxx', title: document.getElementById('proposalTitle').value, total }, leadName);
+function updateImagePreview(id, url) {
+  const container = document.getElementById('upload-' + id);
+  if (!container) return;
+  if (url && url.trim()) {
+    container.classList.add('has-image');
+    container.innerHTML = `<img src="${esc(url)}" id="preview-${id}"><button type="button" class="remove-btn" onclick="event.stopPropagation();clearImage('${id}')">✕</button><input type="file" id="file-${id}" accept="image/*" onchange="handleImageUpload('${id}', this)" style="display:none">`;
+  } else {
+    container.classList.remove('has-image');
+    container.innerHTML = `<div class="upload-icon">📤</div><div class="upload-text">คลิกเพื่ออัพโหลด</div><input type="file" id="file-${id}" accept="image/*" onchange="handleImageUpload('${id}', this)" style="display:none">`;
+  }
+}
 
-        await refreshData();
-    } catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
+function clearImage(id) {
+  document.getElementById('url-' + id).value = '';
+  updateImagePreview(id, '');
+}
+
+function getImageValue(id) {
+  return document.getElementById('url-' + id)?.value || '';
+}
+
+// ===== HELPERS =====
+function gv(id) { return document.getElementById(id)?.value || ''; }
+function esc(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+function toggleRepeatable(header) {
+  header.classList.toggle('open');
+  const body = header.nextElementSibling;
+  if (body) body.classList.toggle('open');
+}
+function removeRepeatable(btn) {
+  const body = btn.closest('.repeatable-body');
+  const header = body?.previousElementSibling;
+  body?.remove();
+  header?.remove();
+}
+function collectLinks(labelClass, hrefClass) {
+  const links = [];
+  document.querySelectorAll('.' + labelClass).forEach((el, i) => {
+    if (el.value) links.push({ label: el.value, href: document.querySelectorAll('.' + hrefClass)[i]?.value || '#' });
+  });
+  return links;
+}
+
+// ===== MOBILE SIDEBAR =====
+document.getElementById('sidebarToggle')?.addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('open');
+});
+document.getElementById('sidebarClose')?.addEventListener('click', () => {
+  document.getElementById('sidebar').classList.remove('open');
 });
 
-async function updateProposalStatus(id, newStatus) {
-    try {
-        await CRM.updateProposal(id, { status: newStatus });
-        const labels = { sent: 'ส่งใบเสนอราคาแล้ว', accepted: 'ยอมรับใบเสนอราคา', rejected: 'ปฏิเสธใบเสนอราคา' };
-        showToast(labels[newStatus] || 'อัพเดทสถานะ', 'success');
-        // If accepted, update lead status to Closed Won
-        if (newStatus === 'accepted') {
-            const proposal = cachedProposals.find(p => p.id === id);
-            if (proposal?.lead_id) {
-                await CRM.updateLead(proposal.lead_id, { status: 'Closed Won' });
-            }
-        }
-        await refreshData();
-    } catch (err) { showToast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
-}
-
-// ===== SLA Breach Display =====
-async function renderSLABreaches() {
-    const breaches = await CRM.getSLABreaches();
-
-    // SLA alerts card on dashboard
-    const card = document.getElementById('slaAlertsCard');
-    const list = document.getElementById('slaAlertsList');
-    if (card && list) {
-        if (breaches.length > 0) {
-            card.style.display = 'block';
-            list.innerHTML = breaches.map(b => {
-                const p = getPriority(b.lead_score);
-                const timeStr = b.minutes_since_created >= 1440
-                    ? `${Math.round(b.minutes_since_created / 1440)} วัน`
-                    : b.minutes_since_created >= 60
-                        ? `${Math.round(b.minutes_since_created / 60)} ชม.`
-                        : `${Math.round(b.minutes_since_created)} นาที`;
-                return `
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray-100);">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <span class="priority-dot ${p}"></span>
-                        <div>
-                            <div style="font-weight:700;">${esc(b.lead_name)}</div>
-                            <div style="font-size:0.82rem;color:var(--gray-400);">📞 ${esc(b.lead_phone)} · 👤 ${esc(b.assigned_name || 'ไม่ระบุ')}</div>
-                        </div>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:12px;">
-                        <span style="color:var(--red);font-weight:700;font-size:0.82rem;">⏰ ${timeStr}</span>
-                        <a href="tel:${b.lead_phone}" class="table-btn btn-accept" style="text-decoration:none;">📞 โทร</a>
-                    </div>
-                </div>`;
-            }).join('');
-        } else {
-            card.style.display = 'none';
-        }
-    }
-
-    // Sidebar badge
-    const dashHeader = document.querySelector('#page-dashboard .main-header-sub');
-    if (dashHeader) {
-        const existing = document.getElementById('slaBadge');
-        if (breaches.length > 0) {
-            if (!existing) {
-                const badge = document.createElement('span');
-                badge.id = 'slaBadge';
-                badge.style.cssText = 'display:inline-block;margin-left:12px;padding:4px 12px;background:var(--red);color:white;border-radius:50px;font-size:0.78rem;font-weight:700;';
-                badge.textContent = `🚨 ${breaches.length} SLA`;
-                dashHeader.appendChild(badge);
-            } else {
-                existing.textContent = `🚨 ${breaches.length} SLA`;
-            }
-        } else if (existing) {
-            existing.remove();
-        }
-    }
-}
-
-// ===== Team Performance =====
-async function renderTeam() {
-    const period = document.getElementById('leaderboardPeriod')?.value || 'month';
-    const leaderboard = await CRM.getLeaderboard(period);
-    const lostReasons = await CRM.getLostReasonStats();
-
-    // Leaderboard
-    const lbEl = document.getElementById('leaderboard');
-    if (lbEl) {
-        const medals = ['🥇', '🥈', '🥉'];
-        lbEl.innerHTML = leaderboard.slice(0, 5).map((u, i) => {
-            const medal = medals[i] || `${i + 1}.`;
-            const barWidth = leaderboard[0]?.closedDeals > 0
-                ? (u.closedDeals / leaderboard[0].closedDeals) * 100
-                : 0;
-            return `
-            <div style="display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid var(--gray-100);">
-                <div style="font-size:1.5rem;width:36px;text-align:center;">${medal}</div>
-                <div style="flex:1;">
-                    <div style="font-weight:700;margin-bottom:4px;">${esc(u.full_name || 'Unnamed')}</div>
-                    <div style="height:8px;background:var(--gray-100);border-radius:4px;overflow:hidden;">
-                        <div style="height:100%;width:${barWidth}%;background:linear-gradient(90deg,var(--red),var(--red-light));border-radius:4px;"></div>
-                    </div>
-                </div>
-                <div style="text-align:right;min-width:80px;">
-                    <div style="font-family:var(--font-display);font-weight:900;font-size:1.2rem;color:var(--red);">${u.closedDeals}</div>
-                    <div style="font-size:0.72rem;color:var(--gray-400);">ดีล · ${u.conversionRate}%</div>
-                </div>
-                <div style="text-align:right;min-width:80px;">
-                    <div style="font-weight:700;">${u.avgResponseTime !== null ? u.avgResponseTime + ' นาที' : '-'}</div>
-                    <div style="font-size:0.72rem;color:var(--gray-400);">เวลาเฉลี่ยตอบ</div>
-                </div>
-            </div>`;
-        }).join('');
-    }
-
-    // Stats cards
-    const statsEl = document.getElementById('teamStats');
-    if (statsEl) {
-        statsEl.innerHTML = leaderboard.map(u => `
-            <div class="stat-card">
-                <div class="stat-card-header">
-                    <div class="stat-card-icon ${u.conversionRate >= 30 ? 'green' : u.conversionRate >= 15 ? 'blue' : 'orange'}">
-                        <span style="font-weight:900;font-size:1rem;">${(u.full_name || 'A')[0].toUpperCase()}</span>
-                    </div>
-                </div>
-                <div class="stat-card-num">${u.totalLeads}</div>
-                <div class="stat-card-label">${esc(u.full_name || 'Unnamed')}</div>
-                <div style="margin-top:8px;font-size:0.78rem;">
-                    <span style="color:var(--green);font-weight:700;">${u.closedDeals} ปิดดีล</span>
-                    <span style="color:var(--gray-400);margin-left:8px;">${u.conversionRate}%</span>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    // Lost reasons
-    const lrEl = document.getElementById('lostReasons');
-    if (lrEl) {
-        if (lostReasons.length === 0) {
-            lrEl.innerHTML = '<p style="color:var(--gray-400);text-align:center;padding:20px;">ยังไม่มีข้อมูล</p>';
-        } else {
-            const maxCount = lostReasons[0]?.count || 1;
-            lrEl.innerHTML = lostReasons.map(r => `
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-                    <div style="width:110px;font-size:0.82rem;font-weight:600;text-align:right;">${esc(r.reason)}</div>
-                    <div style="flex:1;height:24px;background:var(--gray-100);border-radius:6px;overflow:hidden;">
-                        <div style="height:100%;width:${(r.count/maxCount)*100}%;background:var(--red);border-radius:6px;display:flex;align-items:center;padding-left:8px;">
-                            <span style="font-size:0.72rem;font-weight:700;color:white;">${r.count}</span>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-    }
-
-    // Table
-    const tbody = document.getElementById('teamTableBody');
-    if (tbody) {
-        tbody.innerHTML = leaderboard.map((u, i) => `
-            <tr>
-                <td>${i + 1}</td>
-                <td><strong>${esc(u.full_name || 'Unnamed')}</strong></td>
-                <td><span class="status-badge new">${esc(u.role)}</span></td>
-                <td>${u.totalLeads}</td>
-                <td style="color:var(--green);font-weight:700;">${u.closedDeals}</td>
-                <td>
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <div style="flex:1;height:6px;background:var(--gray-100);border-radius:3px;overflow:hidden;">
-                            <div style="height:100%;width:${u.conversionRate}%;background:${u.conversionRate >= 30 ? 'var(--green)' : u.conversionRate >= 15 ? 'var(--blue)' : 'var(--orange)'};border-radius:3px;"></div>
-                        </div>
-                        <span style="font-weight:700;font-size:0.82rem;">${u.conversionRate}%</span>
-                    </div>
-                </td>
-                <td>${u.avgResponseTime !== null ? u.avgResponseTime + ' นาที' : '-'}</td>
-            </tr>
-        `).join('');
-    }
-}
-
-// Toggle lost reason dropdown
-function toggleLostReason() {
-    const status = document.getElementById('modalStatus').value;
-    const group = document.getElementById('lostReasonGroup');
-    if (group) group.style.display = status === 'Closed Lost' ? 'block' : 'none';
-}
-
-// Populate team assignment dropdown
-function populateTeamDropdown(selectedId = null) {
-    const select = document.getElementById('modalAssignedTo');
-    if (!select) return;
-    select.innerHTML = '<option value="">-- ไม่ระบุ --</option>' +
-        cachedUsers.map(u =>
-            `<option value="${u.id}" ${selectedId === u.id ? 'selected' : ''}>${esc(u.full_name || u.id.substring(0, 8))}</option>`
-        ).join('');
-}
-
-// ===== Export CSV =====
-function exportLeadsCSV() {
-    if (cachedLeads.length === 0) { alert('ไม่มีข้อมูลให้ export'); return; }
-    const headers = ['ชื่อ','เบอร์โทร','อีเมล','บริการ','งบประมาณ','สถานะ','คะแนน','แหล่งที่มา','วันที่'];
-    const rows = cachedLeads.map(l => [l.name, l.phone, l.email||'', l.service_type, l.budget_range, l.status, l.score, l.source||'website', l.created_at]);
-    const csv = '\uFEFF' + [headers,...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = `nucha-leads-${new Date().toISOString().split('T')[0]}.csv`; a.click();
-}
+// Close modal on overlay click
+document.getElementById('leadModal')?.addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeModal();
+});

@@ -1,248 +1,273 @@
-# 🔄 HANDOFF — NUCHA INNOVATION Construction CRM
+# HANDOFF.md — NUCHA INNOVATION CRM
 
-> อัปเดต: 2026-04-29 02:40 GMT+8
-> Agent: Main session (webchat)
+> Last updated: 2026-04-29 by AI Agent  
 > Repo: https://github.com/dmz2001TH/nucha-construction-crm
 
 ---
 
-## 📌 สถานะ: Full Sales Operating System with SLA + Team + Automation
+## 📋 ภาพรวมโปรเจกต์
+
+ระบบ CRM สำหรับบริษัทรับเหมาก่อสร้าง **NUCHA INNOVATION** ประกอบด้วย:
+- **หน้าเว็บสาธารณะ** (Landing Page) — แสดงบริการ, ผลงาน, แบบฟอร์มจองคิว
+- **ระบบ CMS หลังบ้าน** — แก้ไขเนื้อหาเว็บได้ทุกส่วนผ่าน UI
+- **ระบบ CRM** — จัดการ Leads, Pipeline, นัดหมาย, ใบเสนอราคา
 
 ---
 
-## ✅ สิ่งที่เสร็จแล้ว (DONE)
+## 🏗️ Stack เทคโนโลยี
 
-### Database (Supabase)
-- [x] 6 tables: leads, appointments, proposals, notes, activities, profiles
-- [x] RLS policies (public insert + authenticated)
-- [x] Auto activity logging (DB trigger)
-- [x] Auto profile creation on signup
-- [x] Lead scoring function
-- [x] first_contact_at field + auto-set trigger
-- [x] lost_reason field with CHECK constraint
-- [x] get_sla_breaches() DB function
-- [x] Indexes ทุก column ที่ query บ่อย
-
-### Auth
-- [x] Supabase Auth (email/password)
-- [x] Login page + session protection
-- [x] Profile display in sidebar
-
-### CRM Core
-- [x] Lead CRUD + search + filter
-- [x] Pipeline 6 stages
-- [x] Appointments
-- [x] Notes per lead (with follow-up dates)
-- [x] Follow-up system (priority sorted + call button)
-- [x] Activity log
-- [x] Export CSV
-
-### Lead Priority System
-- [x] Visual priority (🔴 ≥5 / 🟡 ≥3 / 🟢 <3)
-- [x] Priority in table, pipeline, follow-ups, SLA alerts
-
-### Kanban Drag & Drop
-- [x] Native HTML5 drag & drop
-- [x] Auto-update status on drop
-
-### Proposal System
-- [x] Create with items + auto number
-- [x] Status flow: draft → sent → accepted/rejected
-- [x] Accept → auto Closed Won
-- [x] Notification on new proposal
-
-### 🔴 SLA Enforcement (NEW)
-- [x] first_contact_at — auto-set when status changes from "New Lead"
-- [x] SLA breach detection — 3 tiers:
-  - 🔴 Score ≥5 → 5 นาที
-  - 🟡 Score 3-4.9 → 2 ชั่วโมง
-  - 🟢 Score <3 → 24 ชั่วโมง
-- [x] SLA alerts card on dashboard (breached leads with call button)
-- [x] SLA badge on dashboard header
-- [x] SLA check Edge Function (runs every 5 minutes)
-- [x] LINE/Telegram alert when SLA breached
-
-### 🏆 Leaderboard (NEW)
-- [x] Team page with leaderboard (🥇🥈🥉)
-- [x] Period selector (week/month/year)
-- [x] Metrics per person:
-  - Deals closed
-  - Conversion rate
-  - Avg response time (minutes)
-  - Avg close time (days)
-- [x] Visual bar chart per person
-- [x] Performance ranking table
-
-### ❌ Lost Reason Tracking (NEW)
-- [x] Dropdown when marking lead as "Closed Lost":
-  - ราคาแพง, คู่แข่งเร็วกว่า, ลูกค้ายังไม่พร้อม
-  - งบประมาณไม่พอ, ไม่ตอบกลับ, โครงการเลื่อน, อื่นๆ
-- [x] Stored in leads.lost_reason
-- [x] Analytics chart: lost reasons breakdown
-- [x] Team page shows lost reason stats
-
-### 🔔 Notifications (4 Edge Functions)
-- [x] **notify** — LINE + Telegram (new_lead, followup_reminder, new_proposal)
-- [x] **sla-check** — every 5 min → SLA breach alerts
-- [x] **followup-reminder** — daily 9 AM → overdue follow-ups
-- [x] **daily-summary** — daily 6 PM → pipeline + stats
-
-### 🤖 AI Integration (PromptDee GPT-4o-mini) — with Memory + Strategy + Close
-- [x] **ai-reply Edge Function** — 7 AI types with full context:
-  - `auto_reply` — สร้างข้อความตอบกลับ (ดึง notes + activities จาก DB)
-  - `follow_up` — สร้าง follow-up ตามประวัติ
-  - `follow_up_sequence` — 7-day sequence
-  - `copilot` — custom prompt
-  - `analyze_lead` — วิเคราะห์เจาะลึก → priority, next_action, close_probability
-  - `close` — สร้างข้อความปิดดีล (urgency + incentive)
-  - `strategy` — วางแผนกลยุทธ์ปิดดีล (timeline, risk, mitigation, closing_tactic)
-- [x] **AI Memory** — ดึง notes + activities จาก DB ส่งเข้า AI ทุกครั้ง
-- [x] **AI Structured Output** — JSON response สำหรับ analyze + strategy
-- [x] **Admin AI Copilot** — 5 ปุ่มใน note modal:
-  - 💬 ตอบกลับ / ⏰ Follow-up / 💰 ปิดดีล / 📊 วิเคราะห์ / 🎯 กลยุทธ์
-- [x] **Priority badge** — 🔴/🟡/🟢 + close_probability
-- [x] **Copy button** — คัดลอกไป clipboard
-- [x] **Auto-reply** — ส่ง LINE อัตโนมัติเมื่อ lead ใหม่
-- [x] CRM: aiAutoReply, aiFollowUp, aiFollowUpSequence, aiCopilot, aiAnalyzeLead, aiClose, aiStrategy
-
-### 👥 Team System
-- [x] profiles table
-- [x] assigned_to field in leads
-- [x] Team assignment dropdown
-- [x] Leaderboard + performance metrics
-- [x] Team stats cards + table
-
-### Dashboard Analytics
-- [x] Conversion rate, leads/day, avg close time, pipeline value
-- [x] Bar chart, funnel, service popularity, budget distribution
-- [x] Lead sources
-
-### Frontend
-- [x] Website form → Supabase
-- [x] All GSAP animations preserved
+| Layer | Technology |
+|-------|-----------|
+| Frontend | HTML/CSS/JS + GSAP 3.12.5 |
+| Backend | **Node.js + Express 5** |
+| Database | **SQLite (better-sqlite3)** — ไม่ต้องสมัครภายนอก |
+| Auth | **JWT + bcryptjs** — cookie-based sessions |
+| File Upload | **Multer** — เก็บใน `/uploads/` |
+| Hosting | Static + Node.js server |
 
 ---
 
-## ⚙️ Flow การทำงาน
+## 🔑 ข้อมูลเข้าสู่ระบบ
+
+| รายการ | ค่า |
+|--------|-----|
+| Login URL | `/login` หรือ `/admin-login.html` |
+| Email | `admin@nuchainnovation.com` |
+| Password | `admin123` |
+| JWT Secret | `nucha-secret-key-change-in-production` (เปลี่ยนใน production) |
+
+---
+
+## 📁 โครงสร้างไฟล์
 
 ```
-[Website Visitor]
-    ↓
-[index.html] → CRM.saveLead() → Supabase
-    ├── notify Edge Function → LINE/Telegram 🔔
-    └── SLA clock starts ticking ⏰
-
-[Admin Login]
-    ↓
-[admin.html]
-    ├── Dashboard
-    │   ├── Stats (leads, closed, appts, new)
-    │   ├── Recent leads (priority sorted)
-    │   └── 🚨 SLA Alerts (breached leads + call button)
-    ├── Leads (table + search + filter + assign + lost reason)
-    ├── Pipeline (Kanban drag & drop)
-    ├── Appointments
-    ├── Proposals (create + accept/reject)
-    ├── Follow-ups (priority sorted + call)
-    ├── Activities
-    ├── Analytics (charts + funnel + revenue)
-    └── Team
-        ├── 🏆 Leaderboard (period selector)
-        ├── Stats per person
-        ├── ❌ Lost reasons chart
-        └── Performance table
-
-[Cron Jobs]
-    ├── */5 * * * → sla-check → LINE/Telegram 🚨
-    ├── 0 9 * * * → followup-reminder → LINE/Telegram
-    └── 0 18 * * → daily-summary → LINE/Telegram
-```
-
----
-
-## 📋 ตั้งค่า Supabase
-
-1. สร้าง project → supabase.com
-2. รัน `supabase/schema.sql` ใน SQL Editor
-3. แก้ `supabase/config.js` → ใส่ URL + Anon Key
-4. สร้าง admin user → Authentication > Invite
-5. Upload ไป Hostinger
-
-### Notifications + SLA + AI
-```bash
-supabase functions deploy notify
-supabase functions deploy ai-reply
-supabase functions deploy sla-check
-supabase functions deploy followup-reminder
-supabase functions deploy daily-summary
-
-supabase secrets set LINE_NOTIFY_TOKEN=xxx
-supabase secrets set TELEGRAM_BOT_TOKEN=xxx
-supabase secrets set TELEGRAM_CHAT_ID=xxx
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=xxx
-supabase secrets set AUTO_REPLY_ENABLED=true
-
-# Cron schedules (Supabase Dashboard > Edge Functions > Schedules)
-# sla-check: */5 * * * * (every 5 min)
-# followup-reminder: 0 9 * * * (daily 9 AM)
-# daily-summary: 0 18 * * * (daily 6 PM)
-```
-
----
-
-## 📋 สิ่งที่ต้องทำต่อ (TODO)
-
-### Priority 1: Production Setup
-- [ ] สร้าง Supabase project จริง
-- [ ] ใส่ credentials
-- [ ] สร้าง admin user
-- [ ] Deploy บน Hostinger
-- [ ] Deploy Edge Functions
-- [ ] ตั้ง cron schedules
-- [ ] ทดสอบ flow ทั้งหมด
-
-### Priority 2: Future Enhancements
-- [ ] Calendar view
-- [ ] Dark mode
-- [ ] PDF export (proposals)
-- [ ] Email templates
-- [ ] Lead source tracking (UTM)
-- [ ] KPI targets per team member
-
----
-
-## 🗂️ โครงสร้างไฟล์
-
-```
-nucha-crm/
-├── index.html + style.css + script.js    ← Landing page
-├── admin.html + admin.css + admin.js     ← Admin dashboard
-├── admin-login.html                      ← Login
-├── supabase/
-│   ├── config.js           ← Credentials (PLACEHOLDER)
-│   ├── crm.js              ← CRM module (leads, team, SLA, leaderboard, lost reasons)
-│   ├── auth.js             ← Auth module
-│   ├── schema.sql          ← DB schema (6 tables + SLA functions + triggers)
-│   └── functions/
-│       ├── notify/index.ts           ← LINE + Telegram + AI auto-reply
-│       ├── ai-reply/index.ts         ← PromptDee AI (5 types)
-│       ├── sla-check/index.ts        ← SLA breach alerts (*/5 min)
-│       ├── followup-reminder/index.ts ← Daily follow-up check
-│       └── daily-summary/index.ts    ← Evening summary
+nucha-construction-crm/
+├── server.js              ← ✅ Backend server (Express + SQLite + JWT + API)
+├── server/
+│   └── db.js              ← ✅ Database schema, seed data, default content
+├── data/
+│   └── nucha.db           ← ✅ SQLite database (auto-created on first run)
+├── uploads/               ← ✅ Image uploads storage
+├── index.html             ← ✅ หน้าเว็บหลัก (dynamic, โหลดจาก API)
+├── site-loader.js         ← ✅ โหลดเนื้อหาจาก API → แสดงบนหน้าเว็บ
+├── admin.html             ← ✅ CMS หลังบ้าน (Full content editor)
+├── admin.css              ← ✅ CMS styles
+├── admin.js               ← ✅ CMS logic (edit all sections, manage leads)
+├── admin-login.html       ← ✅ หน้า Login
+├── script.js              ← ✅ Frontend JS (animations, form submit → API)
+├── style.css              ← ✅ Frontend styles (เดิม)
+├── package.json           ← ✅ Dependencies + start script
+├── supabase/              ← ⚠️ LEGACY — ไม่ใช้แล้ว (เก็บไว้อ้างอิง)
+│   ├── config.js
+│   ├── crm.js
+│   ├── auth.js
+│   ├── schema.sql
+│   └── functions/         ← Edge Functions (ไม่ใช้แล้ว)
 ├── .env.example
 ├── README.md
-└── HANDOFF.md
+├── HANDOFF.md             ← 📄 ไฟล์นี้
+└── SALES-SCRIPT.md
 ```
+
+---
+
+## ✅ สิ่งที่เสร็จแล้ว
+
+### Backend (server.js + server/db.js)
+- [x] Express 5 server พร้อม middleware (JSON, CORS, cookie-parser)
+- [x] SQLite database พร้อม schema ครบ (leads, notes, activities, proposals, users, site_content, nav_items, gallery)
+- [x] JWT authentication (login/logout/me)
+- [x] Auth middleware ป้องกัน admin routes
+- [x] Image upload API (`POST /api/upload`) — Multer, 5MB limit, image only
+- [x] Media library API (`GET /api/media`, `DELETE /api/media/:name`)
+- [x] Content API — GET/PUT ทุก section (`/api/content/:key`)
+- [x] Nav items API — GET/PUT (`/api/nav`)
+- [x] Leads CRUD API — GET/POST/PUT/DELETE (`/api/leads`)
+- [x] Notes API — GET/POST (`/api/leads/:id/notes`)
+- [x] Activities API — GET (`/api/activities`)
+- [x] Proposals API — GET/POST/PUT (`/api/proposals`)
+- [x] Follow-ups API — GET (`/api/followups`)
+- [x] Stats API — GET (`/api/stats`)
+- [x] Pipeline API — GET (`/api/pipeline`)
+- [x] Lead scoring function (budget + service + engagement)
+- [x] Demo seed data (3 leads, 6 nav items, 11 content sections)
+- [x] Default admin user seed
+
+### Frontend — หน้าเว็บ (index.html + site-loader.js + script.js)
+- [x] Dynamic content loading จาก API (ไม่ hardcode)
+- [x] site-loader.js — โหลดทุก section จาก API → render HTML
+- [x] ทุก section เป็น dynamic: Hero, Services, Process, Portfolio, Testimonials, Closing, Footer, Trust Badges, Stats, Booking
+- [x] Multi-step booking form → POST /api/leads (ไม่ใช้ Supabase)
+- [x] Navbar โหลดจาก API
+- [x] GSAP animations (เดิม)
+- [x] Custom cursor, magnetic buttons, scroll effects (เดิม)
+- [x] Mobile responsive (เดิม)
+- [x] Floating CTA (LINE + Phone)
+
+### CMS หลังบ้าน (admin.html + admin.js + admin.css)
+- [x] Sidebar navigation ครบ 12+ pages
+- [x] **Dashboard** — Stats cards, Pipeline view, Recent bookings
+- [x] **⚙️ ตั้งค่าเว็บ** — แก้ ชื่อเว็บ, โลโก้, เบอร์โทร, email, LINE ID, social, copyright
+- [x] **🏠 Hero** — แก้ badge, title, subtitle, description, CTA, สถิติ, รูป, float card
+- [x] **🔧 บริการ** — เพิ่ม/ลบ/แก้ไข รายการบริการ (icon, name, desc, budget, key)
+- [x] **📋 กระบวนการ** — เพิ่ม/ลบ/แก้ไข ขั้นตอน + อัพโหลดรูป
+- [x] **🖼️ ผลงาน** — เพิ่ม/ลบ/แก้ไข ผลงาน + อัพโหลดรูป + size (large/normal)
+- [x] **⭐ รีวิว** — เพิ่ม/ลบ/แก้ไข รีวิว (name, avatar, role, quote, stars)
+- [x] **🔚 ปิดท้าย** — แก้ CTA, title, description, ข้อรับประกัน
+- [x] **📎 Footer** — แก้ description, เมนูลัด, ลิงก์บริการ
+- [x] **📑 เมนูนำทาง** — เพิ่ม/ลบ/ซ่อน/แสดง เมนู Navbar
+- [x] **👥 Leads** — ตาราง leads, ค้นหา, filter สถานะ, ดู/แก้/ลบ lead, เพิ่มบันทึก, follow-up
+- [x] **📅 จองคิว** — ดูนัดหมายทั้งหมด
+- [x] **📁 คลังรูป** — อัพโหลดรูป (drag & drop), copy URL, ลบรูป
+- [x] Image upload field — ทุก section ที่มีรูป (upload file หรือใส่ URL)
+- [x] Repeatable items — เพิ่ม/ลบ รายการซ้ำ (services, process, portfolio, testimonials, guarantees, links)
+- [x] Toast notifications
+- [x] Mobile responsive sidebar
+- [x] Lead detail modal — แก้ข้อมูล, เปลี่ยนสถานะ, ดู/เพิ่มบันทึก
+
+### Auth
+- [x] Login page (`/login`) — ใช้ API ไม่ใช้ Supabase
+- [x] Cookie-based JWT sessions (7 วัน)
+- [x] Auth check ก่อนเข้า admin
+- [x] Logout → clear cookie → redirect to login
+- [x] "กลับหน้าเว็บหลัก" link ใน login page
+
+---
+
+## ⚠️ สิ่งที่ยังไม่เสร็จ / ควรทำต่อ
+
+### Priority 1 — สำคัญ
+- [ ] **เปลี่ยน JWT_SECRET** ใน production (ปัจจุบันใช้ default)
+- [ ] **เปลี่ยนรหัสผ่าน admin** (ปัจจุบันเป็น `admin123`)
+- [ ] **Rate limiting** — ป้องกัน spam บน booking form (public endpoint)
+- [ ] **CSRF protection** — เพิ่ม csrf token สำหรับ form submissions
+- [ ] **Input validation/sanitization** — เพิ่ม server-side validation ที่เข้มงวดขึ้น
+
+### Priority 2 — ควรทำ
+- [ ] **เปลี่ยน Unsplash images เป็นรูปจริง** — ปัจจุบันใช้ Unsplash URLs
+- [ ] **Favicon** — เพิ่ม favicon จริง
+- [ ] **Meta tags / SEO** — เพิ่ม meta description, OG tags
+- [ ] **เปลี่ยน phone/email/address** เป็นข้อมูลจริงของบริษัท
+- [ ] **Proposal system** — สร้าง/edit/preview ใบเสนอราคา (API พร้อมแล้ว, UI ยังไม่มี)
+- [ ] **Team management** — เพิ่ม/แก้ไข สมาชิกทีม (API พร้อมแล้ว, UI ยังไม่มี)
+- [ ] **Analytics page** — charts/graphs สำหรับ CRM data
+- [ ] **Export CSV** — ส่งออก leads เป็น CSV
+- [ ] **Bulk actions** — เลือกหลาย leads พร้อมกัน
+
+### Priority 3 — ถ้ามีเวลา
+- [ ] **LINE Notify integration** — ส่งแจ้งเตือนเมื่อมี lead ใหม่
+- [ ] **Email notifications** — ส่ง email เมื่อมี booking
+- [ ] **Password reset** — ลืมรหัสผ่าน
+- [ ] **Multi-user roles** — admin, manager, staff (DB schema รองรับแล้ว)
+- [ ] **Activity log UI** — หน้าแสดงกิจกรรมทั้งหมด
+- [ ] **Lead import/export** — นำเข้า/ส่งออก leads จาก CSV
+- [ ] **Image optimization** — บีบอัดรูปอัตโนมัติ
+- [ ] **Backup system** — สำรอง database อัตโนมัติ
+- [ ] **HTTPS/SSL** — ตั้งค่า SSL certificate
+- [ ] **Docker** — สร้าง Dockerfile สำหรับ deploy
+
+---
+
+## 🔄 Flow การทำงาน
+
+### ผู้ใช้ทั่วไป (Public)
+```
+เข้าเว็บ → ดูบริการ → กด "จองคิวปรึกษาฟรี"
+→ เลือกบริการ (Step 1)
+→ กรอกชื่อ/โทร/งบ (Step 2)  
+→ นัดวัน/เวลา (Step 3)
+→ ส่งฟอร์ม → POST /api/leads → บันทึกลง SQLite
+→ แสดง "จองคิวสำเร็จ!"
+```
+
+### แอดมิน (Admin)
+```
+เข้า /login → กรอก email/password
+→ POST /api/auth/login → ได้ JWT cookie
+→ Redirect ไป /admin (CMS)
+
+แก้ไขเนื้อหา:
+→ เลือก section (Hero, Services, etc.)
+→ แก้ไขข้อมูลในฟอร์ม
+→ อัพโหลดรูป (file หรือ URL)
+→ กด "บันทึก" → PUT /api/content/:key → บันทึกลง SQLite
+→ หน้าเว็บอัพเดททันที (โหลดจาก API)
+
+จัดการ Leads:
+→ ไปหน้า "Leads"
+→ ค้นหา/กรอง ตามสถานะ
+→ คลิก lead → เปิด modal
+→ แก้ไขข้อมูล/เปลี่ยนสถานะ/เพิ่มบันทึก
+→ บันทึก → PUT /api/leads/:id
+```
+
+---
+
+## 📊 Database Schema
+
+### Tables
+| Table | Description |
+|-------|------------|
+| `users` | ผู้ใช้ระบบ (admin, manager, staff) |
+| `site_content` | เนื้อหาเว็บ (key-value JSON) |
+| `nav_items` | เมนูนำทาง |
+| `leads` | ลูกค้าเป้าหมาย |
+| `notes` | บันทึก/หมายเหตุ ต่อ lead |
+| `activities` | บันทึกกิจกรรม |
+| `proposals` | ใบเสนอราคา |
+| `gallery` | คลังรูปภาพ |
+| `footer_links` | ลิงก์ footer |
+
+### Content Sections (site_content)
+| Key | Description |
+|-----|------------|
+| `site_config` | ชื่อเว็บ, โลโก้, เบอร์โทร, email, LINE, social |
+| `hero` | Hero section ทั้งหมด |
+| `services` | รายการบริการ |
+| `process` | ขั้นตอนการทำงาน |
+| `portfolio` | ผลงาน |
+| `testimonials` | รีวิวลูกค้า |
+| `closing` | CTA ปิดท้าย + ข้อรับประกัน |
+| `footer` | Footer links + description |
+| `trust_badges` | แบรนด์พันธมิตร |
+| `stats` | สถิติ (ตัวเลข) |
+| `booking` | หัวข้อแบบฟอร์มจองคิว |
+
+---
+
+## 🚀 วิธีรัน
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Start server
+npm start
+
+# 3. เปิด browser
+# เว็บ: http://localhost:3000
+# Login: http://localhost:3000/login
+# Admin: http://localhost:3000/admin
+```
+
+---
+
+## ⚡ Commands
+
+| Command | Description |
+|---------|------------|
+| `npm start` | เริ่ม server (port 3000) |
+| `npm run dev` | เริ่ม server (เหมือน start) |
+| `rm data/nucha.db` | ลบ database → สร้างใหม่ (reset ทุกอย่าง) |
 
 ---
 
 ## 📝 Notes สำหรับ Agent ถัดไป
 
-1. **อย่าเปลี่ยน design system** — สีแดง (#D60000), font Inter + Noto Sans Thai
-2. **supabase/config.js เป็น placeholder** — ต้องใส่ credentials จริง
-3. **SLA check** — ทำงานผ่าน get_sla_breaches() DB function + Edge Function
-4. **first_contact_at** — auto-set โดย DB trigger เมื่อ status เปลี่ยนจาก "New Lead"
-5. **lost_reason** — CHECK constraint, ต้องเลือกจากตัวเลือกที่กำหนด
-6. **Leaderboard** — ใช้ getLeaderboard() ใน crm.js, รองรับ week/month/year
-7. **Notifications** — LINE + Telegram, 4 types: new_lead, followup_reminder, new_proposal, sla_breach
-8. **Cron** — ตั้งผ่าน Supabase Dashboard, sla-check ทุก 5 นาที
+1. **อย่าใช้ Supabase แล้ว** — โปรเจกต์เปลี่ยนมาใช้ SQLite + Express ทั้งหมด ไฟล์ใน `supabase/` เป็น legacy เก็บไว้อ้างอิงเท่านั้น
+2. **Frontend เป็น dynamic** — เนื้อหาทุกส่วนโหลดจาก API ไม่ใช่ hardcoded
+3. **CMS อยู่ที่ `/admin`** — ต้อง login ก่อน (auth middleware)
+4. **Public form ไม่ต้อง login** — `/api/leads` POST เปิด public สำหรับ booking form
+5. **รูปอัพโหลดเก็บใน `/uploads/`** — ใช้ Multer, served เป็น static files
+6. **Express 5** — ใช้ syntax ใหม่ เช่น `'/{*splat}'` แทน `'*'` สำหรับ catch-all
+7. **`server/db.js`** — มี default content ทั้งหมด ถ้าอยาก reset ให้ลบ `data/nucha.db` แล้วรันใหม่
