@@ -9,10 +9,10 @@
 
   (async function() {
     try {
-      // Fetch all content + nav in parallel
+      // Fetch all content + nav in parallel (no-store to prevent 304 issues)
       const [contentRes, navRes] = await Promise.all([
-        fetch('/api/content').then(r => r.json()),
-        fetch('/api/nav').then(r => r.json())
+        fetch('/api/content', { cache: 'no-store' }).then(r => r.json()),
+        fetch('/api/nav', { cache: 'no-store' }).then(r => r.json())
       ]);
 
       // ===== NAV =====

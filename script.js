@@ -5,21 +5,29 @@ const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/
 window.addEventListener('load', async () => {
     const loader = document.getElementById('loader');
 
-    // Wait for site-loader.js to finish loading API content
-    if (window.__siteContentLoaded) {
-        await window.__siteContentLoaded;
+    try {
+        // Wait for site-loader.js to finish loading API content (with timeout)
+        if (window.__siteContentLoaded) {
+            await Promise.race([
+                window.__siteContentLoaded,
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Content load timeout')), 8000))
+            ]);
+        }
+
+        // Small delay to ensure DOM is fully settled after site-loader replacements
+        await new Promise(r => setTimeout(r, 100));
+
+        // Initialize animations AFTER content are ready
+        initAnimations();
+
+        // Set up event delegation for dynamically replaced elements
+        setupEventDelegation();
+    } catch (err) {
+        console.warn('Init warning:', err.message || err);
+        // Still continue — don't let init failures block the page
     }
 
-    // Small delay to ensure DOM is fully settled after site-loader replacements
-    await new Promise(r => setTimeout(r, 100));
-
-    // Initialize animations AFTER content is ready
-    initAnimations();
-
-    // Set up event delegation for dynamically replaced elements
-    setupEventDelegation();
-
-    // Hide loader after animations are set up
+    // Hide loader — ALWAYS runs, even if init fails
     setTimeout(() => {
         loader.classList.add('hidden');
     }, 800);

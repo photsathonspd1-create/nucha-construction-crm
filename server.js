@@ -31,6 +31,7 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir, { recursive: true });
 
 // ===== MIDDLEWARE =====
+app.set('etag', false); // Disable ETag to prevent 304 responses breaking client JSON parsing
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -59,6 +60,15 @@ app.use((req, res, next) => {
       console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
     }
   });
+  next();
+});
+
+// Disable ETag and cache for API routes — prevents 304 responses that break client-side JSON parsing
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.set('Surrogate-Control', 'no-store');
   next();
 });
 

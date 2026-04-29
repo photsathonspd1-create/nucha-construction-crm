@@ -35,9 +35,16 @@ async function loadAll() {
 async function api(url, opts = {}) {
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...opts.headers },
+    cache: 'no-store',
     ...opts
   });
   if (res.status === 401) { window.location.href = '/login'; throw new Error('Unauthorized'); }
+  if (res.status === 304) {
+    // 304 has no body — re-fetch without cache
+    const retry = await fetch(url, { ...opts, cache: 'no-store', headers: { 'Content-Type': 'application/json', ...opts.headers } });
+    if (!retry.ok) throw new Error('API Error');
+    return retry.json();
+  }
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'API Error');
   return data;
