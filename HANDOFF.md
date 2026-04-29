@@ -1,10 +1,10 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> **Last Updated:** 2026-04-29 23:08 (GMT+8)
-> **Updated By:** OpenClaw AI Agent (bug fix session)
+> **Last Updated:** 2026-04-30 00:10 (GMT+8)
+> **Updated By:** OpenClaw AI Agent (site-docs rewrite session)
 > **Branch:** main
-> **Latest Commit:** `484b5d5` — fix: resolve 9 bugs
-> **Status:** ✅ All features implemented, all known bugs fixed
+> **Latest Commit:** `fea0c56` — feat: comprehensive chatbot with 18 FAQ topics
+> **Status:** ✅ All features implemented, site-docs report fully rewritten
 
 ---
 
@@ -131,6 +131,20 @@
 | 53 | Site Documentation Generator (Puppeteer) | scripts/site-docs.js | ✅ |
 | 54 | Site docs API endpoint | server.js `/api/admin/generate-docs` | ✅ |
 | 55 | Supabase legacy files marked | supabase/config.js | ✅ |
+
+### 📄 Site Documentation Report (2026-04-30 Rewrite)
+| # | Feature | Files | Status |
+|---|---------|-------|--------|
+| 56 | Site report rewrite — Thai font fix (Noto Sans Thai + Inter via Google Fonts) | site-docs/site-report.html | ✅ |
+| 57 | Admin page deduplication (10 pages → only show active section, not all 16) | site-docs/site-report.html | ✅ |
+| 58 | Hidden elements filter (visible: false excluded from display) | site-docs/site-report.html | ✅ |
+| 59 | PDF export button + @media print CSS | site-docs/site-report.html | ✅ |
+| 60 | Professional card-based layout (dark header, red accent, white cards) | site-docs/site-report.html | ✅ |
+| 61 | Stats cards (pages, buttons, links, forms, errors) | site-docs/site-report.html | ✅ |
+| 62 | Table of contents with clickable anchor links | site-docs/site-report.html | ✅ |
+| 63 | Screenshot lightbox (click to zoom) | site-docs/site-report.html | ✅ |
+| 64 | Form fields grouped by prefix, unnamed fields filtered | site-docs/site-report.html | ✅ |
+| 65 | Admin summary cards with nav tab visualization | site-docs/site-report.html | ✅ |
 
 ---
 
