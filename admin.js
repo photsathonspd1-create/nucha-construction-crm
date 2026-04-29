@@ -67,6 +67,7 @@ function showPage(pageId) {
   if (pageId === 'reports') renderReports();
   if (pageId === 'users') renderUsers();
   if (pageId === 'site-docs') checkSiteDocs();
+  if (pageId === 'chatbot') renderChatbotForm();
 }
 
 // ===== LOGOUT =====
@@ -128,6 +129,7 @@ function renderAllForms() {
   renderNotificationsForm();
   renderLeads();
   renderBookings();
+  renderChatbotForm();
 }
 
 // ===== SITE CONFIG FORM =====
@@ -769,6 +771,86 @@ async function testNotification(channel) {
   } catch (err) {
     toast('❌ ส่งไม่สำเร็จ: ' + err.message, 'error');
   }
+}
+
+// ===== CHATBOT FAQ FORM =====
+function renderChatbotForm() {
+  const faq = allContent.chatbot_faq || {};
+  const keys = Object.keys(faq);
+  document.getElementById('chatbotForm').innerHTML = `
+    <div class="form-section">
+      <h3>💬 รายการ FAQ (${keys.length} หัวข้อ)</h3>
+      <p style="font-size:0.82rem;color:var(--gray-400);margin-bottom:16px">แต่ละหัวข้อมี: คำถาม, คำตอบ, ปุ่มต่อ, คำค้นหา — user พิมพ์คำค้นหาแล้ว Bot จะตอบอัตโนมัติ</p>
+      <div id="chatbotFaqList">
+        ${keys.map((key, i) => {
+          const item = faq[key];
+          return `
+            <div class="repeatable-header" onclick="toggleRepeatable(this)">
+              <h4>${esc(item.q || key)}</h4>
+              <span class="toggle">▼</span>
+            </div>
+            <div class="repeatable-body">
+              <div class="form-row">
+                <div class="form-group"><label>Key (ID)</label><input type="text" class="cb-faq-key" value="${esc(key)}"></div>
+                <div class="form-group"><label>คำถาม (ปุ่ม Quick Reply)</label><input type="text" class="cb-faq-q" value="${esc(item.q || '')}"></div>
+              </div>
+              <div class="form-group"><label>คำตอบ</label><textarea class="cb-faq-a" rows="4">${esc(item.a || '')}</textarea></div>
+              <div class="form-group"><label>ปุ่มต่อ (คั่นด้วย comma ,)</label><input type="text" class="cb-faq-f" value="${esc((item.f || []).join(', '))}"></div>
+              <div class="form-group"><label>คำค้นหา (คั่นด้วย comma ,)</label><input type="text" class="cb-faq-k" value="${esc((item.k || []).join(', '))}"></div>
+              <button type="button" class="btn btn-danger btn-sm" onclick="removeRepeatable(this)">🗑️ ลบ</button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addChatbotFAQItem()" style="margin-top:12px">+ เพิ่ม FAQ</button>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-primary" onclick="saveChatbotFAQ()">💾 บันทึก Chatbot FAQ</button>
+    </div>
+  `;
+}
+
+function addChatbotFAQItem() {
+  const list = document.getElementById('chatbotFaqList');
+  list.insertAdjacentHTML('beforeend', `
+    <div class="repeatable-header" onclick="toggleRepeatable(this)"><h4>❓ FAQ ใหม่</h4><span class="toggle">▼</span></div>
+    <div class="repeatable-body open">
+      <div class="form-row">
+        <div class="form-group"><label>Key (ID)</label><input type="text" class="cb-faq-key" value=""></div>
+        <div class="form-group"><label>คำถาม (ปุ่ม Quick Reply)</label><input type="text" class="cb-faq-q" value=""></div>
+      </div>
+      <div class="form-group"><label>คำตอบ</label><textarea class="cb-faq-a" rows="4"></textarea></div>
+      <div class="form-group"><label>ปุ่มต่อ (คั่นด้วย comma ,)</label><input type="text" class="cb-faq-f" value=""></div>
+      <div class="form-group"><label>คำค้นหา (คั่นด้วย comma ,)</label><input type="text" class="cb-faq-k" value=""></div>
+      <button type="button" class="btn btn-danger btn-sm" onclick="removeRepeatable(this)">🗑️ ลบ</button>
+    </div>
+  `);
+}
+
+async function saveChatbotFAQ() {
+  const faq = {};
+  const keys = document.querySelectorAll('.cb-faq-key');
+  const qs = document.querySelectorAll('.cb-faq-q');
+  const as = document.querySelectorAll('.cb-faq-a');
+  const fs = document.querySelectorAll('.cb-faq-f');
+  const ks = document.querySelectorAll('.cb-faq-k');
+
+  keys.forEach((el, i) => {
+    const key = el.value.trim();
+    const q = qs[i]?.value.trim();
+    const a = as[i]?.value.trim();
+    if (!key || !q || !a) return; // skip incomplete
+    faq[key] = {
+      q: q,
+      a: a,
+      f: (fs[i]?.value || '').split(',').map(s => s.trim()).filter(Boolean),
+      k: (ks[i]?.value || '').split(',').map(s => s.trim()).filter(Boolean)
+    };
+  });
+
+  await api('/api/content/chatbot_faq', { method: 'PUT', body: JSON.stringify(faq) });
+  allContent.chatbot_faq = faq;
+  toast('✅ บันทึก Chatbot FAQ สำเร็จ');
 }
 
 // ===== NAV FORM =====

@@ -56,6 +56,10 @@
                     <div class="sidebar-link" data-page="media" onclick="showPage('media')"><span>📁 คลังรูปภาพ</span></div>
                 </div>
                 <div class="sidebar-section">
+                    <div class="sidebar-section-title">🤖 Chatbot</div>
+                    <div class="sidebar-link" data-page="chatbot" onclick="showPage('chatbot')"><span>💬 ตั้งค่า Chatbot</span></div>
+                </div>
+                <div class="sidebar-section">
                     <div class="sidebar-section-title">📸 เอกสาร</div>
                     <div class="sidebar-link" data-page="site-docs" onclick="showPage('site-docs')"><span>📸 Site Docs</span></div>
                 </div>
@@ -166,6 +170,24 @@
             <div class="page-section" id="page-edit-notifications">
                 <div class="page-header"><h1>🔔 แจ้งเตือน</h1><p>ตั้งค่าการแจ้งเตือนเมื่อมี Lead ใหม่</p></div>
                 <form class="cms-form" id="notificationsForm"></form>
+            </div>
+
+            <!-- Chatbot FAQ -->
+            <div class="page-section" id="page-chatbot">
+                <div class="page-header">
+                    <h1>💬 ตั้งค่า Chatbot</h1>
+                    <p>จัดการคำถาม-คำตอบของ Chat Bot — เพิ่ม แก้ไข ลบ ได้ตามต้องการ</p>
+                </div>
+                <div class="dash-card" style="margin-bottom:1rem">
+                    <h3>📖 วิธีใช้</h3>
+                    <p style="font-size:0.85rem;color:var(--gray-500);margin-top:8px">
+                        <strong>คำถาม (q):</strong> แสดงเป็นปุ่ม Quick Reply<br>
+                        <strong>คำตอบ (a):</strong> ข้อความที่ Bot ตอบ (ใช้ \n ขึ้นบรรทัดใหม่)<br>
+                        <strong>ปุ่มต่อ (f):</strong> ปุ่มที่แสดงหลังคำตอบ (คั่นด้วย comma)<br>
+                        <strong>คำค้นหา (k):</strong> คำที่ user พิมพ์แล้วจับคู่ได้ (คั่นด้วย comma)
+                    </p>
+                </div>
+                <form class="cms-form" id="chatbotForm"></form>
             </div>
 
             <!-- Leads -->

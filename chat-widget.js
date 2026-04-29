@@ -109,18 +109,146 @@
   document.body.appendChild(widget);
 
   // ===== State =====
-  const S = { open: false, step: 'welcome', history: [] };
+  const S = { open: false, step: 'welcome', history: [], faqLoaded: false };
 
-  // ===== FAQ =====
-  const FAQ = {
-    services: { q: 'มีบริการอะไรบ้าง?', a: 'เรามีบริการ 5 อย่าง:\n\n🏗️ รับเหมาก่อสร้าง\n🪑 บิ้วอิน\n✏️ ออกแบบ\n🎨 ตกแต่ง\n📋 บริหารโครงการ\n\nสนใจบริการไหนครับ?', f: ['ดูรายละเอียดแต่ละบริการ', 'ขอใบเสนอราคา'] },
-    price: { q: 'ราคาเท่าไหร่?', a: 'ราคาขึ้นอยู่กับขนาดและประเภทโครงการ:\n\n🏠 บ้าน: เริ่มต้น 500,000 บ.\n🪑 บิ้วอิน: เริ่มต้น 200,000 บ.\n✏️ ออกแบบ: เริ่มต้น 100,000 บ.\n🎨 ตกแต่ง: เริ่มต้น 150,000 บ.\n\n💡 ปรึกษาฟรี ไม่มีค่าใช้จ่าย!', f: ['จองคิวปรึกษาฟรี', 'ดูผลงาน'] },
-    booking: { q: 'จองคิวอย่างไร?', a: 'จองคิวง่ายๆ 3 ขั้นตอน:\n\n1️⃣ เลือกบริการที่สนใจ\n2️⃣ กรอกชื่อ-เบอร์โทร\n3️⃣ เลือกวัน-เวลาสะดวก\n\nทีมงานจะติดต่อกลับภายใน 24 ชม. ครับ', f: ['จองคิวเลย', 'ดูบริการ'] },
-    works: { q: 'ดูผลงาน', a: 'ดูผลงานของเราได้ที่หน้าเว็บเลยครับ มีทั้งบ้านโมเดิร์น คอนโด ลักชัวรี่ และโครงการรีโนเวท\n\n🌐 ดูผลงานทั้งหมด', f: ['ขอใบเสนอราคา', 'จองคิวปรึกษาฟรี'] },
-    warranty: { q: 'รับประกันอย่างไร?', a: 'เรารับประกัน:\n\n🛡️ โครงสร้าง — ทั้งโครงการ\n✅ ส่งมอบตรงเวลา — ไม่เลื่อน ไม่บวกราคา\n❤️ ดูแลหลังส่งมอบ — ทีม Service ตลอดอายุใช้งาน', f: ['จองคิวปรึกษาฟรี', 'มีบริการอะไรบ้าง?'] },
-    contact: { q: 'ติดต่ออย่างไร?', a: '📞 โทร: 02-123-4567\n📱 LINE: @nuchainnovation\n📧 Email: info@nuchainnovation.com\n\n⏰ เปิดทำการ: จันทร์-เสาร์ 09:00-18:00', f: ['จองคิวปรึกษาฟรี', 'ดูบริการ'] },
-    duration: { q: 'ใช้เวลานานแค่ไหน?', a: 'ระยะเวลาขึ้นอยู่กับขนาดโครงการ:\n\n🏠 บ้าน 2 ชั้น: 6-10 เดือน\n🪑 บิ้วอิน: 2-4 สัปดาห์\n✏️ ออกแบบ: 2-4 สัปดาห์\n🎨 ตกแต่ง: 1-3 เดือน\n\nจะแจ้งไทม์ไลน์ที่ชัดเจนหลังสำรวจหน้างานครับ', f: ['จองคิวปรึกษาฟรี', 'ราคาเท่าไหร่?'] }
+  // ===== DEFAULT FAQ (ใช้ถ้า API ไม่ตอบ) =====
+  const DEFAULT_FAQ = {
+    services: {
+      q: 'มีบริการอะไรบ้าง?',
+      a: 'เรามีบริการ 5 อย่าง:\n\n🏗️ รับเหมาก่อสร้าง\n🪑 บิ้วอิน\n✏️ ออกแบบ\n🎨 ตกแต่ง\n📋 บริหารโครงการ\n\nสนใจบริการไหนครับ?',
+      f: ['ดูรายละเอียดแต่ละบริการ', 'ขอใบเสนอราคา'],
+      k: ['บริการ', 'service', 'ทำอะไร', 'มีอะไร', 'รับทำ', 'รับอะไร']
+    },
+    price: {
+      q: 'ราคาเท่าไหร่?',
+      a: 'ราคาขึ้นอยู่กับขนาดและประเภทโครงการ:\n\n🏠 บ้าน: เริ่มต้น 500,000 บ.\n🪑 บิ้วอิน: เริ่มต้น 200,000 บ.\n✏️ ออกแบบ: เริ่มต้น 100,000 บ.\n🎨 ตกแต่ง: เริ่มต้น 150,000 บ.\n\n💡 ปรึกษาฟรี ไม่มีค่าใช้จ่าย!',
+      f: ['จองคิวปรึกษาฟรี', 'ดูผลงาน'],
+      k: ['ราคา', 'price', 'เท่าไหร่', 'cost', 'ค่าใช้จ่าย', 'budget', 'งบ', 'กี่บาท']
+    },
+    booking: {
+      q: 'จองคิวอย่างไร?',
+      a: 'จองคิวง่ายๆ 3 ขั้นตอน:\n\n1️⃣ เลือกบริการที่สนใจ\n2️⃣ กรอกชื่อ-เบอร์โทร\n3️⃣ เลือกวัน-เวลาสะดวก\n\nทีมงานจะติดต่อกลับภายใน 24 ชม. ครับ',
+      f: ['จองคิวเลย', 'ดูบริการ'],
+      k: ['จอง', 'นัด', 'book', 'ปรึกษา', 'คิว', 'นัดหมาย', 'consult']
+    },
+    works: {
+      q: 'ดูผลงาน',
+      a: 'ดูผลงานของเราได้ที่หน้าเว็บเลยครับ มีทั้งบ้านโมเดิร์น คอนโด ลักชัวรี่ และโครงการรีโนเวท\n\n🌐 ดูผลงานทั้งหมด',
+      f: ['ขอใบเสนอราคา', 'จองคิวปรึกษาฟรี'],
+      k: ['ผลงาน', 'portfolio', 'งาน', 'project', 'gallery', 'รูป', 'ตัวอย่าง']
+    },
+    warranty: {
+      q: 'รับประกันอย่างไร?',
+      a: 'เรารับประกัน:\n\n🛡️ โครงสร้าง — ทั้งโครงการ\n✅ ส่งมอบตรงเวลา — ไม่เลื่อน ไม่บวกราคา\n❤️ ดูแลหลังส่งมอบ — ทีม Service ตลอดอายุใช้งาน',
+      f: ['จองคิวปรึกษาฟรี', 'มีบริการอะไรบ้าง?'],
+      k: ['รับประกัน', 'warranty', 'การันตี', 'garantie', 'ประกัน', 'รับผิดชอบ']
+    },
+    contact: {
+      q: 'ติดต่ออย่างไร?',
+      a: '📞 โทร: 02-123-4567\n📱 LINE: @nuchainnovation\n📧 Email: info@nuchainnovation.com\n\n⏰ เปิดทำการ: จันทร์-เสาร์ 09:00-18:00',
+      f: ['จองคิวปรึกษาฟรี', 'ดูบริการ'],
+      k: ['ติดต่อ', 'contact', 'โทร', 'line', 'เบอร์', 'phone', 'email', 'แอดเดรส', 'address', 'ที่อยู่', 'location', 'ที่ตั้ง']
+    },
+    duration: {
+      q: 'ใช้เวลานานแค่ไหน?',
+      a: 'ระยะเวลาขึ้นอยู่กับขนาดโครงการ:\n\n🏠 บ้าน 2 ชั้น: 6-10 เดือน\n🪑 บิ้วอิน: 2-4 สัปดาห์\n✏️ ออกแบบ: 2-4 สัปดาห์\n🎨 ตกแต่ง: 1-3 เดือน\n\nจะแจ้งไทม์ไลน์ที่ชัดเจนหลังสำรวจหน้างานครับ',
+      f: ['จองคิวปรึกษาฟรี', 'ราคาเท่าไหร่?'],
+      k: ['นาน', 'เวลา', 'duration', 'กี่วัน', 'กี่เดือน', 'เสร็จ', 'timeline', 'ไทม์ไลน์']
+    },
+    area: {
+      q: 'รับงานพื้นที่ไหน?',
+      a: 'เรารับงานทั่วกรุงเทพฯ และปริมณฑล:\n\n📍 กรุงเทพฯ ทุกเขต\n📍 นนทบุรี ปทุมธานี สมุทรปราการ\n📍 นครปฐม สมุทรสาคร\n\nพื้นที่อื่นๆ สอบถามได้ครับ',
+      f: ['จองคิวปรึกษาฟรี', 'ดูบริการ'],
+      k: ['พื้นที่', 'area', 'zone', 'เขต', 'จังหวัด', 'ที่ไหน', 'ไหน', 'กรุงเทพ', 'กทม', 'ปริมณฑล']
+    },
+    process: {
+      q: 'ขั้นตอนการทำงาน?',
+      a: 'ขั้นตอนการทำงานของเรา:\n\n📋 STEP 01: รับฟังและวางแผน\n📐 STEP 02: ออกแบบและเสนอราคา\n🏗️ STEP 03: ก่อสร้างและส่งมอบ\n\nทุกขั้นตอนมี QC ตรวจสอบคุณภาพครับ',
+      f: ['จองคิวปรึกษาฟรี', 'ดูผลงาน'],
+      k: ['ขั้นตอน', 'step', 'process', 'ทำงาน', 'ขั้น', 'ลำดับ', 'procedure']
+    },
+    team: {
+      q: 'ทีมงานเป็นอย่างไร?',
+      a: 'ทีมงานของเรา:\n\n👷 วิศวกรประจำโครงการ\n🎨 สถาปนิกและดีไซเนอร์\n🔨 ทีมช่างมืออาชีพ\n📋 ผู้จัดการโครงการดูแลใกล้ชิด\n\nประสบการณ์ 10+ ปี ครับ',
+      f: ['ดูผลงาน', 'จองคิวปรึกษาฟรี'],
+      k: ['ทีม', 'team', 'คน', 'ช่าง', 'วิศวกร', 'สถาปนิก', 'designer', 'ประสบการณ์', 'experience']
+    },
+    material: {
+      q: 'ใช้วัสดุอะไร?',
+      a: 'เราใช้วัสดุคุณภาพจากแบรนด์ชั้นนำ:\n\n🏗️ SCG — ปูน หลังคา\n🎨 TOA — สี\n🚿 COTTO — สุขภัณฑ์\n❄️ DAIKIN — แอร์\n🔥 STIEBEL — เครื่องทำน้ำอุ่น\n\nลูกค้าเลือกแบรนด์เองได้ครับ',
+      f: ['ราคาเท่าไหร่?', 'จองคิวปรึกษาฟรี'],
+      k: ['วัสดุ', 'material', 'brand', 'แบรนด์', 'scg', 'toa', 'cotto', 'คุณภาพ', 'เกรด']
+    },
+    renovation: {
+      q: 'รับรีโนเวทไหม?',
+      a: 'รับครับ! บริการรีโนเวทของเรา:\n\n🏠 บ้านเก่า → ใหม่\n🏢 สำนักงาน\n🍳 ห้องครัว\n🛁 ห้องน้ำ\n🪑 เฟอร์นิเจอร์\n\nสำรวจหน้างานฟรี ไม่มีค่าใช้จ่าย',
+      f: ['จองคิวปรึกษาฟรี', 'ดูผลงาน'],
+      k: ['รีโนเวท', 'renovate', 'renovation', 'ต่อเติม', 'ซ่อม', 'ปรับปรุง', 'remodel', 'รีโน']
+    },
+    quote: {
+      q: 'ขอใบเสนอราคา',
+      a: 'ขอใบเสนอราคาได้ง่ายๆ ครับ:\n\n📞 โทร: 02-123-4567\n📱 LINE: @nuchainnovation\n📝 หรือกรอกฟอร์มด้านล่าง\n\nประเมินราคาเบื้องต้นฟรี!',
+      f: ['จองคิวเลย'],
+      k: ['ใบเสนอราคา', 'quote', 'เสนอราคา', 'estimate', 'ประเมิน', 'quotation']
+    },
+    promotion: {
+      q: 'มีโปรโมชั่นไหม?',
+      a: 'โปรโมชั่นตอนนี้:\n\n🎉 ปรึกษาฟรี ไม่มีค่าใช้จ่าย\n💰 ส่วนลดพิเศษสำหรับโครงการใหญ่\n🎁 ฟรี! ออกแบบ 3D เมื่อเซ็นสัญญา\n\nติดต่อสอบถามรายละเอียดได้เลยครับ',
+      f: ['จองคิวปรึกษาฟรี', 'ดูบริการ'],
+      k: ['โปรโมชั่น', 'promotion', 'pro', 'ส่วนลด', 'discount', 'ลด', 'ของแถม', 'free', 'ฟรี']
+    },
+    payment: {
+      q: 'ชำระเงินอย่างไร?',
+      a: 'วิธีชำระเงิน:\n\n💳 โอนเงินธนาคาร\n💰 เงินสด\n📄 เช็ค\n\nชำระเป็นงวดตามความคืบหน้างาน ไม่ต้องจ่ายทั้งก้อนครับ',
+      f: ['จองคิวปรึกษาฟรี', 'ราคาเท่าไหร่?'],
+      k: ['ชำระ', 'pay', 'payment', 'เงิน', 'โอน', 'จ่าย', 'ผ่อน', 'installment', 'งวด']
+    },
+    location: {
+      q: 'สำนักงานอยู่ที่ไหน?',
+      a: '📍 สำนักงาน NUCHA INNOVATION\n\n123 ถนนสุขุมวิท แขวงคลองเตย\nเขตคลองเตย กรุงเทพฯ 10110\n\n🚇 ใกล้ BTS อโศก / MRT สุขุมวิท\n⏰ จันทร์-เสาร์ 09:00-18:00',
+      f: ['ติดต่ออย่างไร?', 'จองคิวปรึกษาฟรี'],
+      k: ['สำนักงาน', 'office', 'map', 'แผนที่', 'google', 'bts', 'mrt', 'ทางมา']
+    },
+    greeting: {
+      q: 'สวัสดี',
+      a: 'สวัสดีครับ! 👋 ยินดีต้อนรับสู่ NUCHA INNOVATION\n\nผมเป็นผู้ช่วยอัจฉริยะ ช่วยเรื่องไหนได้บ้างครับ?',
+      f: ['มีบริการอะไรบ้าง?', 'ราคาเท่าไหร่?', 'จองคิวเลย'],
+      k: ['สวัสดี', 'hello', 'hi', 'hey', 'ดีจ้า', 'หวัดดี', 'ครับ', 'ค่ะ']
+    },
+    thanks: {
+      q: 'ขอบคุณ',
+      a: 'ยินดีครับ! 🙏 มีอะไรให้ช่วยเพิ่มเติมถามได้เลยนะครับ',
+      f: ['มีบริการอะไรบ้าง?', 'จองคิวเลย'],
+      k: ['ขอบคุณ', 'thank', 'thanks', 'thx', 'คุณ']
+    }
   };
+
+  let FAQ = { ...DEFAULT_FAQ };
+
+  // ===== LOAD FAQ FROM API =====
+  async function loadFAQ() {
+    try {
+      const res = await fetch('/api/content/chatbot_faq');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Object.keys(data).length > 0) {
+          // Merge API data with defaults (API overrides)
+          Object.keys(data).forEach(key => {
+            if (data[key] && data[key].q && data[key].a) {
+              FAQ[key] = data[key];
+              // Ensure keywords exist
+              if (!FAQ[key].k || !FAQ[key].k.length) {
+                FAQ[key].k = DEFAULT_FAQ[key]?.k || [];
+              }
+            }
+          });
+          S.faqLoaded = true;
+        }
+      }
+    } catch (e) {
+      console.warn('Chat FAQ load failed, using defaults:', e);
+    }
+  }
 
   // ===== Helpers =====
   const $ = id => document.getElementById(id);
@@ -175,29 +303,61 @@
     scrollB();
   }
 
+  // ===== KEYWORD MATCHING ENGINE =====
+  function findFAQByKeyword(text) {
+    const lower = text.toLowerCase();
+
+    // 1. Exact match by quick-reply label
+    const exactKey = Object.keys(FAQ).find(k => FAQ[k].q === text);
+    if (exactKey) return exactKey;
+
+    // 2. Keyword match — find best match (most keywords matched)
+    let bestMatch = null;
+    let bestScore = 0;
+
+    Object.keys(FAQ).forEach(key => {
+      const faq = FAQ[key];
+      const keywords = faq.k || [];
+      let score = 0;
+      keywords.forEach(kw => {
+        if (lower.includes(kw.toLowerCase())) score++;
+      });
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = key;
+      }
+    });
+
+    return bestScore > 0 ? bestMatch : null;
+  }
+
+  // ===== CONTEXTUAL FALLBACK RESPONSES =====
+  const FALLBACKS = [
+    { a: 'ขอบคุณครับ ผมช่วยเรื่องไหนได้บ้าง?', f: ['มีบริการอะไรบ้าง?', 'ราคาเท่าไหร่?', 'จองคิวเลย'] },
+    { a: 'ยินดีให้บริการครับ เลือกหัวข้อด้านล่างได้เลย', f: ['ดูผลงาน', 'ดูบริการ', 'ติดต่ออย่างไร?'] },
+    { a: 'ผมช่วยเรื่องข้อมูลบริการ ราคา และการจองคิวได้ครับ ลองเลือกดูนะครับ', f: ['มีบริการอะไรบ้าง?', 'จองคิวปรึกษาฟรี', 'รับประกันอย่างไร?'] }
+  ];
+
   // ===== QR Handler =====
   function handleQR(text) {
     document.querySelectorAll('.quick-replies').forEach(el => el.remove());
     userMsg(text);
 
-    const map = {
-      'มีบริการอะไรบ้าง?': 'services', 'ราคาเท่าไหร่?': 'price',
-      'จองคิวอย่างไร?': 'booking', 'ดูผลงาน': 'works',
-      'รับประกันอย่างไร?': 'warranty', 'ติดต่ออย่างไร?': 'contact',
-      'ใช้เวลานานแค่ไหน?': 'duration'
-    };
-
-    if (map[text]) {
-      const faq = FAQ[map[text]];
-      botMsg(faq.a, 200);
-      setTimeout(() => addQR(faq.f), 1000);
-    } else if (text === 'จองคิวปรึกษาฟรี' || text === 'จองคิวเลย' || text === 'ขอใบเสนอราคา') {
+    // Action triggers
+    if (text === 'จองคิวปรึกษาฟรี' || text === 'จองคิวเลย' || text === 'ขอใบเสนอราคา') {
       botMsg('กรอกข้อมูลด้านล่างเลยครับ ทีมงานจะติดต่อกลับภายใน 24 ชม. 📞', 200);
       setTimeout(() => { $('chatFormArea').classList.add('show'); $('chatInputArea').style.display = 'none'; scrollB(); }, 800);
-    } else if (text === 'ดูรายละเอียดแต่ละบริการ') {
+      return;
+    }
+
+    if (text === 'ดูรายละเอียดแต่ละบริการ') {
       botMsg('เลือกบริการที่สนใจได้เลยครับ 👇', 200);
       setTimeout(() => addQR(['🏗️ รับเหมาก่อสร้าง', '🪑 บิ้วอิน', '✏️ ออกแบบ', '🎨 ตกแต่ง', '📋 บริหารโครงการ']), 800);
-    } else if (/^[🏗️🪑✏️🎨📋]/.test(text)) {
+      return;
+    }
+
+    // Service emoji links
+    if (/^[🏗️🪑✏️🎨📋]/.test(text)) {
       const keyMap = { '🏗️': 'construction', '🪑': 'builtin', '✏️': 'design', '🎨': 'decoration', '📋': 'project-management' };
       const key = keyMap[text.charAt(0)];
       if (key) {
@@ -210,12 +370,30 @@
           scrollB();
         }, 800);
       }
-    } else if (text === 'ดูบริการ') {
-      addQR(['มีบริการอะไรบ้าง?', 'ราคาเท่าไหร่?', 'จองคิวเลย', 'ดูผลงาน', 'รับประกันอย่างไร?', 'ติดต่ออย่างไร?']);
-    } else {
-      botMsg('ขอบคุณครับ มีอะไรให้ช่วยเพิ่มเติมมั้ยครับ?', 200);
-      setTimeout(() => addQR(['มีบริการอะไรบ้าง?', 'ราคาเท่าไหร่?', 'จองคิวเลย']), 800);
+      return;
     }
+
+    // Quick menu
+    if (text === 'ดูบริการ') {
+      addQR(['มีบริการอะไรบ้าง?', 'ราคาเท่าไหร่?', 'จองคิวเลย', 'ดูผลงาน', 'รับประกันอย่างไร?', 'ติดต่ออย่างไร?']);
+      return;
+    }
+
+    // FAQ match
+    const faqKey = findFAQByKeyword(text);
+    if (faqKey && FAQ[faqKey]) {
+      const faq = FAQ[faqKey];
+      botMsg(faq.a, 200);
+      if (faq.f && faq.f.length) {
+        setTimeout(() => addQR(faq.f), 1000);
+      }
+      return;
+    }
+
+    // Fallback
+    const fb = FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)];
+    botMsg(fb.a, 200);
+    setTimeout(() => addQR(fb.f), 800);
   }
 
   // Expose for inline onclick
@@ -246,12 +424,14 @@
   }
 
   // ===== Toggle =====
-  function toggle() {
+  async function toggle() {
     S.open = !S.open;
     $('chatPanel').classList.toggle('open', S.open);
     $('chatTrigger').classList.toggle('active', S.open);
     if (S.open) {
       $('chatBadge').style.display = 'none';
+      // Load FAQ from API on first open
+      if (!S.faqLoaded) await loadFAQ();
       if (!S.history.length) {
         botMsg('สวัสดีครับ! 👋 ผมผู้ช่วย NUCHA INNOVATION', 300);
         botMsg('มีอะไรให้ช่วยครับ? เลือกหัวข้อด้านล่างได้เลย', 800);
@@ -269,21 +449,25 @@
     document.querySelectorAll('.quick-replies').forEach(el => el.remove());
     userMsg(text);
 
-    const lower = text.toLowerCase();
-    const kw = [
-      [/บริการ|service/, 'มีบริการอะไรบ้าง?'],
-      [/ราคา|price|เท่าไหร่|cost/, 'ราคาเท่าไหร่?'],
-      [/จอง|นัด|book|ปรึกษา/, 'จองคิวเลย'],
-      [/ผลงาน|portfolio|งาน/, 'ดูผลงาน'],
-      [/รับประกัน|warranty|การันตี/, 'รับประกันอย่างไร?'],
-      [/ติดต่อ|contact|โทร|line/, 'ติดต่ออย่างไร?'],
-      [/นาน|เวลา|duration|กี่วัน/, 'ใช้เวลานานแค่ไหน?']
-    ];
-    const match = kw.find(([re]) => re.test(lower));
-    if (match) handleQR(match[1]);
-    else {
-      botMsg('ขอบคุณครับ ผมช่วยเรื่องไหนได้บ้าง?', 200);
-      setTimeout(() => addQR(['มีบริการอะไรบ้าง?', 'ราคาเท่าไหร่?', 'จองคิวเลย']), 800);
+    // Use the same keyword matching engine
+    const faqKey = findFAQByKeyword(text);
+    if (faqKey && FAQ[faqKey]) {
+      const faq = FAQ[faqKey];
+      // Check if it's a booking action
+      if (faqKey === 'quote' || faqKey === 'booking') {
+        botMsg(faq.a, 200);
+        setTimeout(() => addQR(faq.f || ['จองคิวเลย']), 1000);
+      } else {
+        botMsg(faq.a, 200);
+        if (faq.f && faq.f.length) {
+          setTimeout(() => addQR(faq.f), 1000);
+        }
+      }
+    } else {
+      // Fallback
+      const fb = FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)];
+      botMsg(fb.a, 200);
+      setTimeout(() => addQR(fb.f), 800);
     }
   }
 
