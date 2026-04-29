@@ -38,14 +38,16 @@ server.js (Backend API)
   ├── Auth: POST /api/auth/login, /logout, /me
   ├── Content: GET/PUT /api/content/:key (CMS)
   ├── Nav: GET/PUT /api/nav
-  ├── Leads: POST /api/leads (public), GET/PUT/DELETE (auth)
+  ├── Leads: POST /api/leads (public, triggers LINE Notify), GET/PUT/DELETE (auth)
   ├── Upload: POST /api/upload (auth)
   ├── Media: GET/DELETE /api/media (auth)
   ├── Stats: GET /api/stats (auth)
   ├── Pipeline: GET /api/pipeline (auth)
   ├── Notes: GET/POST /api/leads/:id/notes (auth)
   ├── Proposals: GET/POST/PUT /api/proposals (auth)
-  └── Follow-ups: GET /api/followups (auth)
+  ├── Follow-ups: GET /api/followups (auth)
+  ├── Notifications: POST /api/test-notification (auth)
+  └── LINE Notify: sendLineNotify() — triggered on lead creation
 
 server/db.js (Database Schema + Seed)
   ├── Tables: users, site_content, leads, notes, activities, proposals, nav_items, footer_links, gallery
@@ -70,11 +72,12 @@ admin.html + admin.js + admin.css (CMS Admin Panel)
 ├── style.css            ← Frontend styles
 ├── script.js            ← Frontend JS (animations, form, events)
 ├── site-loader.js       ← Load content from API + replace DOM
+├── service.html         ← Service detail page (per-service portfolio + features)
 ├── admin.html           ← CMS admin panel
 ├── admin.js             ← CMS logic
 ├── admin.css            ← CMS styles
 ├── admin-login.html     ← Login page
-├── server.js            ← Backend (Express + SQLite + API)
+├── server.js            ← Backend (Express + SQLite + API + LINE Notify)
 ├── server/db.js         ← Database schema + seed data
 ├── package.json         ← Dependencies
 ├── .env.example         ← Environment config template
@@ -110,6 +113,14 @@ admin.html + admin.js + admin.css (CMS Admin Panel)
 | **Hamburger menu ไม่ปิดบนมือถือ** | Event delegation ไม่เช็ค active state + query selectors ซ้ำซ้อน | ปรับ logic เช็ค `navMenu.classList.contains('active')` ก่อนปิด | script.js |
 | **ข้อความสำเร็จหายไปเร็ว** | Form success auto-reset หลัง 8 วินาที — ผู้ใช้อ่านไม่ทัน | เพิ่ม timeout เป็น 15 วินาที + ล้าง visual states (radio selections) ตอน reset | script.js |
 
+### Features (2026-04-29)
+
+| ฟีเจอร์ | รายละเอียด | ไฟล์ |
+|---------|-----------|------|
+| **Logo Image Support** | รองรับรูป logo (upload/URL) — แสดงใน Navbar, Loader, Footer; fallback เป็น text | site-loader.js, admin.js, server/db.js |
+| **Service Detail Pages** | แต่ละบริการมีหน้า `/service.html?key=xxx` — features, portfolio เฉพาะบริการ, process, CTA | service.html, site-loader.js |
+| **LINE Notify** | แจ้งเตือนทันทีเมื่อมี lead ใหม่ผ่าน LINE — admin ตั้งค่า token + เปิด/ปิด + ทดสอบ | server.js, admin.js, admin.html |
+
 ### ฟีเจอร์ที่ทำงานครบ ✅
 
 - [x] Landing page ครบวงจร (Hero, Services, Process, Portfolio, Testimonials, Closing)
@@ -131,6 +142,10 @@ admin.html + admin.js + admin.css (CMS Admin Panel)
 - [x] API endpoints ครบ
 - [x] Navbar ไม่ซ้ำ (deduplicate)
 - [x] Mobile hamburger menu ทำงานถูกต้อง
+- [x] Logo image support (upload/URL, fallback text)
+- [x] Service detail pages (/service.html?key=xxx)
+- [x] LINE Notify (แจ้งเตือน lead ใหม่)
+- [x] Notification config page ใน Admin CMS
 
 ---
 
