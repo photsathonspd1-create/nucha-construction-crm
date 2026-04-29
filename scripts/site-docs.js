@@ -60,20 +60,31 @@ async function main() {
   const results = [];
 
   // Login first for authenticated pages
+  // Use a browser context so cookies (including httpOnly) persist across pages
   const needsAuth = PAGES.some(p => p.auth);
   if (needsAuth) {
     console.log('🔑 Logging in for authenticated pages...');
     const loginPage = await browser.newPage();
-    await loginPage.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    // Try to fill login form
+    await loginPage.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle0', timeout: 60000 });
     try {
+      // Wait for login form to appear
+      await loginPage.waitForSelector('input[type="email"], input[name="email"], #email', { timeout: 5000 });
+      // Fill form fields
       await loginPage.evaluate(() => {
         const emailInput = document.querySelector('input[type="email"], input[name="email"], #email');
         const passInput = document.querySelector('input[type="password"], input[name="password"], #password');
-        if (emailInput) emailInput.value = 'admin@nuchainnovation.com';
-        if (passInput) passInput.value = 'admin123';
+        if (emailInput) {
+          emailInput.value = 'admin@nuchainnovation.com';
+          emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+          emailInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (passInput) {
+          passInput.value = 'admin123';
+          passInput.dispatchEvent(new Event('input', { bubbles: true }));
+          passInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
       });
-      // Submit login
+      // Submit login via fetch (sets httpOnly cookie in browser jar)
       const loginResult = await loginPage.evaluate(async () => {
         try {
           const res = await fetch('/api/auth/login', {
@@ -86,14 +97,29 @@ async function main() {
         } catch (e) { return { error: e.message }; }
       });
       console.log(`   🔑 Login: ${loginResult.success ? '✅' : '❌ ' + (loginResult.error || 'failed')}`);
+      // Verify auth by checking /api/auth/me
+      if (loginResult.success) {
+        const meCheck = await loginPage.evaluate(async () => {
+          try {
+            const res = await fetch('/api/auth/me', { credentials: 'include' });
+            return res.ok ? await res.json() : { error: 'unauthorized' };
+          } catch (e) { return { error: e.message }; }
+        });
+        console.log(`   🔑 Auth verify: ${meCheck.email ? '✅ ' + meCheck.email : '❌ ' + (meCheck.error || 'failed')}`);
+      }
     } catch (e) {
       console.log(`   ⚠️  Login failed: ${e.message}`);
     }
-    // Copy cookies to a variable for reuse
-    const cookies = await loginPage.cookies();
+    // Get ALL cookies from browser (including httpOnly) via CDP
+    const client = await loginPage.target().createCDPSession();
+    const { cookies: allCookies } = await client.send('Network.getAllCookies');
+    await client.detach();
+    browser._authCookies = allCookies.filter(c => c.name === 'token').map(c => ({
+      ...c,
+      domain: c.domain || 'localhost',
+    }));
+    console.log(`   🔑 Auth cookies found: ${browser._authCookies.length}`);
     await loginPage.close();
-    // Store cookies for later use
-    browser._authCookies = cookies;
   }
 
   for (const page of PAGES) {
@@ -104,7 +130,9 @@ async function main() {
 
     // Set auth cookies for authenticated pages
     if (page.auth && browser._authCookies) {
-      await tab.setCookie(...browser._authCookies);
+      for (const cookie of browser._authCookies) {
+        await tab.setCookie(cookie).catch(() => {});
+      }
     }
 
     try {
@@ -139,6 +167,66 @@ async function main() {
 
       // Extra settle time for animations and images
       await new Promise(r => setTimeout(r, 2000));
+
+      // ===== TRIGGER SCROLL ANIMATIONS =====
+      // Scroll through the entire page to activate GSAP ScrollTrigger animations
+      // and force all animated elements to their final visible state
+      await tab.evaluate(async () => {
+        // 1) Scroll to bottom in steps to trigger all ScrollTrigger callbacks
+        const scrollHeight = document.documentElement.scrollHeight;
+        const step = window.innerHeight * 0.6;
+        for (let y = 0; y <= scrollHeight; y += step) {
+          window.scrollTo(0, y);
+          await new Promise(r => setTimeout(r, 150));
+        }
+        // Scroll to absolute bottom
+        window.scrollTo(0, scrollHeight);
+        await new Promise(r => setTimeout(r, 500));
+
+        // 2) Scroll back to top
+        window.scrollTo(0, 0);
+        await new Promise(r => setTimeout(r, 300));
+
+        // 3) Force all GSAP-animated elements to visible final state
+        if (typeof gsap !== 'undefined') {
+          // Kill all ScrollTriggers so they don't re-hide elements
+          if (typeof ScrollTrigger !== 'undefined') {
+            ScrollTrigger.getAll().forEach(t => t.kill());
+          }
+          // Force inline styles on all elements that GSAP animates
+          const animatedSelectors = [
+            '.hero-badge', '.title-line', '.hero-subtitle', '.hero-desc',
+            '.hero-buttons .btn', '.hero-stats-row', '.hero-image-wrapper',
+            '.hero-float-card', '.scroll-indicator', '.break-scene-tag',
+            '.break-line', '.break-scene-sub', '.break-scene-line',
+            '.services', '.services .section-header', '.service-card',
+            '.story', '.story-step', '.portfolio .section-header',
+            '.portfolio-item', '.booking-info', '.booking-form-container',
+            '.stat-item', '.trust .section-header', '.testimonial-card',
+            '.closing-tag', '.closing-title', '.closing-desc',
+            '.guarantee-item', '.closing-cta', '.trust-badges-label',
+            '.trust-badge-item', '.floating-cta .fab', '.footer-top > *',
+            '[data-animate]', '.section-header[data-animate]'
+          ];
+          document.querySelectorAll(animatedSelectors.join(',')).forEach(el => {
+            el.style.opacity = '1';
+            el.style.transform = 'none';
+            el.style.filter = 'none';
+            el.style.visibility = 'visible';
+          });
+          // Also kill all GSAP tweens so they don't override
+          gsap.killTweensOf(animatedSelectors.join(', '));
+        }
+
+        // 4) Force lazy-loaded images to load
+        document.querySelectorAll('img[loading="lazy"], img[data-src]').forEach(img => {
+          if (img.dataset.src) { img.src = img.dataset.src; delete img.dataset.src; }
+          img.loading = 'eager';
+        });
+      }).catch(() => {});
+
+      // Wait for forced styles to render
+      await new Promise(r => setTimeout(r, 1000));
 
       // Take full-page screenshot
       const screenshotPath = path.join(SCREENSHOTS_DIR, `${slug}.png`);
