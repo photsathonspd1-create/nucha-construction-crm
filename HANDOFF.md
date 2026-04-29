@@ -22,16 +22,17 @@ index.html (Landing Page)
   ├── style.css (Styling)
   ├── script.js (Animations + UI Logic)
   │     ├── รอ site-loader.js โหลด API content ก่อน (__siteContentLoaded promise)
-  │     ├── initAnimations() — GSAP ScrollTrigger ทุก section
+  │     ├── initAnimations() — GSAP ScrollTrigger ทุก section (เรียกครั้งเดียวหลัง content พร้อม)
   │     ├── setupEventDelegation() — event listeners สำหรับ dynamic content
-  │     └── rebindEventListeners() — re-bind หลัง DOM replacement
+  │     └── rebindEventListeners() — re-bind หลัง DOM replacement (cursor, magnetic, ripple)
   └── site-loader.js (Dynamic Content Loader)
         ├── GET /api/content → โหลด hero, services, process, portfolio, booking, stats, testimonials, closing, footer, trust_badges, site_config
-        ├── GET /api/nav → โหลด nav items
+        ├── GET /api/nav → โหลด nav items (deduplicate by href)
         ├── Replace DOM innerHTML ทุก section ด้วย API data
         ├── Validate image URLs ก่อน set src (ป้องกันรูปหาย)
         ├── Preserve nav login link สำหรับ mobile
-        └── Re-init GSAP + re-bind events หลัง DOM replacement
+        ├── Re-bind event listeners (cursor, magnetic, ripple) หลัง DOM replacement
+        └── Resolve __siteContentLoaded → script.js ถึงจะ init animations
 
 server.js (Backend API)
   ├── Auth: POST /api/auth/login, /logout, /me
@@ -48,7 +49,7 @@ server.js (Backend API)
 
 server/db.js (Database Schema + Seed)
   ├── Tables: users, site_content, leads, notes, activities, proposals, nav_items, footer_links, gallery
-  └── Seed: default content, nav items, admin user, demo leads
+  └── Seed: default content, nav items (check count before insert), admin user, demo leads
 
 admin.html + admin.js + admin.css (CMS Admin Panel)
   ├── Login → JWT auth
@@ -88,7 +89,7 @@ admin.html + admin.js + admin.css (CMS Admin Panel)
 
 ## สิ่งที่เสร็จแล้ว ✅
 
-### Bug Fixes (2026-04-29)
+### Bug Fixes (2026-04-29 — Round 1)
 
 | บัค | สาเหตุ | วิธีแก้ | ไฟล์ |
 |-----|--------|---------|------|
@@ -100,14 +101,23 @@ admin.html + admin.js + admin.css (CMS Admin Panel)
 | Nav login link หายบน mobile | site-loader เปลี่ยน navMenu innerHTML ทั้งหมด | เพิ่ม login link กลับหลัง API nav items | site-loader.js |
 | GSAP โหลดซ้ำ 2 ครั้ง | script tags ใน `<head>` + ก่อน `</body>` | เอา `<head>` ออก เหลือแค่ก่อน `</body>` | index.html |
 
+### Bug Fixes (2026-04-29 — Round 2)
+
+| บัค | สาเหตุ | วิธีแก้ | ไฟล์ |
+|-----|--------|---------|------|
+| **Navbar ซ้ำกัน** | site-loader ไม่ deduplicate nav items จาก API — ถ้า API ส่ง href ซ้ำก็แสดงซ้ำ | เพิ่ม deduplication ด้วย `Set()` กรองซ้ำจาก `href` ก่อน render | site-loader.js |
+| **เนื้อหาแว๊บ (Flash)** | `initAnimations()` ถูกเรียก 2 ครั้ง: จาก site-loader.js แล้วจาก script.js — ครั้งที่ 2 kill ScrollTriggers แล้ว re-init ทำให้ elements ที่แสดงอยู่ถูก reset เป็น opacity:0 แล้ว animate ใหม่ | เอา `initAnimations()` ออกจาก site-loader.js ให้ script.js เป็นตัวเดียวที่ init | site-loader.js |
+| **Hamburger menu ไม่ปิดบนมือถือ** | Event delegation ไม่เช็ค active state + query selectors ซ้ำซ้อน | ปรับ logic เช็ค `navMenu.classList.contains('active')` ก่อนปิด | script.js |
+| **ข้อความสำเร็จหายไปเร็ว** | Form success auto-reset หลัง 8 วินาที — ผู้ใช้อ่านไม่ทัน | เพิ่ม timeout เป็น 15 วินาที + ล้าง visual states (radio selections) ตอน reset | script.js |
+
 ### ฟีเจอร์ที่ทำงานครบ ✅
 
 - [x] Landing page ครบวงจร (Hero, Services, Process, Portfolio, Testimonials, Closing)
-- [x] Dynamic content โหลดจาก API
+- [x] Dynamic content โหลดจาก API (ไม่มี double init)
 - [x] GSAP animations + ScrollTrigger ทุก section
 - [x] Custom cursor (desktop)
 - [x] Magnetic buttons
-- [x] Multi-step booking form (3 steps)
+- [x] Multi-step booking form (3 steps + success state 15s)
 - [x] Counter animation (stats)
 - [x] Sticky story/process section
 - [x] Portfolio grid with hover overlay
@@ -119,6 +129,8 @@ admin.html + admin.js + admin.css (CMS Admin Panel)
 - [x] Lead CRUD + scoring
 - [x] Pipeline view
 - [x] API endpoints ครบ
+- [x] Navbar ไม่ซ้ำ (deduplicate)
+- [x] Mobile hamburger menu ทำงานถูกต้อง
 
 ---
 
@@ -189,8 +201,10 @@ npm start
 
 ## Notes สำหรับ Agent ถัดไป
 
-- **อย่าแก้ script.js/site-loader.js โดยไม่เข้าใจ flow**: `site-loader.js` ต้อง resolve `__siteContentLoaded` promise ก่อน → `script.js` ถึงจะ init animations
+- **อย่าแก้ script.js/site-loader.js โดยไม่เข้าใจ flow**: `site-loader.js` ต้อง resolve `__siteContentLoaded` promise ก่อน → `script.js` ถึงจะ init animations (เรียก `initAnimations()` จาก script.js เท่านั้น ห้ามเรียกจาก site-loader.js)
 - **Event delegation อยู่ใน `setupEventDelegation()`**: ใช้ `document.addEventListener` ครอบ — ไม่ต้อง re-bind ทุกครั้ง
-- **`rebindEventListeners()`** ใช้สำหรับ cursor/magnetic/ripple effects ที่ต้อง bind กับ element ตรงๆ
+- **`rebindEventListeners()`** ใช้สำหรับ cursor/magnetic/ripple effects ที่ต้อง bind กับ element ตรงๆ — เรียกจาก site-loader.js หลัง DOM replacement
 - **Image validation**: ทุกรูปจาก API ต้องผ่าน `esc()` + check ว่า URL ไม่ว่างก่อน render `<img>`
 - **GSAP ไม่รองรับ `killTweensOf('*')`**: ใช้ explicit selector list เท่านั้น
+- **Nav deduplication**: site-loader.js กรอง nav items ซ้ำจาก href ด้วย `Set()` ก่อน render
+- **Database**: ใช้ better-sqlite3 (sync) — seed data ใน `server/db.js` เช็ค `navCount === 0` ก่อน insert ป้องกันซ้ำตอน restart
