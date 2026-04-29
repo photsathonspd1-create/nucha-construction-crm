@@ -841,12 +841,12 @@ async function renderMedia() {
     const files = await api('/api/media').catch(() => []);
     document.getElementById('mediaGrid').innerHTML = files.map(f => `
       <div class="media-item">
-        <img src="${f.url}" alt="${f.name}" loading="lazy">
+        <img src="${esc(f.url)}" alt="${esc(f.name)}" loading="lazy">
         <div class="media-info">
           <div class="media-name">${esc(f.name)}</div>
           <div class="media-actions">
-            <button class="copy-url" onclick="copyUrl('${f.url}')">📋 Copy URL</button>
-            <button class="delete-img" onclick="deleteMedia('${f.name}')">🗑️</button>
+            <button class="copy-url" onclick="copyUrl('${esc(f.url)}')">📋 Copy URL</button>
+            <button class="delete-img" onclick="deleteMedia('${esc(f.name)}')">🗑️</button>
           </div>
         </div>
       </div>
@@ -893,7 +893,7 @@ function copyUrl(url) {
 
 async function deleteMedia(name) {
   if (!confirm('ลบรูปนี้?')) return;
-  await api('/api/media/' + name, { method: 'DELETE' }).catch(() => {});
+  await api('/api/media/' + encodeURIComponent(name), { method: 'DELETE' }).catch(() => {});
   renderMedia();
   toast('🗑️ ลบรูปสำเร็จ');
 }
@@ -959,9 +959,9 @@ function getImageValue(id) {
 // ===== HELPERS =====
 function gv(id) { return document.getElementById(id)?.value || ''; }
 function esc(str) {
-  if (!str) return '';
+  if (str === null || str === undefined) return '';
   const div = document.createElement('div');
-  div.textContent = str;
+  div.textContent = String(str);
   return div.innerHTML;
 }
 function toggleRepeatable(header) {

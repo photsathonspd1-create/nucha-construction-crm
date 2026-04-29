@@ -211,11 +211,12 @@ document.querySelectorAll('[data-booking-service]').forEach(link => {
     });
 });
 
-// Set min date to today
+// Set min date to today (Thai timezone)
 const dateInput = document.getElementById('bookingDate');
 if (dateInput) {
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.setAttribute('min', today);
+    const now = new Date();
+    const thaiToday = new Date(now.getTime() + (7 * 60 + now.getTimezoneOffset()) * 60000);
+    dateInput.setAttribute('min', thaiToday.toISOString().split('T')[0]);
 }
 
 // Form submission — USING API (no Supabase needed)
@@ -263,7 +264,7 @@ if (bookingForm) {
 
         } catch (err) {
             console.error('Booking error:', err);
-            alert('เกิดข้อผิดพลาด กรุณาลองใหม่ หรือโทร 02-123-4567');
+            alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
         } finally {
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
@@ -283,8 +284,16 @@ function getMeetingTypeLabel(type) {
 }
 
 // ===== GSAP ANIMATIONS =====
+let _animationsInitialized = false;
 function initAnimations() {
     gsap.registerPlugin(ScrollTrigger);
+
+    // Kill existing ScrollTriggers if re-initializing (e.g. after site-loader loads content)
+    if (_animationsInitialized) {
+        ScrollTrigger.getAll().forEach(t => t.kill());
+        gsap.killTweensOf('*');
+    }
+    _animationsInitialized = true;
 
     const blurAmt = isMobile ? 'none' : 'blur(6px)';
     const blurSmall = isMobile ? 'none' : 'blur(4px)';

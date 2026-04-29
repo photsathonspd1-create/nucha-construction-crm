@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
@@ -8,7 +9,7 @@ const db = require('./server/db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'nucha-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 
 // ===== ENSURE DIRECTORIES EXIST =====
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -25,7 +26,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, 'uploads')),
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
-    const name = Date.now() + '-' + Math.random().toString(36).substring(2, 8) + ext;
+    const name = Date.now() + '-' + crypto.randomBytes(4).toString('hex') + ext;
     cb(null, name);
   }
 });
@@ -34,9 +35,27 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
-    else cb(new Error('Only images allowed'), false);
+    else cb(null, false);
   }
 });
+
+// ===== RATE LIMITER (simple in-memory) =====
+const rateLimitMap = new Map();
+function rateLimit(windowMs, max) {
+  return (req, res, next) => {
+    const ip = req.ip || req.connection.remoteAddress;
+    const now = Date.now();
+    const record = rateLimitMap.get(ip) || { count: 0, resetAt: now + windowMs };
+    if (now > record.resetAt) {
+      record.count = 0;
+      record.resetAt = now + windowMs;
+    }
+    record.count++;
+    rateLimitMap.set(ip, record);
+    if (record.count > max) return res.status(429).json({ error: 'ลองใหม่ภายหลัง' });
+    next();
+  };
+}
 
 // ===== AUTH MIDDLEWARE =====
 function authMiddleware(req, res, next) {
@@ -62,7 +81,12 @@ app.post('/api/auth/login', (req, res) => {
   }
 
   const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-  res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: 'lax' });
+  res.cookie('token', token, {
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production'
+  });
   res.json({ success: true, user: { id: user.id, email: user.email, full_name: user.full_name, role: user.role } });
 });
 
@@ -112,6 +136,7 @@ app.get('/api/nav', (req, res) => {
 
 app.put('/api/nav', authMiddleware, (req, res) => {
   const { items } = req.body;
+  if (!Array.isArray(items)) return res.status(400).json({ error: 'ข้อมูลไม่ถูกต้อง' });
   db.prepare('DELETE FROM nav_items').run();
   const insert = db.prepare('INSERT INTO nav_items (label, href, sort_order, is_visible) VALUES (?, ?, ?, ?)');
   items.forEach((item, i) => insert.run(item.label, item.href, item.sort_order || i + 1, item.is_visible ?? 1));
@@ -124,7 +149,7 @@ app.get('/api/leads', authMiddleware, (req, res) => {
   res.json(leads);
 });
 
-app.post('/api/leads', (req, res) => {
+app.post('/api/leads', rateLimit(60 * 1000, 10), (req, res) => {
   const { name, phone, email, service_type, budget_range, message, appointment_date, appointment_time, meeting_type } = req.body;
   if (!name || !phone) return res.status(400).json({ error: 'กรอกชื่อและเบอร์โทร' });
 
@@ -142,10 +167,11 @@ app.post('/api/leads', (req, res) => {
 
 app.put('/api/leads/:id', authMiddleware, (req, res) => {
   const updates = req.body;
+  const allowedFields = ['name', 'phone', 'email', 'service_type', 'budget_range', 'message', 'status', 'score', 'assigned_to', 'lost_reason', 'appointment_date', 'appointment_time', 'meeting_type'];
   const fields = [];
   const values = [];
   for (const [key, val] of Object.entries(updates)) {
-    if (['name', 'phone', 'email', 'service_type', 'budget_range', 'message', 'status', 'score', 'assigned_to', 'lost_reason', 'appointment_date', 'appointment_time', 'meeting_type'].includes(key)) {
+    if (allowedFields.includes(key)) {
       fields.push(`${key} = ?`);
       values.push(val);
     }
@@ -189,7 +215,7 @@ app.put('/api/notes/:id', authMiddleware, (req, res) => {
 
 // ===== ACTIVITIES =====
 app.get('/api/activities', authMiddleware, (req, res) => {
-  const limit = req.query.limit || 50;
+  const limit = parseInt(req.query.limit) || 50;
   const activities = db.prepare(`
     SELECT a.*, l.name as lead_name 
     FROM activities a 
@@ -213,8 +239,14 @@ app.get('/api/proposals', authMiddleware, (req, res) => {
 
 app.post('/api/proposals', authMiddleware, (req, res) => {
   const { lead_id, title, items, subtotal, tax, total, valid_until, notes } = req.body;
-  const count = db.prepare('SELECT COUNT(*) as c FROM proposals').get().c;
-  const proposal_number = `NP-${String(count + 1).padStart(4, '0')}`;
+  // Use MAX to avoid race condition
+  const maxRow = db.prepare("SELECT proposal_number FROM proposals ORDER BY id DESC LIMIT 1").get();
+  let nextNum = 1;
+  if (maxRow && maxRow.proposal_number) {
+    const match = maxRow.proposal_number.match(/NP-(\d+)/);
+    if (match) nextNum = parseInt(match[1]) + 1;
+  }
+  const proposal_number = `NP-${String(nextNum).padStart(4, '0')}`;
   const result = db.prepare(
     'INSERT INTO proposals (lead_id, proposal_number, title, items, subtotal, tax, total, valid_until, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(lead_id, proposal_number, title, JSON.stringify(items || []), subtotal || 0, tax || 0, total || 0, valid_until || null, notes || '');
@@ -230,7 +262,7 @@ app.put('/api/proposals/:id', authMiddleware, (req, res) => {
 
 // ===== FOLLOW-UPS =====
 app.get('/api/followups', authMiddleware, (req, res) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayThai();
   const followups = db.prepare(`
     SELECT n.*, l.name as lead_name, l.phone as lead_phone, l.service_type 
     FROM notes n 
@@ -244,7 +276,7 @@ app.get('/api/followups', authMiddleware, (req, res) => {
 // ===== STATS =====
 app.get('/api/stats', authMiddleware, (req, res) => {
   const leads = db.prepare('SELECT * FROM leads').all();
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayThai();
   const todayAppts = leads.filter(l => l.appointment_date === today).length;
   res.json({
     totalLeads: leads.length,
@@ -281,6 +313,14 @@ function calculateScore(lead) {
   return Math.round(score * 10) / 10;
 }
 
+// ===== THAI DATE HELPER =====
+function getTodayThai() {
+  const now = new Date();
+  const thaiOffset = 7 * 60; // UTC+7 in minutes
+  const local = new Date(now.getTime() + (thaiOffset + now.getTimezoneOffset()) * 60000);
+  return local.toISOString().split('T')[0];
+}
+
 // ===== MEDIA =====
 const fs = require('fs');
 app.get('/api/media', authMiddleware, (req, res) => {
@@ -293,7 +333,16 @@ app.get('/api/media', authMiddleware, (req, res) => {
 });
 
 app.delete('/api/media/:name', authMiddleware, (req, res) => {
-  const filePath = path.join(__dirname, 'uploads', req.params.name);
+  // Path traversal protection: only allow flat filenames
+  const safeName = path.basename(req.params.name);
+  if (!safeName || safeName.includes('..') || safeName.includes('/') || safeName.includes('\\')) {
+    return res.status(400).json({ error: 'ชื่อไฟล์ไม่ถูกต้อง' });
+  }
+  const filePath = path.join(__dirname, 'uploads', safeName);
+  // Double check: resolved path must be inside uploadsDir
+  if (!filePath.startsWith(uploadsDir)) {
+    return res.status(400).json({ error: 'ชื่อไฟล์ไม่ถูกต้อง' });
+  }
   if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath);
     res.json({ success: true });
@@ -327,10 +376,21 @@ app.get('/{*splat}', (req, res) => {
   res.sendFile('index.html', { root: __dirname });
 });
 
+// ===== GLOBAL ERROR HANDLER =====
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ error: 'ไฟล์ใหญ่เกิน 5MB' });
+  }
+  if (err.message === 'Only images allowed') {
+    return res.status(400).json({ error: 'อนุญาตเฉพาะไฟล์รูปภาพ' });
+  }
+  res.status(500).json({ error: 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์' });
+});
+
 // ===== START SERVER =====
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🏗️  NUCHA CRM Server running on http://localhost:${PORT}`);
-  console.log(`📝 Login: admin@nuchainnovation.com / admin123`);
   console.log(`🌐 Website: http://localhost:${PORT}`);
   console.log(`🔧 Admin: http://localhost:${PORT}/admin`);
 });

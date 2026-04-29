@@ -115,9 +115,10 @@
                 <button type="submit" class="btn-login" id="btnLogin">เข้าสู่ระบบ</button>
             </form>
 
-            <div class="hint">
+            <div class="hint" id="devHint" style="display:none">
                 💡 Default: admin@nuchainnovation.com / admin123
             </div>
+            <script>if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') document.getElementById('devHint').style.display = '';</script>
 
             <div class="back-link">
                 <a href="/">← กลับหน้าเว็บหลัก</a>

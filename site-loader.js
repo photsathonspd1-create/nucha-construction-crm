@@ -15,7 +15,11 @@
     if (navMenu && navRes.length > 0) {
       navMenu.innerHTML = navRes
         .filter(n => n.is_visible)
-        .map(n => `<li><a href="${n.href}" class="${n.href === '#home' ? 'active' : ''}">${n.label}</a></li>`)
+        .map(n => {
+          const safeHref = esc(n.href);
+          const safeLabel = esc(n.label);
+          return `<li><a href="${safeHref}" class="${safeHref === '#home' ? 'active' : ''}">${safeLabel}</a></li>`;
+        })
         .join('');
     }
 
@@ -40,21 +44,50 @@
     }
     if (config.site_name) document.title = config.site_name + ' - ' + (config.site_tagline || '');
     if (config.phone) {
-      document.getElementById('footerPhone').textContent = config.phone;
+      const footerPhone = document.getElementById('footerPhone');
+      if (footerPhone) footerPhone.textContent = config.phone;
       const fabCall = document.getElementById('fabCall');
       if (fabCall) fabCall.href = 'tel:' + config.phone;
       const closingNote = document.getElementById('closingNote');
-      if (closingNote) closingNote.innerHTML = `📞 หรือโทร <a href="tel:${config.phone}">${config.phone}</a> — พร้อมให้คำปรึกษาทุกวัน 09:00–18:00`;
+      if (closingNote) {
+        // Use textContent + createElement to prevent XSS
+        closingNote.textContent = '';
+        const span1 = document.createTextNode('📞 หรือโทร ');
+        const link = document.createElement('a');
+        link.href = 'tel:' + config.phone;
+        link.textContent = config.phone;
+        const span2 = document.createTextNode(' — พร้อมให้คำปรึกษาทุกวัน 09:00–18:00');
+        closingNote.appendChild(span1);
+        closingNote.appendChild(link);
+        closingNote.appendChild(span2);
+      }
     }
-    if (config.email) document.getElementById('footerEmail').textContent = config.email;
-    if (config.address) document.getElementById('footerAddress').textContent = config.address;
-    if (config.copyright) document.getElementById('footerCopyright').textContent = config.copyright;
-    if (config.facebook_url) document.getElementById('footerFacebook').href = config.facebook_url;
-    if (config.instagram_url) document.getElementById('footerInstagram').href = config.instagram_url;
+    if (config.email) {
+      const el = document.getElementById('footerEmail');
+      if (el) el.textContent = config.email;
+    }
+    if (config.address) {
+      const el = document.getElementById('footerAddress');
+      if (el) el.textContent = config.address;
+    }
+    if (config.copyright) {
+      const el = document.getElementById('footerCopyright');
+      if (el) el.textContent = config.copyright;
+    }
+    if (config.facebook_url) {
+      const el = document.getElementById('footerFacebook');
+      if (el) el.href = config.facebook_url;
+    }
+    if (config.instagram_url) {
+      const el = document.getElementById('footerInstagram');
+      if (el) el.href = config.instagram_url;
+    }
     if (config.line_id) {
-      document.getElementById('footerLine').href = 'https://line.me/ti/p/~' + config.line_id.replace('@', '');
+      const lineUrl = 'https://line.me/ti/p/~' + config.line_id.replace('@', '');
+      const footerLine = document.getElementById('footerLine');
+      if (footerLine) footerLine.href = lineUrl;
       const fabLine = document.getElementById('fabLine');
-      if (fabLine) fabLine.href = 'https://line.me/ti/p/~' + config.line_id.replace('@', '');
+      if (fabLine) fabLine.href = lineUrl;
     }
 
     // ===== HERO =====
@@ -88,13 +121,13 @@
       const grid = document.getElementById('servicesGrid');
       if (grid) {
         grid.innerHTML = services.items.map((s, i) => `
-          <div class="service-card${i === services.items.length - 1 ? ' service-card-highlight' : ''}" data-animate="fade-up" data-service="${s.key || ''}">
+          <div class="service-card${i === services.items.length - 1 ? ' service-card-highlight' : ''}" data-animate="fade-up" data-service="${esc(s.key || '')}">
             <div class="service-number">${String(i + 1).padStart(2, '0')}</div>
-            <div class="service-icon" style="font-size:2.5rem">${s.icon || '🏗️'}</div>
+            <div class="service-icon" style="font-size:2.5rem">${esc(s.icon || '🏗️')}</div>
             <h3>${esc(s.name)}</h3>
             <p>${esc(s.desc)}</p>
             <div class="service-budget">${esc(s.budget)}</div>
-            <a href="#booking" class="service-link magnetic-btn" data-booking-service="${s.key || ''}">
+            <a href="#booking" class="service-link magnetic-btn" data-booking-service="${esc(s.key || '')}">
               <span>จองคิวปรึกษา</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </a>
@@ -109,7 +142,7 @@
           <label class="service-option">
             <input type="radio" name="service_type" value="${esc(s.name)}" required>
             <div class="service-option-card">
-              <div class="service-option-icon">${emojis[s.name] || s.icon || '💬'}</div>
+              <div class="service-option-icon">${emojis[s.name] || esc(s.icon) || '💬'}</div>
               <div class="service-option-name">${esc(s.name)}</div>
               <div class="service-option-desc">${esc(s.budget)}</div>
             </div>
@@ -136,13 +169,13 @@
         storyContent.innerHTML = `
           <div class="story-step active" data-step="0">
             <span class="story-tag">OUR PROCESS</span>
-            <h2 class="story-title">${(process.section_title || 'ขั้นตอนการทำงาน\nที่คุณวางใจได้').replace(/\n/g, '<br>')}</h2>
+            <h2 class="story-title">${esc(process.section_title || 'ขั้นตอนการทำงาน\nที่คุณวางใจได้').replace(/\n/g, '<br>')}</h2>
             <p class="story-desc">ทุกโครงการเริ่มต้นจากการรับฟัง — เข้าใจความต้องการ เข้าใจงบประมาณ เข้าใจคุณ</p>
           </div>
           ${process.steps.map((s, i) => `
             <div class="story-step" data-step="${i + 1}">
               <span class="story-tag">${esc(s.tag)}</span>
-              <h2 class="story-title">${(s.title || '').replace(/\n/g, '<br>')}</h2>
+              <h2 class="story-title">${esc(s.title || '').replace(/\n/g, '<br>')}</h2>
               <p class="story-desc">${esc(s.desc)}</p>
             </div>
           `).join('')}
@@ -152,11 +185,11 @@
         storyVisual.innerHTML = `
           <div class="story-image-stack">
             <div class="story-img-wrapper active" data-step="0">
-              <img src="${process.steps[0]?.image || ''}" alt="Process">
+              <img src="${esc(process.steps[0]?.image || '')}" alt="Process">
             </div>
             ${process.steps.map((s, i) => `
               <div class="story-img-wrapper" data-step="${i + 1}">
-                <img src="${s.image || ''}" alt="${esc(s.tag)}">
+                <img src="${esc(s.image || '')}" alt="${esc(s.tag)}">
               </div>
             `).join('')}
           </div>
@@ -190,7 +223,7 @@
     setText('bookingTag', booking.section_tag);
     if (booking.title) {
       const el = document.getElementById('bookingTitle');
-      if (el) el.innerHTML = booking.title.replace(/\n/g, '<br>');
+      if (el) el.innerHTML = esc(booking.title).replace(/\n/g, '<br>');
     }
     setText('bookingDesc', booking.description);
     if (booking.benefits) {
@@ -213,7 +246,7 @@
         grid.innerHTML = stats.items.map(s => `
           <div class="stat-item">
             <div class="stat-number" data-count="${s.number}">0</div>
-            <div class="stat-suffix">${s.suffix}</div>
+            <div class="stat-suffix">${esc(s.suffix)}</div>
             <div class="stat-label">${esc(s.label)}</div>
           </div>
         `).join('');
@@ -230,7 +263,7 @@
       if (grid) {
         grid.innerHTML = testimonials.items.map(t => `
           <div class="testimonial-card" data-animate="fade-up">
-            <div class="testimonial-stars">${'★'.repeat(t.stars || 5)}</div>
+            <div class="testimonial-stars">${'★'.repeat(Math.min(Math.max(parseInt(t.stars) || 5, 1), 5))}</div>
             <p class="testimonial-quote">"${esc(t.quote)}"</p>
             <div class="testimonial-author">
               <div class="testimonial-avatar">${esc(t.avatar)}</div>
@@ -249,7 +282,18 @@
     setText('closingTag', closing.tag);
     if (closing.title_line1) {
       const el = document.getElementById('closingTitle');
-      if (el) el.innerHTML = `${esc(closing.title_line1)}<br><span class="accent">${esc(closing.title_line2 || '')}</span>`;
+      if (el) {
+        // Build safely with DOM API
+        el.textContent = '';
+        const line1 = document.createTextNode(closing.title_line1);
+        const br = document.createElement('br');
+        const span = document.createElement('span');
+        span.className = 'accent';
+        span.textContent = closing.title_line2 || '';
+        el.appendChild(line1);
+        el.appendChild(br);
+        el.appendChild(span);
+      }
     }
     setText('closingDesc', closing.description);
     setText('closingCta', closing.cta_text);
@@ -280,13 +324,15 @@
     if (badges.brands) {
       const row = document.getElementById('badgesRow');
       if (row) {
-        row.innerHTML = badges.brands.map(b => `
+        row.innerHTML = badges.brands.map(b => {
+          const safe = esc(b);
+          return `
           <div class="trust-badge-item">
             <svg viewBox="0 0 120 40" fill="currentColor" opacity="0.35">
-              <text x="10" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="${b.length > 4 ? '14' : '16'}">${esc(b)}</text>
+              <text x="10" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="${safe.length > 4 ? '14' : '16'}">${safe}</text>
             </svg>
           </div>
-        `).join('');
+        `}).join('');
       }
     }
 
@@ -308,6 +354,10 @@
 
     // ===== Re-init GSAP animations if available =====
     if (typeof gsap !== 'undefined' && typeof initAnimations === 'function') {
+      // Kill existing ScrollTriggers first to avoid duplicates
+      if (typeof ScrollTrigger !== 'undefined') {
+        ScrollTrigger.getAll().forEach(t => t.kill());
+      }
       setTimeout(() => initAnimations(), 100);
     }
 
@@ -323,8 +373,8 @@ function setText(id, text) {
 }
 
 function esc(str) {
-  if (!str) return '';
+  if (str === null || str === undefined) return '';
   const div = document.createElement('div');
-  div.textContent = str;
+  div.textContent = String(str);
   return div.innerHTML;
 }
