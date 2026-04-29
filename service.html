@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">บริการ — NUCHA INNOVATION</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Thai:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        /* Service Detail Page Specific Styles */
+        .service-hero {
+            padding: 140px 0 80px;
+            background: linear-gradient(135deg, var(--red-soft) 0%, var(--white) 50%, var(--off-white) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .service-hero::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            right: -10%;
+            width: 50%;
+            height: 140%;
+            background: linear-gradient(135deg, rgba(214,0,0,0.04), transparent);
+            transform: skewX(-8deg);
+        }
+        .service-hero .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+        .service-hero-content .service-icon-lg {
+            width: 72px;
+            height: 72px;
+            background: var(--red-soft);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            margin-bottom: 24px;
+            border: 2px solid rgba(214,0,0,0.08);
+        }
+        .service-hero-content h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2.4rem, 5vw, 3.4rem);
+            font-weight: 900;
+            color: var(--gray-600);
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+        }
+        .service-hero-content .service-desc {
+            font-size: 1.1rem;
+            color: var(--gray-400);
+            line-height: 1.8;
+            margin-bottom: 24px;
+            max-width: 480px;
+        }
+        .service-hero-content .service-budget-tag {
+            display: inline-block;
+            padding: 10px 24px;
+            background: var(--red-soft);
+            color: var(--red);
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border: 1px solid rgba(214,0,0,0.1);
+            margin-bottom: 32px;
+        }
+        .service-hero-visual {
+            position: relative;
+        }
+        .service-hero-img {
+            width: 100%;
+            height: 420px;
+            object-fit: cover;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+        }
+        .service-hero-img-fallback {
+            width: 100%;
+            height: 420px;
+            background: linear-gradient(135deg, var(--red-soft), var(--gray-100));
+            border-radius: var(--radius-xl);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 6rem;
+        }
+
+        /* Features section */
+        .service-features {
+            padding: 100px 0;
+            background: var(--white);
+        }
+        .service-features .section-header { margin-bottom: 56px; }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 28px;
+        }
+        .feature-card {
+            background: var(--off-white);
+            border-radius: var(--radius-lg);
+            padding: 32px 28px;
+            border: 1px solid rgba(214,0,0,0.04);
+            transition: all 0.5s var(--ease);
+        }
+        .feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-lg);
+            border-color: rgba(214,0,0,0.08);
+        }
+        .feature-card .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--red-soft);
+            color: var(--red);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            margin-bottom: 18px;
+        }
+        .feature-card h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--gray-600);
+            margin-bottom: 8px;
+        }
+        .feature-card p {
+            font-size: 0.88rem;
+            color: var(--gray-400);
+            line-height: 1.7;
+        }
+
+        /* Portfolio section for service */
+        .service-portfolio {
+            padding: 100px 0;
+            background: var(--off-white);
+        }
+        .service-portfolio .section-header { margin-bottom: 48px; }
+        .service-portfolio-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .service-portfolio-item {
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            position: relative;
+            height: 280px;
+            cursor: pointer;
+        }
+        .service-portfolio-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 1s var(--ease);
+        }
+        .service-portfolio-item:hover img { transform: scale(1.1); }
+        .service-portfolio-item .portfolio-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(214,0,0,0.85) 0%, rgba(214,0,0,0.4) 30%, transparent 70%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 24px;
+            opacity: 0;
+            transition: opacity 0.6s var(--ease);
+        }
+        .service-portfolio-item:hover .portfolio-overlay { opacity: 1; }
+        .service-portfolio-item .portfolio-overlay h3 {
+            color: var(--white);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            transform: translateY(10px);
+            transition: transform 0.5s var(--ease);
+        }
+        .service-portfolio-item:hover .portfolio-overlay h3 { transform: translateY(0); }
+        .service-portfolio-item .portfolio-overlay p {
+            color: rgba(255,255,255,0.8);
+            font-size: 0.85rem;
+            transform: translateY(10px);
+            transition: transform 0.5s 0.05s var(--ease);
+        }
+        .service-portfolio-item:hover .portfolio-overlay p { transform: translateY(0); }
+        .no-portfolio {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray-400);
+            font-size: 1rem;
+        }
+
+        /* Process section */
+        .service-process {
+            padding: 100px 0;
+            background: var(--white);
+        }
+        .process-timeline {
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            margin-top: 56px;
+            position: relative;
+        }
+        .process-timeline::before {
+            content: '';
+            position: absolute;
+            top: 36px;
+            left: 60px;
+            right: 60px;
+            height: 2px;
+            background: var(--gray-200);
+        }
+        .process-step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        .process-step .step-circle {
+            width: 72px;
+            height: 72px;
+            background: var(--white);
+            border: 3px solid var(--gray-200);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            transition: all 0.5s var(--ease);
+        }
+        .process-step .step-circle span {
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: var(--gray-400);
+        }
+        .process-step:hover .step-circle {
+            border-color: var(--red);
+            box-shadow: 0 0 0 8px rgba(214,0,0,0.08);
+        }
+        .process-step:hover .step-circle span { color: var(--red); }
+        .process-step h4 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--gray-600);
+            margin-bottom: 6px;
+        }
+        .process-step p {
+            font-size: 0.82rem;
+            color: var(--gray-400);
+            line-height: 1.6;
+            max-width: 180px;
+            margin: 0 auto;
+        }
+
+        /* CTA section */
+        .service-cta {
+            padding: 120px 0;
+            background: var(--gray-600);
+            color: var(--white);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .service-cta::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 50% 30%, rgba(214,0,0,0.15), transparent 60%);
+        }
+        .service-cta .container { position: relative; z-index: 2; }
+        .service-cta h2 {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 900;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+        .service-cta p {
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 36px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .service-cta .btn-primary {
+            box-shadow: 0 8px 40px rgba(214,0,0,0.4);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .service-hero .container {
+                grid-template-columns: 1fr;
+                gap: 40px;
+                text-align: center;
+            }
+            .service-hero-content .service-desc { margin: 0 auto 24px; }
+            .service-hero-visual { max-width: 560px; margin: 0 auto; }
+            .features-grid { grid-template-columns: repeat(2, 1fr); }
+            .service-portfolio-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .service-hero { padding: 120px 0 60px; }
+            .service-hero-img, .service-hero-img-fallback { height: 280px; }
+            .features-grid { grid-template-columns: 1fr; }
+            .service-portfolio-grid { grid-template-columns: 1fr; }
+            .service-portfolio-item { height: 220px; }
+            .process-timeline {
+                flex-direction: column;
+                gap: 32px;
+            }
+            .process-timeline::before { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loader -->
+    <div class="loader" id="loader">
+        <div class="loader-inner">
+            <span class="loader-logo" id="loaderLogo">N</span>
+            <div class="loader-bar"><div class="loader-progress"></div></div>
+            <p class="loader-text" id="loaderText">NUCHA INNOVATION</p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <span class="logo-icon" id="navLogoIcon">N</span>
+                <span class="logo-text" id="navLogoText">NUCHA<br>INNOVATION</span>
+            </a>
+            <ul class="nav-menu" id="navMenu">
+                <li class="nav-menu-login"><a href="/login">🔑 เข้าสู่ระบบ</a></li>
+            </ul>
+            <a href="/#booking" class="nav-cta magnetic-btn">จองคิวปรึกษาฟรี</a>
+            <a href="/login" class="nav-login-btn" title="เข้าสู่ระบบ">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            </a>
+            <button class="hamburger" id="hamburger" aria-label="Menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Service Hero -->
+    <section class="service-hero" id="serviceHero">
+        <div class="container">
+            <div class="service-hero-content">
+                <div class="service-icon-lg" id="serviceIcon">🏗️</div>
+                <h1 id="serviceName">บริการ</h1>
+                <p class="service-desc" id="serviceDesc">รายละเอียดบริการ</p>
+                <div class="service-budget-tag" id="serviceBudget">งบประมาณ</div>
+                <div style="display:flex;gap:16px;flex-wrap:wrap">
+                    <a href="/#booking" class="btn btn-primary magnetic-btn">
+                        <span>จองคิวปรึกษาฟรี</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </a>
+                    <a href="/#services" class="btn btn-outline magnetic-btn">
+                        <span>ดูบริการอื่น</span>
+                    </a>
+                </div>
+            </div>
+            <div class="service-hero-visual" id="serviceVisual">
+                <div class="service-hero-img-fallback" id="serviceImgFallback">🏗️</div>
+                <img class="service-hero-img" id="serviceImg" style="display:none" alt="Service">
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="service-features" id="serviceFeatures">
+        <div class="container">
+            <div class="section-header" data-animate="fade-up">
+                <span class="section-tag">WHAT WE OFFER</span>
+                <h2>สิ่งที่คุณจะได้รับ</h2>
+            </div>
+            <div class="features-grid" id="featuresGrid">
+                <!-- Loaded dynamically -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Portfolio for this service -->
+    <section class="service-portfolio" id="servicePortfolio">
+        <div class="container">
+            <div class="section-header" data-animate="fade-up">
+                <span class="section-tag">OUR WORKS</span>
+                <h2>ผลงานในบริการนี้</h2>
+                <p class="section-desc">โครงการที่เราภูมิใจในบริการนี้</p>
+            </div>
+            <div class="service-portfolio-grid" id="servicePortfolioGrid">
+                <!-- Loaded dynamically -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Process -->
+    <section class="service-process" id="serviceProcess">
+        <div class="container">
+            <div class="section-header" data-animate="fade-up">
+                <span class="section-tag">OUR PROCESS</span>
+                <h2>ขั้นตอนการทำงาน</h2>
+            </div>
+            <div class="process-timeline" id="processTimeline">
+                <!-- Loaded dynamically -->
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="service-cta">
+        <div class="container" data-animate="fade-up">
+            <h2>พร้อมเริ่มโครงการ?</h2>
+            <p>ปรึกษาฟรี ไม่มีค่าใช้จ่าย ทีมผู้เชี่ยวชาญพร้อมดูแลคุณ</p>
+            <a href="/#booking" class="btn btn-primary btn-lg magnetic-btn">
+                <span>จองคิวปรึกษาฟรี</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer (simplified) -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom" style="border-top:none;padding:24px 0">
+                <p id="footerCopyright">© 2024 Nucha Innovation Co., Ltd.</p>
+                <a href="/" style="color:var(--red-light);font-size:0.85rem">← กลับหน้าหลัก</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Floating CTA -->
+    <div class="floating-cta" id="floatingCta">
+        <a href="https://line.me/ti/p/~@nuchainnovation" class="fab fab-line" aria-label="LINE" id="fabLine">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 5.82 2 10.5c0 4.02 3.44 7.42 8.09 8.23.31.07.74.22.85.5.1.26.06.66.03.92l-.14.84c-.04.26-.2 1.01.9.55.37-.15 2.04-1.2 2.77-2.05.47-.28 1.13-.7 1.55-1.25C18.62 14.77 22 12.2 22 10.5 22 5.82 17.52 2 12 2z"/></svg>
+        </a>
+        <a href="tel:02-123-4567" class="fab fab-call" aria-label="โทร" id="fabCall">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+        </a>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script>
+    (async function() {
+        const serviceKey = new URLSearchParams(window.location.search).get('key');
+        if (!serviceKey) { window.location.href = '/#services'; return; }
+
+        // Fetch content + nav in parallel
+        const [contentRes, navRes] = await Promise.all([
+            fetch('/api/content').then(r => r.json()).catch(() => ({})),
+            fetch('/api/nav').then(r => r.json()).catch(() => [])
+        ]);
+
+        // Apply site config
+        const config = contentRes.site_config || {};
+        const logoUrl = config.logo_url && config.logo_url.trim() ? config.logo_url.trim() : '';
+        if (logoUrl) {
+            ['loaderLogo', 'navLogoIcon'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) { el.innerHTML = `<img src="${esc(logoUrl)}" alt="Logo" style="width:100%;height:100%;object-fit:contain">`; el.style.padding = '4px'; }
+            });
+        } else if (config.logo_text) {
+            const loaderLogo = document.getElementById('loaderLogo');
+            if (loaderLogo) loaderLogo.textContent = config.logo_text;
+            const navIcon = document.getElementById('navLogoIcon');
+            if (navIcon) navIcon.textContent = config.logo_text;
+        }
+        if (config.logo_full) {
+            const html = config.logo_full.replace(/\n/g, '<br>');
+            const loaderText = document.getElementById('loaderText');
+            if (loaderText) loaderText.innerHTML = html.replace(/<br>/, ' ');
+            const navText = document.getElementById('navLogoText');
+            if (navText) navText.innerHTML = html;
+        }
+        if (config.phone) {
+            const fabCall = document.getElementById('fabCall');
+            if (fabCall) fabCall.href = 'tel:' + config.phone;
+        }
+        if (config.line_id) {
+            const lineUrl = 'https://line.me/ti/p/~' + config.line_id.replace('@', '');
+            const fabLine = document.getElementById('fabLine');
+            if (fabLine) fabLine.href = lineUrl;
+        }
+        if (config.copyright) {
+            const el = document.getElementById('footerCopyright');
+            if (el) el.textContent = config.copyright;
+        }
+
+        // Nav
+        const navMenu = document.getElementById('navMenu');
+        if (navMenu && navRes.length > 0) {
+            const seen = new Set();
+            const uniqueNav = navRes.filter(n => {
+                if (!n.is_visible) return false;
+                if (seen.has(n.href)) return false;
+                seen.add(n.href);
+                return true;
+            });
+            navMenu.innerHTML = uniqueNav
+                .map(n => `<li><a href="${esc(n.href)}">${esc(n.label)}</a></li>`)
+                .join('') + '<li class="nav-menu-login"><a href="/login">🔑 เข้าสู่ระบบ</a></li>';
+        }
+
+        // Find service data
+        const services = contentRes.services || {};
+        const items = services.items || [];
+        const service = items.find(s => s.key === serviceKey);
+
+        if (!service) {
+            // Service not found — show all services
+            document.getElementById('serviceName').textContent = 'ไม่พบบริการ';
+            document.getElementById('serviceDesc').textContent = 'กรุณาเลือกบริการจากรายการด้านล่าง';
+            document.getElementById('featuresGrid').innerHTML = items.map(s => `
+                <a href="/service.html?key=${esc(s.key)}" class="feature-card" style="text-decoration:none;color:inherit">
+                    <div class="feature-icon">${esc(s.icon || '🔧')}</div>
+                    <h3>${esc(s.name)}</h3>
+                    <p>${esc(s.desc)}</p>
+                </a>
+            `).join('');
+            document.getElementById('servicePortfolio').style.display = 'none';
+            document.getElementById('serviceProcess').style.display = 'none';
+            hideLoader();
+            return;
+        }
+
+        // Set page title
+        document.title = service.name + ' — NUCHA INNOVATION';
+        document.getElementById('pageTitle').textContent = service.name + ' — NUCHA INNOVATION';
+
+        // Hero
+        document.getElementById('serviceIcon').textContent = service.icon || '🏗️';
+        document.getElementById('serviceName').textContent = service.name;
+        document.getElementById('serviceDesc').textContent = service.desc || '';
+        document.getElementById('serviceBudget').textContent = service.budget || '';
+
+        // Service image — use first portfolio item for this service, or fallback
+        const portfolio = contentRes.portfolio || {};
+        const allPortfolioItems = portfolio.items || [];
+        const servicePortfolioItems = allPortfolioItems.filter(p => {
+            const tag = (p.tag || '').toLowerCase();
+            const name = (service.name || '').toLowerCase();
+            const key = (service.key || '').toLowerCase();
+            return tag.includes(name) || tag.includes(key) || name.includes(tag);
+        });
+
+        const heroImg = servicePortfolioItems[0]?.image;
+        if (heroImg) {
+            const img = document.getElementById('serviceImg');
+            const fallback = document.getElementById('serviceImgFallback');
+            img.src = heroImg;
+            img.alt = service.name;
+            img.style.display = 'block';
+            img.onerror = () => { img.style.display = 'none'; fallback.style.display = 'flex'; };
+            fallback.style.display = 'none';
+        }
+
+        // Features — generate from service description
+        const featureSets = {
+            'construction': [
+                { icon: '🏠', title: 'บ้านพักอาศัย', desc: 'สร้างบ้านเดี่ยว ทาวน์โฮม บ้านแฝด ทุกสไตล์' },
+                { icon: '🏢', title: 'อาคารพาณิชย์', desc: 'อาคารสำนักงาน โรงงาน โกดัง คลังสินค้า' },
+                { icon: '📐', title: 'ออกแบบโครงสร้าง', desc: 'วิศวกรคำนวณโครงสร้าง ได้มาตรฐาน' },
+                { icon: '🔧', title: 'งานระบบ MEP', desc: 'ระบบไฟฟ้า ประปา แอร์ ครบวงจร' },
+                { icon: '📋', title: 'ขออนุญาตก่อสร้าง', desc: 'ดูแลเรื่องเอกสาร ขออนุญาตทุกขั้นตอน' },
+                { icon: '🛡️', title: 'รับประกันโครงสร้าง', desc: 'รับประกันคุณภาพ ดูแลหลังส่งมอบ' }
+            ],
+            'builtin': [
+                { icon: '🍳', title: 'ครัวบิ้วอิน', desc: 'เคาน์เตอร์ครัว ตู้แขวน วัสดุคุณภาพสูง' },
+                { icon: '👔', title: 'ตู้เสื้อผ้า', desc: 'Walk-in Closet ตู้เสื้อผ้าบิ้วอิน' },
+                { icon: '📚', title: 'ชั้นวางของ', desc: 'ชั้นวางทีวี ชั้นหนังสือ ตู้โชว์' },
+                { icon: '🪵', title: 'วัสดุพรีเมียม', desc: 'ไม้จริง ลามิเนต HPL คุณภาพสูง' },
+                { icon: '📏', title: 'วัดหน้างานฟรี', desc: 'ทีมช่างเข้าวัดพื้นที่ ประเมินราคา' },
+                { icon: '✨', title: 'ออกแบบ 3D', desc: 'เห็นภาพก่อนผลิต ปรับได้จนพอใจ' }
+            ],
+            'design': [
+                { icon: '🏗️', title: 'สถาปัตยกรรม', desc: 'ออกแบบอาคาร บ้าน ทุกสไตล์' },
+                { icon: '🎨', title: 'ตกแต่งภายใน', desc: 'ออกแบบ Interior ครบทุกห้อง' },
+                { icon: '🖥️', title: '3D Rendering', desc: 'ภาพเสมือนจริง คุณภาพสูง' },
+                { icon: '📋', title: 'แบบก่อสร้าง', desc: 'แบบไฟฟ้า ประปา โครงสร้าง ครบ' },
+                { icon: '💡', title: 'Lighting Design', desc: 'ออกแบบแสงสว่าง สร้างบรรยากาศ' },
+                { icon: '🪴', title: 'Landscape', desc: 'ออกแบบสวน ภูมิทัศน์รอบบ้าน' }
+            ],
+            'decoration': [
+                { icon: '🪨', title: 'ปรับปรุงพื้น', desc: 'เปลี่ยนกระเบื้อง ไม้ พื้น epoxy' },
+                { icon: '🎨', title: 'ทาสี', desc: 'สีภายใน สีนอก สีพิเศษ ทุกประเภท' },
+                { icon: '💡', title: 'ติดตั้งไฟ', desc: 'ไฟดาวน์ไลท์ ไฟซ่อน ไฟตกแต่ง' },
+                { icon: '🚿', title: 'ห้องน้ำ', desc: 'รีโนเวทห้องน้ำ เปลี่ยนสุขภัณฑ์' },
+                { icon: '🍳', title: 'ครัว', desc: 'ปรับปรุงครัว เปลี่ยนเคาน์เตอร์' },
+                { icon: '🚪', title: 'ประตู-หน้าต่าง', desc: 'เปลี่ยนประตู หน้าต่าง กระจก' }
+            ],
+            'project-management': [
+                { icon: '📊', title: 'วางแผนโครงการ', desc: 'กำหนดขอบเขต งบประมาณ ไทม์ไลน์' },
+                { icon: '👷', title: 'ควบคุมงาน', desc: 'Site Engineer ดูแลหน้างานทุกวัน' },
+                { icon: '💰', title: 'บริหารงบประมาณ', desc: 'ควบคุมค่าใช้จ่าย ไม่บวกราคา' },
+                { icon: '🔍', title: 'ตรวจสอบคุณภาพ', desc: 'QC ทุกขั้นตอน ก่อนส่งมอบ' },
+                { icon: '📅', title: 'รายงานความคืบหน้า', desc: 'อัพเดท Progress ทุกสัปดาห์' },
+                { icon: '🤝', title: 'ประสานงานผู้รับเหมา', desc: 'จัดการทีมช่าง วัสดุ อุปกรณ์' }
+            ]
+        };
+
+        const features = featureSets[serviceKey] || [
+            { icon: service.icon || '🔧', title: service.name, desc: service.desc || '' }
+        ];
+
+        document.getElementById('featuresGrid').innerHTML = features.map(f => `
+            <div class="feature-card" data-animate="fade-up">
+                <div class="feature-icon">${f.icon}</div>
+                <h3>${f.title}</h3>
+                <p>${f.desc}</p>
+            </div>
+        `).join('');
+
+        // Portfolio
+        if (servicePortfolioItems.length > 0) {
+            document.getElementById('servicePortfolioGrid').innerHTML = servicePortfolioItems.map(item => `
+                <div class="service-portfolio-item">
+                    ${item.image ? `<img src="${esc(item.image)}" alt="${esc(item.title)}" onerror="this.style.display='none'">` : ''}
+                    <div class="portfolio-overlay">
+                        <h3>${esc(item.title)}</h3>
+                        ${item.desc ? `<p>${esc(item.desc)}</p>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            document.getElementById('servicePortfolioGrid').innerHTML = `
+                <div class="no-portfolio" style="grid-column:1/-1">
+                    <p>🏗️ ผลงานจะอัพเดทเร็วๆ นี้</p>
+                    <a href="/#booking" class="btn btn-primary" style="margin-top:16px">จองคิวปรึกษาเพื่อดูผลงานเพิ่มเติม</a>
+                </div>
+            `;
+        }
+
+        // Process
+        const process = contentRes.process || {};
+        const processSteps = process.steps || [];
+        if (processSteps.length > 0) {
+            document.getElementById('processTimeline').innerHTML = processSteps.map((step, i) => `
+                <div class="process-step" data-animate="fade-up">
+                    <div class="step-circle"><span>${String(i + 1).padStart(2, '0')}</span></div>
+                    <h4>${esc(step.title || '').replace(/\n/g, ' ')}</h4>
+                    <p>${esc(step.desc || '')}</p>
+                </div>
+            `).join('');
+        }
+
+        // Hamburger
+        document.getElementById('hamburger').addEventListener('click', function() {
+            this.classList.toggle('active');
+            document.getElementById('navMenu').classList.toggle('active');
+        });
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.nav-menu a')) {
+                document.getElementById('hamburger').classList.remove('active');
+                document.getElementById('navMenu').classList.remove('active');
+            }
+        });
+
+        // Floating CTA
+        window.addEventListener('scroll', () => {
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const floatingCta = document.getElementById('floatingCta');
+            if (window.scrollY / docHeight > 0.3) floatingCta.classList.add('visible');
+            else floatingCta.classList.remove('visible');
+        }, { passive: true });
+
+        // Navbar scroll
+        window.addEventListener('scroll', () => {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) navbar.classList.add('scrolled');
+            else navbar.classList.remove('scrolled');
+        }, { passive: true });
+
+        // GSAP animations
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.utils.toArray('[data-animate="fade-up"]').forEach(el => {
+            gsap.from(el, {
+                scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' },
+                opacity: 0, y: 60, duration: 1, ease: 'power3.out'
+            });
+        });
+        gsap.utils.toArray('.feature-card').forEach((card, i) => {
+            gsap.from(card, {
+                scrollTrigger: { trigger: card, start: 'top 90%', toggleActions: 'play none none none' },
+                opacity: 0, y: 50, duration: 0.8, delay: i * 0.1, ease: 'power3.out'
+            });
+        });
+        gsap.utils.toArray('.service-portfolio-item').forEach((item, i) => {
+            gsap.from(item, {
+                scrollTrigger: { trigger: item, start: 'top 90%', toggleActions: 'play none none none' },
+                opacity: 0, y: 40, scale: 0.95, duration: 0.9, delay: i * 0.1, ease: 'power3.out'
+            });
+        });
+
+        hideLoader();
+
+        function hideLoader() {
+            setTimeout(() => {
+                document.getElementById('loader').classList.add('hidden');
+            }, 600);
+        }
+
+        function esc(str) {
+            if (str === null || str === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(str);
+            return div.innerHTML;
+        }
+    })();
+    </script>
+</body>
+</html>

@@ -119,6 +119,7 @@ function renderAllForms() {
   renderClosingForm();
   renderFooterForm();
   renderNavForm();
+  renderNotificationsForm();
   renderLeads();
   renderBookings();
 }
@@ -661,6 +662,54 @@ async function saveFooter() {
   await api('/api/content/footer', { method: 'PUT', body: JSON.stringify(data) });
   allContent.footer = data;
   toast('✅ บันทึก Footer สำเร็จ');
+}
+
+// ===== NOTIFICATIONS FORM =====
+function renderNotificationsForm() {
+  const n = allContent.notifications || {};
+  document.getElementById('notificationsForm').innerHTML = `
+    <div class="form-section">
+      <h3>📱 LINE Notify</h3>
+      <p style="font-size:0.85rem;color:var(--gray-400);margin-bottom:16px">
+        แจ้งเตือนทันทีเมื่อมี Lead ใหม่ผ่าน LINE — ไปที่
+        <a href="https://notify-bot.line.me/my/" target="_blank" style="color:var(--red)">notify-bot.line.me</a>
+        เพื่อสร้าง Token
+      </p>
+      <div class="form-group">
+        <label>LINE Notify Token</label>
+        <input type="text" id="nt_line_token" value="${esc(n.line_notify_token || '')}" placeholder="ใส่ Token จาก LINE Notify">
+      </div>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="nt_enabled" ${n.enabled !== false ? 'checked' : ''} style="margin-right:8px">
+          เปิดใช้การแจ้งเตือน
+        </label>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-primary" onclick="saveNotifications()">💾 บันทึก</button>
+      <button type="button" class="btn btn-outline" onclick="testNotification()" style="margin-left:8px">🧪 ทดสอบส่ง</button>
+    </div>
+  `;
+}
+
+async function saveNotifications() {
+  const data = {
+    line_notify_token: gv('nt_line_token'),
+    enabled: document.getElementById('nt_enabled')?.checked ?? true
+  };
+  await api('/api/content/notifications', { method: 'PUT', body: JSON.stringify(data) });
+  allContent.notifications = data;
+  toast('✅ บันทึกการแจ้งเตือนสำเร็จ');
+}
+
+async function testNotification() {
+  try {
+    await api('/api/test-notification', { method: 'POST' });
+    toast('✅ ส่งทดสอบสำเร็จ — ตรวจสอบ LINE');
+  } catch (err) {
+    toast('❌ ส่งไม่สำเร็จ: ' + err.message, 'error');
+  }
 }
 
 // ===== NAV FORM =====

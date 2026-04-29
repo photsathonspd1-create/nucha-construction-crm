@@ -128,6 +128,16 @@ app.put('/api/content/:key', authMiddleware, (req, res) => {
   res.json({ success: true });
 });
 
+// Test LINE Notify
+app.post('/api/test-notification', authMiddleware, async (req, res) => {
+  try {
+    await sendLineNotify('🧪 ทดสอบการแจ้งเตือนจาก NUCHA CRM — ระบบทำงานปกติ ✅');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ===== NAV ITEMS =====
 app.get('/api/nav', (req, res) => {
   const items = db.prepare('SELECT * FROM nav_items ORDER BY sort_order').all();
@@ -166,6 +176,13 @@ app.post('/api/leads', rateLimit(60 * 1000, 10), (req, res) => {
   // Log activity
   db.prepare('INSERT INTO activities (lead_id, action, details) VALUES (?, ?, ?)')
     .run(result.lastInsertRowid, 'lead_created', JSON.stringify({ source: 'website' }));
+
+  // Send LINE Notify (async, don't block response)
+  const budgetLabel = budget_range && budget_range !== 'ไม่ระบุ' ? `\n💰 งบ: ${budget_range}` : '';
+  const apptLabel = appointment_date ? `\n📅 นัด: ${appointment_date} ${appointment_time || ''}` : '';
+  sendLineNotify(
+    `🆕 Lead ใหม่!\n👤 ${name}\n📞 ${phone}\n🔧 ${service_type || 'อื่นๆ'}${budgetLabel}${apptLabel}\n📝 ${message || '-'}`
+  ).catch(() => {});
 
   res.json({ success: true, id: result.lastInsertRowid });
 });
@@ -356,9 +373,53 @@ app.delete('/api/media/:name', authMiddleware, (req, res) => {
   }
 });
 
+// ===== LINE NOTIFY =====
+async function sendLineNotify(message) {
+  try {
+    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notifications'").get();
+    if (!row) return;
+    const config = JSON.parse(row.content);
+    if (!config.line_notify_token) return;
+
+    const https = require('https');
+    const querystring = require('querystring');
+    const postData = querystring.stringify({ message });
+
+    return new Promise((resolve, reject) => {
+      const req = https.request({
+        hostname: 'notify-api.line.me',
+        path: '/api/notify',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': 'Bearer ' + config.line_notify_token,
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      }, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => resolve(data));
+      });
+      req.on('error', reject);
+      req.write(postData);
+      req.end();
+    });
+  } catch (err) {
+    console.error('LINE Notify error:', err.message);
+  }
+}
+
 // ===== SERVE STATIC FILES =====
 // Static files (CSS, JS, images) — BEFORE explicit routes
 app.use(express.static(__dirname));
+
+// Service detail page (public)
+app.get('/service', (req, res) => {
+  res.sendFile('service.html', { root: __dirname });
+});
+app.get('/service.html', (req, res) => {
+  res.sendFile('service.html', { root: __dirname });
+});
 
 // Admin pages (protected)
 app.get('/admin', authMiddleware, (req, res) => {
