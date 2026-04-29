@@ -1,13 +1,7 @@
 // ============================================
-// Supabase Configuration
-// Replace with your actual Supabase credentials
+// LEGACY FILE — Not used
+// This project uses SQLite + Express (not Supabase).
+// These files are kept for reference only.
 // ============================================
 
-const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
-
-// Initialize Supabase client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Export for modules
-window.supabaseClient = supabase;
+console.warn('⚠️ supabase/config.js is a legacy file. This project uses SQLite, not Supabase.');

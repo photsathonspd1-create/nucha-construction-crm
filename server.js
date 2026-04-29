@@ -362,7 +362,7 @@ app.post('/api/auth/forgot-password', (req, res) => {
 
     // In production, send email with reset link
     console.log(`[PASSWORD RESET] Token for ${email}: ${token}`);
-    res.json({ success: true, message: 'หากอีเมลนี้มีอยู่ในระบบ เราจะส่งลิงก์รีเซ็ตรหัสผ่าน', reset_token: token });
+    res.json({ success: true, message: 'หากอีเมลนี้มีอยู่ในระบบ เราจะส่งลิงก์รีเซ็ตรหัสผ่าน' });
   } catch (err) {
     console.error('Forgot password error:', err);
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
@@ -675,6 +675,11 @@ app.put('/api/leads/:id', authMiddleware, (req, res) => {
       notifyLeadStatusChange(req.params.id, updates.status, oldLead.name);
     }
 
+    // Set first_contact_at when status changes to Contacted
+    if (updates.status === 'Contacted' && oldLead && oldLead.status !== 'Contacted') {
+      db.prepare('UPDATE leads SET first_contact_at = CURRENT_TIMESTAMP WHERE id = ?').run(req.params.id);
+    }
+
     // Log activity
     db.prepare('INSERT INTO activities (lead_id, action, details) VALUES (?, ?, ?)')
       .run(req.params.id, 'lead_updated', JSON.stringify(updates));
@@ -970,8 +975,15 @@ app.get('/api/reports/export/csv', authMiddleware, (req, res) => {
     const leads = db.prepare('SELECT * FROM leads ORDER BY created_at DESC').all();
     const headers = ['ID', 'ชื่อ', 'เบอร์โทร', 'อีเมล', 'บริการ', 'งบประมาณ', 'สถานะ', 'คะแนน', 'วันที่สร้าง'];
     const rows = leads.map(l => [
-      l.id, `"${(l.name || '').replace(/"/g, '""')}"`, l.phone, l.email || '',
-      l.service_type || '', l.budget_range || '', l.status || '', l.score || 0, l.created_at || ''
+      l.id,
+      `"${(l.name || '').replace(/"/g, '""')}"`,
+      `"${(l.phone || '').replace(/"/g, '""')}"`,
+      `"${(l.email || '').replace(/"/g, '""')}"`,
+      `"${(l.service_type || '').replace(/"/g, '""')}"`,
+      `"${(l.budget_range || '').replace(/"/g, '""')}"`,
+      `"${(l.status || '').replace(/"/g, '""')}"`,
+      l.score || 0,
+      `"${(l.created_at || '').replace(/"/g, '""')}"`
     ]);
 
     let csv = '\uFEFF'; // BOM for Excel UTF-8

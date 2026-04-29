@@ -21,11 +21,14 @@ let allNav = [];
 })();
 
 async function loadAll() {
-  [allContent, allLeads, allNav] = await Promise.all([
+  const [content, leadsRes, nav] = await Promise.all([
     api('/api/content'),
     api('/api/leads'),
     api('/api/nav')
   ]);
+  allContent = content;
+  allLeads = leadsRes.data || leadsRes; // extract .data array
+  allNav = nav;
 }
 
 // ===== API HELPER =====
@@ -61,6 +64,9 @@ function showPage(pageId) {
   if (pageId === 'leads') renderLeads();
   if (pageId === 'bookings') renderBookings();
   if (pageId === 'media') renderMedia();
+  if (pageId === 'reports') renderReports();
+  if (pageId === 'users') renderUsers();
+  if (pageId === 'site-docs') checkSiteDocs();
 }
 
 // ===== LOGOUT =====
@@ -666,7 +672,7 @@ async function saveFooter() {
 
 // ===== NOTIFICATIONS FORM =====
 function renderNotificationsForm() {
-  const n = allContent.notifications || {};
+  const n = allContent.notification_settings || {};
   document.getElementById('notificationsForm').innerHTML = `
     <div class="form-section">
       <h3>📱 LINE Notify</h3>
@@ -676,37 +682,90 @@ function renderNotificationsForm() {
         เพื่อสร้าง Token
       </p>
       <div class="form-group">
+        <label>
+          <input type="checkbox" id="nt_line_enabled" ${n.line_notify_enabled !== false ? 'checked' : ''} style="margin-right:8px">
+          เปิดใช้ LINE Notify
+        </label>
+      </div>
+      <div class="form-group">
         <label>LINE Notify Token</label>
         <input type="text" id="nt_line_token" value="${esc(n.line_notify_token || '')}" placeholder="ใส่ Token จาก LINE Notify">
       </div>
+    </div>
+    <div class="form-section">
+      <h3>✈️ Telegram</h3>
+      <p style="font-size:0.85rem;color:var(--gray-400);margin-bottom:16px">
+        แจ้งเตือนผ่าน Telegram Bot — สร้าง Bot ผ่าน
+        <a href="https://t.me/BotFather" target="_blank" style="color:var(--red)">@BotFather</a>
+      </p>
       <div class="form-group">
         <label>
-          <input type="checkbox" id="nt_enabled" ${n.enabled !== false ? 'checked' : ''} style="margin-right:8px">
-          เปิดใช้การแจ้งเตือน
+          <input type="checkbox" id="nt_telegram_enabled" ${n.telegram_enabled ? 'checked' : ''} style="margin-right:8px">
+          เปิดใช้ Telegram
         </label>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Telegram Bot Token</label>
+          <input type="text" id="nt_telegram_bot_token" value="${esc(n.telegram_bot_token || '')}" placeholder="123456:ABC-DEF...">
+        </div>
+        <div class="form-group">
+          <label>Telegram Chat ID</label>
+          <input type="text" id="nt_telegram_chat_id" value="${esc(n.telegram_chat_id || '')}" placeholder="-1001234567890">
+        </div>
+      </div>
+    </div>
+    <div class="form-section">
+      <h3>💬 Auto Reply</h3>
+      <p style="font-size:0.85rem;color:var(--gray-400);margin-bottom:16px">
+        ตอบกลับอัตโนมัติเมื่อมี Lead ใหม่ (ใช้ {name} แทนชื่อลูกค้า)
+      </p>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="nt_auto_reply_enabled" ${n.auto_reply_enabled ? 'checked' : ''} style="margin-right:8px">
+          เปิดใช้ Auto Reply
+        </label>
+      </div>
+      <div class="form-group">
+        <label>LINE Template</label>
+        <textarea id="nt_ar_line" rows="2" placeholder="สวัสดีคุณ {name} ขอบคุณที่สนใจบริการของเรา">${esc((n.auto_reply_templates || {}).line || '')}</textarea>
+      </div>
+      <div class="form-group">
+        <label>SMS Template</label>
+        <textarea id="nt_ar_sms" rows="2" placeholder="สวัสดีคุณ {name} เราได้รับข้อมูลของท่านแล้ว">${esc((n.auto_reply_templates || {}).sms || '')}</textarea>
       </div>
     </div>
     <div class="form-actions">
       <button type="button" class="btn btn-primary" onclick="saveNotifications()">💾 บันทึก</button>
-      <button type="button" class="btn btn-outline" onclick="testNotification()" style="margin-left:8px">🧪 ทดสอบส่ง</button>
+      <button type="button" class="btn btn-outline" onclick="testNotification('all')" style="margin-left:8px">🧪 ทดสอบส่งทั้งหมด</button>
+      <button type="button" class="btn btn-outline" onclick="testNotification('line')" style="margin-left:8px">📱 ทดสอบ LINE</button>
+      <button type="button" class="btn btn-outline" onclick="testNotification('telegram')" style="margin-left:8px">✈️ ทดสอบ Telegram</button>
     </div>
   `;
 }
 
 async function saveNotifications() {
   const data = {
+    line_notify_enabled: document.getElementById('nt_line_enabled')?.checked ?? false,
     line_notify_token: gv('nt_line_token'),
-    enabled: document.getElementById('nt_enabled')?.checked ?? true
+    telegram_enabled: document.getElementById('nt_telegram_enabled')?.checked ?? false,
+    telegram_bot_token: gv('nt_telegram_bot_token'),
+    telegram_chat_id: gv('nt_telegram_chat_id'),
+    auto_reply_enabled: document.getElementById('nt_auto_reply_enabled')?.checked ?? false,
+    auto_reply_templates: {
+      line: gv('nt_ar_line'),
+      sms: gv('nt_ar_sms')
+    }
   };
-  await api('/api/content/notifications', { method: 'PUT', body: JSON.stringify(data) });
-  allContent.notifications = data;
+  await api('/api/content/notification_settings', { method: 'PUT', body: JSON.stringify(data) });
+  allContent.notification_settings = data;
   toast('✅ บันทึกการแจ้งเตือนสำเร็จ');
 }
 
-async function testNotification() {
+async function testNotification(channel) {
   try {
-    await api('/api/test-notification', { method: 'POST' });
-    toast('✅ ส่งทดสอบสำเร็จ — ตรวจสอบ LINE');
+    await api('/api/test-notification', { method: 'POST', body: JSON.stringify({ channel: channel || 'all' }) });
+    toast('✅ ส่งทดสอบสำเร็จ');
   } catch (err) {
     toast('❌ ส่งไม่สำเร็จ: ' + err.message, 'error');
   }
@@ -947,6 +1006,173 @@ async function deleteMedia(name) {
   await api('/api/media/' + encodeURIComponent(name), { method: 'DELETE' }).catch(() => {});
   renderMedia();
   toast('🗑️ ลบรูปสำเร็จ');
+}
+
+// ===== REPORTS =====
+async function renderReports() {
+  try {
+    const summary = await api('/api/reports/summary');
+    document.getElementById('reportStats').innerHTML = `
+      <div class="stat-card"><div class="label">Leads ทั้งหมด</div><div class="value">${summary.total_leads}</div></div>
+      <div class="stat-card"><div class="label">เดือนนี้</div><div class="value">${summary.monthly_leads}</div></div>
+      <div class="stat-card"><div class="label">ปิดดีล</div><div class="value green">${summary.closed_won}</div></div>
+      <div class="stat-card"><div class="label">Conversion</div><div class="value">${summary.conversion_rate}%</div></div>
+    `;
+    const byService = await api('/api/reports/by-service');
+    document.getElementById('reportByService').innerHTML = byService.map(s => `
+      <div class="pipeline-bar">
+        <div class="pipeline-name">${esc(s.service_type || 'ไม่ระบุ')}</div>
+        <div class="pipeline-count">${s.count} (ปิด: ${s.closed})</div>
+      </div>
+    `).join('') || '<p style="color:var(--gray-400)">ยังไม่มีข้อมูล</p>';
+    const byDate = await api('/api/reports/by-date');
+    document.getElementById('reportByDate').innerHTML = byDate.slice(-10).map(d => `
+      <div class="pipeline-bar">
+        <div class="pipeline-name">${d.date}</div>
+        <div class="pipeline-count">${d.count} (ปิด: ${d.closed})</div>
+      </div>
+    `).join('') || '<p style="color:var(--gray-400)">ยังไม่มีข้อมูล</p>';
+  } catch (err) {
+    console.error('Reports error:', err);
+  }
+}
+
+// ===== USERS =====
+async function renderUsers() {
+  try {
+    const users = await api('/api/users');
+    document.getElementById('usersBody').innerHTML = users.map(u => `
+      <tr>
+        <td><strong>${esc(u.full_name || '-')}</strong></td>
+        <td>${esc(u.email)}</td>
+        <td><span class="status-badge ${u.role === 'admin' ? 'won' : 'new'}">${u.role}</span></td>
+        <td>${new Date(u.created_at).toLocaleDateString('th-TH')}</td>
+        <td>
+          <button class="btn btn-sm btn-outline" onclick="editUser(${u.id}, '${esc(u.full_name)}', '${u.role}')">✏️</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})">🗑️</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    console.error('Users error:', err);
+  }
+}
+
+function showAddUserModal() {
+  document.getElementById('modalTitle').textContent = '➕ เพิ่มผู้ใช้';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group"><label>อีเมล</label><input type="email" id="nu_email" required></div>
+    <div class="form-group"><label>รหัสผ่าน</label><input type="password" id="nu_password" required></div>
+    <div class="form-group"><label>ชื่อเต็ม</label><input type="text" id="nu_name"></div>
+    <div class="form-group"><label>บทบาท</label>
+      <select id="nu_role"><option value="sales">Sales</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
+    </div>
+    <button class="btn btn-primary" onclick="createUser()">💾 สร้างผู้ใช้</button>
+  `;
+  document.getElementById('leadModal').classList.add('show');
+}
+
+async function createUser() {
+  const data = {
+    email: gv('nu_email'),
+    password: gv('nu_password'),
+    full_name: gv('nu_name'),
+    role: gv('nu_role')
+  };
+  await api('/api/users', { method: 'POST', body: JSON.stringify(data) });
+  closeModal();
+  renderUsers();
+  toast('✅ สร้างผู้ใช้สำเร็จ');
+}
+
+function editUser(id, name, role) {
+  document.getElementById('modalTitle').textContent = '✏️ แก้ไขผู้ใช้';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group"><label>ชื่อเต็ม</label><input type="text" id="eu_name" value="${esc(name)}"></div>
+    <div class="form-group"><label>บทบาท</label>
+      <select id="eu_role">
+        <option value="sales" ${role === 'sales' ? 'selected' : ''}>Sales</option>
+        <option value="manager" ${role === 'manager' ? 'selected' : ''}>Manager</option>
+        <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
+      </select>
+    </div>
+    <div class="form-group"><label>รหัสผ่านใหม่ (เว้นว่างถ้าไม่เปลี่ยน)</label><input type="password" id="eu_password"></div>
+    <button class="btn btn-primary" onclick="updateUser(${id})">💾 บันทึก</button>
+  `;
+  document.getElementById('leadModal').classList.add('show');
+}
+
+async function updateUser(id) {
+  const data = { full_name: gv('eu_name'), role: gv('eu_role') };
+  const pw = gv('eu_password');
+  if (pw) data.password = pw;
+  await api('/api/users/' + id, { method: 'PUT', body: JSON.stringify(data) });
+  closeModal();
+  renderUsers();
+  toast('✅ อัพเดทผู้ใช้สำเร็จ');
+}
+
+async function deleteUser(id) {
+  if (!confirm('ลบผู้ใช้นี้?')) return;
+  await api('/api/users/' + id, { method: 'DELETE' });
+  renderUsers();
+  toast('🗑️ ลบผู้ใช้สำเร็จ');
+}
+
+// ===== EXPORT & BACKUP =====
+function exportCSV() {
+  window.open('/api/reports/export/csv', '_blank');
+}
+
+async function createBackup() {
+  try {
+    const res = await fetch('/api/admin/backup');
+    if (!res.ok) throw new Error('Backup failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nucha-backup-${new Date().toISOString().slice(0,10)}.db`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('✅ สำรองข้อมูลสำเร็จ');
+  } catch (err) {
+    toast('❌ สำรองข้อมูลล้มเหลว: ' + err.message, 'error');
+  }
+}
+
+// ===== SITE DOCS =====
+async function generateSiteDocs() {
+  const btn = document.getElementById('btnGenerateDocs');
+  btn.disabled = true;
+  btn.textContent = '⏳ กำลังสร้าง...';
+  try {
+    const result = await api('/api/admin/generate-docs', { method: 'POST', body: JSON.stringify({ url: window.location.origin }) });
+    toast(`✅ สร้างรายงานสำเร็จ ${result.pages} หน้า`);
+    checkSiteDocs();
+  } catch (err) {
+    toast('❌ สร้างรายงานล้มเหลว: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 สร้างรายงาน';
+  }
+}
+
+async function checkSiteDocs() {
+  try {
+    const status = await api('/api/admin/docs-status');
+    const el = document.getElementById('siteDocsStatus');
+    if (status.exists) {
+      el.innerHTML = `✅ มีรายงานแล้ว (${status.pages} หน้า, สร้างเมื่อ ${new Date(status.generated_at).toLocaleString('th-TH')})`;
+      document.getElementById('btnViewDocsHTML').style.display = '';
+      document.getElementById('btnViewDocsMD').style.display = '';
+      document.getElementById('btnViewDocsJSON').style.display = '';
+    } else {
+      el.innerHTML = '📋 ยังไม่มีรายงาน — กดปุ่มเพื่อสร้าง';
+    }
+  } catch {
+    document.getElementById('siteDocsStatus').innerHTML = '📋 ยังไม่มีรายงาน';
+  }
 }
 
 // ===== IMAGE UPLOAD HELPER =====
