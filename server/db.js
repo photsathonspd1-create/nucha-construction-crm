@@ -251,17 +251,20 @@ for (const [key, value] of Object.entries(defaultContent)) {
   insertContent.run(key, JSON.stringify(value));
 }
 
-// Seed default nav items
-const navItems = [
-  { label: 'หน้าหลัก', href: '#home', sort_order: 1 },
-  { label: 'บริการ', href: '#services', sort_order: 2 },
-  { label: 'กระบวนการ', href: '#story', sort_order: 3 },
-  { label: 'ผลงาน', href: '#portfolio', sort_order: 4 },
-  { label: 'จองคิว', href: '#booking', sort_order: 5 },
-  { label: 'ติดต่อเรา', href: '#contact', sort_order: 6 }
-];
-const insertNav = db.prepare('INSERT OR IGNORE INTO nav_items (label, href, sort_order) VALUES (?, ?, ?)');
-navItems.forEach(n => insertNav.run(n.label, n.href, n.sort_order));
+// Seed default nav items (only if table is empty to prevent duplicates on restart)
+const navCount = db.prepare('SELECT COUNT(*) as cnt FROM nav_items').get().cnt;
+if (navCount === 0) {
+  const navItems = [
+    { label: 'หน้าหลัก', href: '#home', sort_order: 1 },
+    { label: 'บริการ', href: '#services', sort_order: 2 },
+    { label: 'กระบวนการ', href: '#story', sort_order: 3 },
+    { label: 'ผลงาน', href: '#portfolio', sort_order: 4 },
+    { label: 'จองคิว', href: '#booking', sort_order: 5 },
+    { label: 'ติดต่อเรา', href: '#contact', sort_order: 6 }
+  ];
+  const insertNav = db.prepare('INSERT INTO nav_items (label, href, sort_order) VALUES (?, ?, ?)');
+  navItems.forEach(n => insertNav.run(n.label, n.href, n.sort_order));
+}
 
 // Seed default admin user
 const hashedPassword = bcrypt.hashSync('admin123', 10);
