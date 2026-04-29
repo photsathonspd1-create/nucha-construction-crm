@@ -112,7 +112,10 @@
             </div>
             <div class="hero-visual">
                 <div class="hero-image-wrapper">
-                    <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=900&q=85" alt="Modern House" class="hero-img" id="heroImage">
+                    <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=900&q=85" alt="Modern House" class="hero-img" id="heroImage" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                    <div style="display:none;position:absolute;inset:0;background:linear-gradient(135deg,#f5f0ee,#e8e0dc);align-items:center;justify-content:center;border-radius:inherit">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                    </div>
                     <div class="hero-image-overlay"></div>
                     <div class="hero-image-sweep"></div>
                 </div>
@@ -158,7 +161,12 @@
                 <p class="section-desc" id="servicesDesc">เลือกบริการที่ตรงกับความต้องการของคุณ — ปรึกษาฟรี ไม่มีค่าใช้จ่าย</p>
             </div>
             <div class="services-grid" id="servicesGrid">
-                <!-- Dynamic services loaded from API -->
+                <!-- Fallback content (replaced by API data when available) -->
+                <div class="service-card"><div class="service-number">01</div><div class="service-icon" style="font-size:2.5rem">🏗️</div><h3>รับเหมาก่อสร้าง</h3><p>รับเหมาก่อสร้างครบวงจร บ้าน อาคาร สำนักงาน โรงงาน</p><div class="service-budget">งบประมาณเริ่มต้น 500,000 บาท</div><a href="#booking" class="service-link magnetic-btn" data-booking-service="construction"><span>จองคิวปรึกษา</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+                <div class="service-card"><div class="service-number">02</div><div class="service-icon" style="font-size:2.5rem">🪑</div><h3>บิ้วอิน</h3><p>ออกแบบและติดตั้งเฟอร์นิเจอร์บิ้วอิน ครัว ตู้เสื้อผ้า</p><div class="service-budget">งบประมาณเริ่มต้น 200,000 บาท</div><a href="#booking" class="service-link magnetic-btn" data-booking-service="builtin"><span>จองคิวปรึกษา</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+                <div class="service-card"><div class="service-number">03</div><div class="service-icon" style="font-size:2.5rem">✏️</div><h3>ออกแบบ</h3><p>ออกแบบสถาปัตยกรรม ตกแต่งภายใน 3D Rendering</p><div class="service-budget">งบประมาณเริ่มต้น 100,000 บาท</div><a href="#booking" class="service-link magnetic-btn" data-booking-service="design"><span>จองคิวปรึกษา</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+                <div class="service-card"><div class="service-number">04</div><div class="service-icon" style="font-size:2.5rem">🎨</div><h3>ตกแต่ง</h3><p>ตกแต่งภายในและภายนอก ปรับปรุง รีโนเวท</p><div class="service-budget">งบประมาณเริ่มต้น 150,000 บาท</div><a href="#booking" class="service-link magnetic-btn" data-booking-service="decoration"><span>จองคิวปรึกษา</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+                <div class="service-card service-card-highlight"><div class="service-number">05</div><div class="service-icon" style="font-size:2.5rem">📋</div><h3>บริหารงานขายโครงการ</h3><p>บริหารจัดการโครงการก่อสร้างครบวงจร</p><div class="service-budget">งบประมาณตามขนาดโครงการ</div><a href="#booking" class="service-link magnetic-btn" data-booking-service="project-management"><span>จองคิวปรึกษา</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
             </div>
         </div>
     </section>
@@ -171,10 +179,36 @@
             </div>
             <div class="story-container">
                 <div class="story-content" id="storyContent">
-                    <!-- Dynamic process steps loaded from API -->
+                    <!-- Fallback process steps (replaced by API data when available) -->
+                    <div class="story-step active" data-step="0">
+                        <span class="story-tag">OUR PROCESS</span>
+                        <h2 class="story-title">ขั้นตอนการทำงาน<br>ที่คุณวางใจได้</h2>
+                        <p class="story-desc">ทุกโครงการเริ่มต้นจากการรับฟัง — เข้าใจความต้องการ เข้าใจงบประมาณ เข้าใจคุณ</p>
+                    </div>
+                    <div class="story-step" data-step="1">
+                        <span class="story-tag">STEP 01</span>
+                        <h2 class="story-title">รับฟัง<br>และวางแผน</h2>
+                        <p class="story-desc">พูดคุยความต้องการ สำรวจหน้างาน ประเมินงบประมาณ วางแผนงานอย่างละเอียด</p>
+                    </div>
+                    <div class="story-step" data-step="2">
+                        <span class="story-tag">STEP 02</span>
+                        <h2 class="story-title">ออกแบบ<br>และเสนอราคา</h2>
+                        <p class="story-desc">ออกแบบตามความต้องการ นำเสนอแบบ 3D พร้อมใบเสนอราคาที่โปร่งใส</p>
+                    </div>
+                    <div class="story-step" data-step="3">
+                        <span class="story-tag">STEP 03</span>
+                        <h2 class="story-title">ก่อสร้าง<br>และส่งมอบ</h2>
+                        <p class="story-desc">ก่อสร้างตามมาตรฐาน ตรวจสอบทุกขั้นตอน ส่งมอบงานคุณภาพ พร้อมรับประกัน</p>
+                    </div>
                 </div>
                 <div class="story-visual" id="storyVisual">
-                    <!-- Dynamic process images loaded from API -->
+                    <!-- Fallback process images (replaced by API data when available) -->
+                    <div class="story-image-stack">
+                        <div class="story-img-wrapper active" data-step="0"><img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=700&q=85" alt="Process" onerror="this.parentElement.style.background='linear-gradient(135deg,#f5f0ee,#e8e0dc)'"></div>
+                        <div class="story-img-wrapper" data-step="1"><img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=700&q=85" alt="STEP 01" onerror="this.parentElement.style.background='linear-gradient(135deg,#f5f0ee,#e8e0dc)'"></div>
+                        <div class="story-img-wrapper" data-step="2"><img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=700&q=85" alt="STEP 02" onerror="this.parentElement.style.background='linear-gradient(135deg,#f5f0ee,#e8e0dc)'"></div>
+                        <div class="story-img-wrapper" data-step="3"><img src="https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=700&q=85" alt="STEP 03" onerror="this.parentElement.style.background='linear-gradient(135deg,#f5f0ee,#e8e0dc)'"></div>
+                    </div>
                 </div>
             </div>
             <div class="story-progress">
@@ -194,7 +228,11 @@
                 </div>
             </div>
             <div class="portfolio-grid" id="portfolioGrid">
-                <!-- Dynamic portfolio items loaded from API -->
+                <!-- Fallback portfolio (replaced by API data when available) -->
+                <div class="portfolio-item portfolio-large"><img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=85" alt="บ้านโมเดิร์น วิลล่า" onerror="this.style.display='none'"><div class="portfolio-overlay"><span class="portfolio-tag">รับเหมาก่อสร้าง</span><h3>บ้านโมเดิร์น วิลล่า</h3><p>สุขุมวิท 50 · งบ 8.5 ล้านบาท</p></div></div>
+                <div class="portfolio-item"><img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=500&q=85" alt="คอนโด ลักชัวรี่" onerror="this.style.display='none'"><div class="portfolio-overlay"><span class="portfolio-tag">บิ้วอิน + ตกแต่ง</span><h3>คอนโด ลักชัวรี่</h3></div></div>
+                <div class="portfolio-item"><img src="https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=500&q=85" alt="บ้านเก่า → ใหม่" onerror="this.style.display='none'"><div class="portfolio-overlay"><span class="portfolio-tag">รีโนเวท</span><h3>บ้านเก่า → ใหม่</h3></div></div>
+                <div class="portfolio-item"><img src="https://images.unsplash.com/photo-1600573472592-401b489a3cdc?w=500&q=85" alt="ออฟฟิศ ดีไซน์" onerror="this.style.display='none'"><div class="portfolio-overlay"><span class="portfolio-tag">ออกแบบ + บริหาร</span><h3>ออฟฟิศ ดีไซน์</h3></div></div>
             </div>
         </div>
     </section>
@@ -208,7 +246,10 @@
                     <h2 id="bookingTitle">จองคิวปรึกษาฟรี<br>ไม่มีค่าใช้จ่าย</h2>
                     <p id="bookingDesc">เลือกบริการ ระบุงบประมาณ นัดวันสะดวก — ทีมผู้เชี่ยวชาญจะติดต่อกลับภายใน 24 ชั่วโมง</p>
                     <div class="booking-benefits" id="bookingBenefits">
-                        <!-- Dynamic benefits loaded from API -->
+                        <!-- Fallback benefits (replaced by API data when available) -->
+                        <div class="booking-benefit"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>ปรึกษาฟรี ไม่มีค่าใช้จ่าย</span></div>
+                        <div class="booking-benefit"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>ประเมินราคาเบื้องต้นทันที</span></div>
+                        <div class="booking-benefit"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>นัดเข้าดูหน้างานได้ทันที</span></div>
                     </div>
                     <div class="booking-trust">
                         <div class="booking-trust-item">
@@ -246,7 +287,13 @@
                         <div class="form-step active" data-step="1">
                             <h3 class="form-step-title">เลือกบริการที่สนใจ</h3>
                             <div class="service-select-grid" id="serviceSelectGrid">
-                                <!-- Dynamic service options loaded from API -->
+                                <!-- Fallback service options (replaced by API data when available) -->
+                                <label class="service-option"><input type="radio" name="service_type" value="รับเหมาก่อสร้าง" required><div class="service-option-card"><div class="service-option-icon">🏗️</div><div class="service-option-name">รับเหมาก่อสร้าง</div><div class="service-option-desc">งบประมาณเริ่มต้น 500,000 บาท</div></div></label>
+                                <label class="service-option"><input type="radio" name="service_type" value="บิ้วอิน"><div class="service-option-card"><div class="service-option-icon">🪑</div><div class="service-option-name">บิ้วอิน</div><div class="service-option-desc">งบประมาณเริ่มต้น 200,000 บาท</div></div></label>
+                                <label class="service-option"><input type="radio" name="service_type" value="ออกแบบ"><div class="service-option-card"><div class="service-option-icon">✏️</div><div class="service-option-name">ออกแบบ</div><div class="service-option-desc">งบประมาณเริ่มต้น 100,000 บาท</div></div></label>
+                                <label class="service-option"><input type="radio" name="service_type" value="ตกแต่ง"><div class="service-option-card"><div class="service-option-icon">🎨</div><div class="service-option-name">ตกแต่ง</div><div class="service-option-desc">งบประมาณเริ่มต้น 150,000 บาท</div></div></label>
+                                <label class="service-option"><input type="radio" name="service_type" value="บริหารงานขายโครงการ"><div class="service-option-card"><div class="service-option-icon">📋</div><div class="service-option-name">บริหารงานขายโครงการ</div><div class="service-option-desc">งบประมาณตามขนาดโครงการ</div></div></label>
+                                <label class="service-option"><input type="radio" name="service_type" value="อื่นๆ"><div class="service-option-card"><div class="service-option-icon">💬</div><div class="service-option-name">อื่นๆ</div><div class="service-option-desc">ปรึกษาเรื่องอื่น</div></div></label>
                             </div>
                             <div class="form-step-nav">
                                 <button type="button" class="btn btn-primary btn-next" data-next="2">
@@ -377,7 +424,11 @@
         </div>
         <div class="container">
             <div class="stats-grid" id="statsGrid">
-                <!-- Dynamic stats loaded from API -->
+                <!-- Fallback stats (replaced by API data when available) -->
+                <div class="stat-item"><div class="stat-number" data-count="120">0</div><div class="stat-suffix">+</div><div class="stat-label">โครงการสำเร็จ</div></div>
+                <div class="stat-item"><div class="stat-number" data-count="10">0</div><div class="stat-suffix">+</div><div class="stat-label">ปีเปิดทำงาน</div></div>
+                <div class="stat-item"><div class="stat-number" data-count="500">0</div><div class="stat-suffix">+</div><div class="stat-label">ลูกค้าที่ไว้วางใจ</div></div>
+                <div class="stat-item"><div class="stat-number" data-count="50">0</div><div class="stat-suffix">+</div><div class="stat-label">ทีมมืออาชีพ</div></div>
             </div>
         </div>
     </section>
@@ -391,7 +442,10 @@
                 <p class="section-desc" id="testimonialsDesc">ลูกค้ากว่า 500+ ครอบครัวไว้วางใจให้เราดูแล</p>
             </div>
             <div class="trust-grid" id="testimonialsGrid">
-                <!-- Dynamic testimonials loaded from API -->
+                <!-- Fallback testimonials (replaced by API data when available) -->
+                <div class="testimonial-card" data-animate="fade-up"><div class="testimonial-stars">★★★★★</div><p class="testimonial-quote">"สร้างบ้านกับ Nucha ประทับใจมาก ทีมงานมืออาชีพ ไม่บวกราคา ส่งมอบตรงเวลา แนะนำเลยครับ"</p><div class="testimonial-author"><div class="testimonial-avatar">สม</div><div><div class="testimonial-name">สมชาย วงศ์สุข</div><div class="testimonial-role">รับเหมาก่อสร้าง · สุขุมวิท 50</div></div></div></div>
+                <div class="testimonial-card" data-animate="fade-up"><div class="testimonial-stars">★★★★★</div><p class="testimonial-quote">"บิ้วอินครัวสวยมาก วัสดุดี ทีมช่างทำงานเรียบร้อย ราคาสมเหตุสมผล คุ้มค่าจริงๆ ค่ะ"</p><div class="testimonial-author"><div class="testimonial-avatar">ปร</div><div><div class="testimonial-name">ประภา ศรีสุวรรณ</div><div class="testimonial-role">บิ้วอิน · พระราม 9</div></div></div></div>
+                <div class="testimonial-card" data-animate="fade-up"><div class="testimonial-stars">★★★★★</div><p class="testimonial-quote">"ออกแบบได้ตรงใจมาก ฟังทุกความต้องการ ดีไซเนอร์เข้าใจ lifestyle เราจริงๆ ประทับใจครับ"</p><div class="testimonial-author"><div class="testimonial-avatar">วิ</div><div><div class="testimonial-name">วิชัย พัฒนาทรัพย์</div><div class="testimonial-role">ออกแบบ + ตกแต่ง · ลาดพร้าว 71</div></div></div></div>
             </div>
         </div>
     </section>
@@ -408,7 +462,10 @@
                 <h2 class="closing-title" id="closingTitle">เริ่มต้นโครงการ<br><span class="accent">ของคุณวันนี้</span></h2>
                 <p class="closing-desc" id="closingDesc">ทีมงานพร้อมดูแลคุณตั้งแต่วันแรก — ปรึกษาฟรี ไม่มีค่าใช้จ่าย ไม่มีข้อผูกมัด</p>
                 <div class="closing-guarantee" id="closingGuarantees">
-                    <!-- Dynamic guarantees loaded from API -->
+                    <!-- Fallback guarantees (replaced by API data when available) -->
+                    <div class="guarantee-item"><div class="guarantee-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><strong>รับประกันคุณภาพ</strong><span>โครงสร้างทั้งโครงการ</span></div></div>
+                    <div class="guarantee-item"><div class="guarantee-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><strong>ส่งมอบตรงเวลา</strong><span>ไม่เลื่อน ไม่บวกราคา</span></div></div>
+                    <div class="guarantee-item"><div class="guarantee-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><strong>ดูแลหลังส่งมอบ</strong><span>ทีม Service ตลอดอายุใช้งาน</span></div></div>
                 </div>
                 <a href="#booking" class="btn btn-primary btn-lg closing-cta magnetic-btn">
                     <span id="closingCta">จองคิวปรึกษาฟรี — ภายใน 24 ชม.</span>
@@ -425,7 +482,13 @@
         <div class="container">
             <p class="trust-badges-label" id="badgesLabel">วัสดุคุณภาพจากแบรนด์ชั้นนำ</p>
             <div class="trust-badges-row" id="badgesRow">
-                <!-- Dynamic badges loaded from API -->
+                <!-- Fallback badges (replaced by API data when available) -->
+                <div class="trust-badge-item"><svg viewBox="0 0 120 40" fill="currentColor" opacity="0.35"><text x="10" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="16">SCG</text></svg></div>
+                <div class="trust-badge-item"><svg viewBox="0 0 120 40" fill="currentColor" opacity="0.35"><text x="10" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="16">TOA</text></svg></div>
+                <div class="trust-badge-item"><svg viewBox="0 0 120 40" fill="currentColor" opacity="0.35"><text x="10" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="16">COTTO</text></svg></div>
+                <div class="trust-badge-item"><svg viewBox="0 0 120 40" fill="currentColor" opacity="0.35"><text x="10" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="16">STIEBEL</text></svg></div>
+                <div class="trust-badge-item"><svg viewBox="0 0 120 40" fill="currentColor" opacity="0.35"><text x="10" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="14">DAIKIN</text></svg></div>
+                <div class="trust-badge-item"><svg viewBox="0 0 120 40" fill="currentColor" opacity="0.35"><text x="10" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="16">KARAT</text></svg></div>
             </div>
         </div>
     </section>
@@ -449,13 +512,22 @@
                 <div class="footer-links">
                     <h4>เมนูลัด</h4>
                     <ul id="footerQuickLinks">
-                        <!-- Dynamic quick links loaded from API -->
+                        <!-- Fallback quick links (replaced by API data when available) -->
+                        <li><a href="#home">หน้าหลัก</a></li>
+                        <li><a href="#services">บริการ</a></li>
+                        <li><a href="#portfolio">ผลงาน</a></li>
+                        <li><a href="#booking">จองคิว</a></li>
                     </ul>
                 </div>
                 <div class="footer-links">
                     <h4>บริการ</h4>
                     <ul id="footerServiceLinks">
-                        <!-- Dynamic service links loaded from API -->
+                        <!-- Fallback service links (replaced by API data when available) -->
+                        <li><a href="#">รับเหมาก่อสร้าง</a></li>
+                        <li><a href="#">บิ้วอิน</a></li>
+                        <li><a href="#">ออกแบบ</a></li>
+                        <li><a href="#">ตกแต่ง</a></li>
+                        <li><a href="#">บริหารโครงการ</a></li>
                     </ul>
                 </div>
                 <div class="footer-contact">

@@ -133,6 +133,17 @@
             </a>
           </div>
         `).join('');
+        // Re-bind service card link events for booking form
+        grid.querySelectorAll('[data-booking-service]').forEach(link => {
+          link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const service = link.dataset.bookingService;
+            const serviceMap = { 'construction': 'รับเหมาก่อสร้าง', 'builtin': 'บิ้วอิน', 'design': 'ออกแบบ', 'decoration': 'ตกแต่ง', 'project-management': 'บริหารงานขายโครงการ' };
+            const radio = document.querySelector(`input[name="service_type"][value="${serviceMap[service]}"]`);
+            if (radio) radio.checked = true;
+            document.getElementById('booking').scrollIntoView({ behavior: 'smooth' });
+          });
+        });
       }
       // Service select grid in booking form
       const selectGrid = document.getElementById('serviceSelectGrid');
@@ -185,11 +196,11 @@
         storyVisual.innerHTML = `
           <div class="story-image-stack">
             <div class="story-img-wrapper active" data-step="0">
-              <img src="${esc(process.steps[0]?.image || '')}" alt="Process">
+              <img src="${esc(process.steps[0]?.image || '')}" alt="Process" onerror="this.parentElement.style.background='linear-gradient(135deg,#f5f0ee,#e8e0dc)'">
             </div>
             ${process.steps.map((s, i) => `
               <div class="story-img-wrapper" data-step="${i + 1}">
-                <img src="${esc(s.image || '')}" alt="${esc(s.tag)}">
+                <img src="${esc(s.image || '')}" alt="${esc(s.tag)}" onerror="this.parentElement.style.background='linear-gradient(135deg,#f5f0ee,#e8e0dc)'">
               </div>
             `).join('')}
           </div>
@@ -207,7 +218,7 @@
       if (grid) {
         grid.innerHTML = portfolio.items.map(item => `
           <div class="portfolio-item${item.size === 'large' ? ' portfolio-large' : ''}">
-            <img src="${esc(item.image)}" alt="${esc(item.title)}">
+            <img src="${esc(item.image)}" alt="${esc(item.title)}" onerror="this.style.display='none'">
             <div class="portfolio-overlay">
               <span class="portfolio-tag">${esc(item.tag)}</span>
               <h3>${esc(item.title)}</h3>
