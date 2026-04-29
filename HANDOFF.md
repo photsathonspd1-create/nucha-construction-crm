@@ -1,10 +1,10 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> **Last Updated:** 2026-04-30 00:10 (GMT+8)
-> **Updated By:** OpenClaw AI Agent (site-docs rewrite session)
+> **Last Updated:** 2026-04-30 00:25 (GMT+8)
+> **Updated By:** OpenClaw AI Agent (timeout fix + report redesign)
 > **Branch:** main
-> **Latest Commit:** `aaedc70` — feat: rewrite site-report.html — Thai fonts, admin dedup, PDF export
-> **Status:** ✅ All features implemented, site-docs report fully rewritten
+> **Latest Commit:** `40cb5d1` — fix: Puppeteer timeout 60s, redesign report for non-technical audience
+> **Status:** ✅ All features implemented, report redesigned for boss-friendly viewing
 
 ---
 
