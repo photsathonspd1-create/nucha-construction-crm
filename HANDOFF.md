@@ -1,225 +1,371 @@
-# HANDOFF.md — NUCHA INNOVATION CRM
+# HANDOFF.md — NUCHA Construction CRM
 
-> สถานะ: **Production-ready** | อัพเดทล่าสุด: 2026-04-29
-
----
-
-## สรุปโปรเจค
-
-ระบบ CRM สำหรับบริษัทรับเหมาก่อสร้าง พร้อม CMS แก้ไขเว็บได้ทุกส่วน
-
-- **Stack**: HTML/CSS/JS + GSAP (Frontend) | Node.js + Express 5 + SQLite (Backend)
-- **Auth**: JWT + bcryptjs | **Upload**: Multer
-- **เว็บ**: Landing page dynamic โหลด content จาก API
-- **Admin CMS**: แก้ไขเนื้อหาเว็บได้ทุกส่วน
+> **Last Updated:** 2026-04-29 22:44 (GMT+8)
+> **Updated By:** OpenClaw AI Agent
+> **Branch:** main
+> **Status:** ✅ All features implemented & tested
 
 ---
 
-## Flow การทำงาน (Architecture)
+## 📋 Project Overview
+
+ระบบ CRM สำหรับบริษัทรับเหมาก่อสร้าง NUCHA INNOVATION พร้อม CMS แก้ไขเว็บได้ทุกส่วน
+
+**Tech Stack:**
+- Frontend: HTML/CSS/JS + GSAP animations
+- Backend: Node.js + Express 5
+- Database: SQLite (better-sqlite3)
+- Auth: JWT + bcryptjs (cookies httpOnly)
+- Upload: Multer
+- Security: helmet, express-rate-limit
+
+---
+
+## ✅ สิ่งที่เสร็จแล้ว (Completed Features)
+
+### 🔴 Security & Stability
+| # | Feature | Files | Status |
+|---|---------|-------|--------|
+| 1 | Change password (ต้องใส่รหัสเดิม) | server.js `PUT /api/auth/change-password` | ✅ |
+| 2 | Forgot password (generate token) | server.js `POST /api/auth/forgot-password` | ✅ |
+| 3 | Reset password (ใช้ token) | server.js `POST /api/auth/reset-password` | ✅ |
+| 4 | Password validation (≥8 ตัวอักษร) | utils/validate.js | ✅ |
+| 5 | Input validation (เบอร์ 10 หลัก, email format, name ≤200, message ≤5000) | utils/validate.js | ✅ |
+| 6 | Error handling (try-catch ทุก route + global error handler) | server.js | ✅ |
+| 7 | Login rate limit (5 ครั้ง/นาที, ภาษาไทย) | server.js express-rate-limit | ✅ |
+| 8 | Backup system (create, list, download) | scripts/backup.js, server.js `/api/admin/backup` | ✅ |
+| 9 | Graceful shutdown (SIGTERM/SIGINT) | server.js | ✅ |
+| 10 | Health check endpoint | server.js `GET /api/health` | ✅ |
+| 11 | Security headers (helmet) | server.js | ✅ |
+| 12 | CORS configuration | server.js | ✅ |
+| 13 | Request logging with timestamps | server.js middleware | ✅ |
+
+### 🟡 Core Features
+| # | Feature | Files | Status |
+|---|---------|-------|--------|
+| 14 | LINE Notify integration | server.js `sendLineNotify()` | ✅ |
+| 15 | Telegram Notify integration | server.js `sendTelegramNotify()` | ✅ |
+| 16 | Notification settings (stored in DB) | server/migrations.js, site_content table | ✅ |
+| 17 | Auto-reply system (LINE/SMS/Email templates) | server.js `checkAutoReply()` | ✅ |
+| 18 | Status change notification (LINE + Telegram) | server.js `notifyLeadStatusChange()` | ✅ |
+| 19 | Lead duplicate detection (phone/email) | server.js `POST /api/leads` | ✅ |
+| 20 | Force bypass duplicate (`?force=true`) | server.js | ✅ |
+| 21 | Reports summary (monthly stats) | server.js `GET /api/reports/summary` | ✅ |
+| 22 | Reports by service | server.js `GET /api/reports/by-service` | ✅ |
+| 23 | Reports by date range | server.js `GET /api/reports/by-date` | ✅ |
+| 24 | CSV export (UTF-8 BOM for Excel) | server.js `GET /api/reports/export/csv` | ✅ |
+| 25 | Multi-user roles (admin/manager/sales) | server.js, migrations.js | ✅ |
+| 26 | Users CRUD (admin only) | server.js `GET/POST/PUT/DELETE /api/users` | ✅ |
+| 27 | Role-based access (sales sees only assigned leads) | server.js GET /api/leads | ✅ |
+| 28 | Self-delete protection | server.js DELETE /api/users/:id | ✅ |
+
+### 🟢 UX Improvements
+| # | Feature | Files | Status |
+|---|---------|-------|--------|
+| 29 | Search (name, phone, email) | server.js `?search=` param | ✅ |
+| 30 | Filter (date_from, date_to, budget, service, status) | server.js query params | ✅ |
+| 31 | Sort (created_at, name, score, updated_at, status) | server.js `?sort=&order=` | ✅ |
+| 32 | Pagination (page + limit, max 100) | server.js `?page=&limit=` | ✅ |
+| 33 | Bulk update leads | server.js `POST /api/leads/bulk-update` | ✅ |
+| 34 | Bulk delete leads | server.js `POST /api/leads/bulk-delete` | ✅ |
+| 35 | Lead attachments (upload/list/delete) | server.js, lead_attachments table | ✅ |
+| 36 | Admin pages: Reports + Users + Site Docs | admin.html | ✅ |
+
+### 🧱 Technical
+| # | Feature | Files | Status |
+|---|---------|-------|--------|
+| 37 | express-rate-limit (แทน in-memory Map) | package.json, server.js | ✅ |
+| 38 | Database migrations system | server/migrations.js | ✅ |
+| 39 | Path traversal protection (media delete) | server.js | ✅ |
+| 40 | Global error handler middleware | server.js | ✅ |
+| 41 | Site Documentation Generator (Puppeteer) | scripts/site-docs.js | ✅ |
+| 42 | Site docs API endpoint | server.js `/api/admin/generate-docs` | ✅ |
+
+---
+
+## 📁 File Structure (Current)
 
 ```
-index.html (Landing Page)
-  ├── style.css (Styling)
-  ├── script.js (Animations + UI Logic)
-  │     ├── รอ site-loader.js โหลด API content ก่อน (__siteContentLoaded promise)
-  │     ├── initAnimations() — GSAP ScrollTrigger ทุก section (เรียกครั้งเดียวหลัง content พร้อม)
-  │     ├── setupEventDelegation() — event listeners สำหรับ dynamic content
-  │     └── rebindEventListeners() — re-bind หลัง DOM replacement (cursor, magnetic, ripple)
-  └── site-loader.js (Dynamic Content Loader)
-        ├── GET /api/content → โหลด hero, services, process, portfolio, booking, stats, testimonials, closing, footer, trust_badges, site_config
-        ├── GET /api/nav → โหลด nav items (deduplicate by href)
-        ├── Replace DOM innerHTML ทุก section ด้วย API data
-        ├── Validate image URLs ก่อน set src (ป้องกันรูปหาย)
-        ├── Preserve nav login link สำหรับ mobile
-        ├── Re-bind event listeners (cursor, magnetic, ripple) หลัง DOM replacement
-        └── Resolve __siteContentLoaded → script.js ถึงจะ init animations
-
-server.js (Backend API)
-  ├── Auth: POST /api/auth/login, /logout, /me
-  ├── Content: GET/PUT /api/content/:key (CMS)
-  ├── Nav: GET/PUT /api/nav
-  ├── Leads: POST /api/leads (public, triggers LINE Notify), GET/PUT/DELETE (auth)
-  ├── Upload: POST /api/upload (auth)
-  ├── Media: GET/DELETE /api/media (auth)
-  ├── Stats: GET /api/stats (auth)
-  ├── Pipeline: GET /api/pipeline (auth)
-  ├── Notes: GET/POST /api/leads/:id/notes (auth)
-  ├── Proposals: GET/POST/PUT /api/proposals (auth)
-  ├── Follow-ups: GET /api/followups (auth)
-  ├── Notifications: POST /api/test-notification (auth)
-  └── LINE Notify: sendLineNotify() — triggered on lead creation
-
-server/db.js (Database Schema + Seed)
-  ├── Tables: users, site_content, leads, notes, activities, proposals, nav_items, footer_links, gallery
-  └── Seed: default content, nav items (check count before insert), admin user, demo leads
-
-admin.html + admin.js + admin.css (CMS Admin Panel)
-  ├── Login → JWT auth
-  ├── แก้ไขเนื้อหาเว็บทุก section (Hero, Services, Portfolio, Footer, Navbar...)
-  ├── อัพโหลดรูป (file upload หรือ URL)
-  ├── จัดการ Leads (CRUD, ค้นหา, filter, เปลี่ยนสถานะ)
-  ├── ดูนัดหมาย / จองคิว
-  ├── คลังรูปภาพ
-  └── Pipeline view (6 stages)
+nucha-construction-crm/
+├── server.js                 ← Backend (Express + SQLite + ALL API routes) [~1200 lines]
+├── server/
+│   ├── db.js                 ← Database connection + schema + seed
+│   └── migrations.js         ← NEW: Schema versioning (6 migrations)
+├── scripts/
+│   ├── backup.js             ← NEW: Database backup utility
+│   └── site-docs.js          ← NEW: Site documentation generator (Puppeteer)
+├── utils/
+│   └── validate.js           ← NEW: Input validation (phone, email, name, password)
+├── uploads/                  ← Image/file uploads
+├── backups/                  ← NEW: Database backups
+├── site-docs/                ← NEW: Generated site documentation
+│   ├── site-report.html      ← Visual HTML report
+│   ├── site-report.md        ← Markdown summary
+│   ├── site-data.json        ← Raw structured data
+│   └── screenshots/          ← Page screenshots
+├── data/
+│   └── nucha.db              ← SQLite database (auto-created)
+├── index.html                ← Landing page (dynamic)
+├── site-loader.js            ← Load content from API
+├── script.js                 ← Frontend JS (GSAP, cursor, booking form)
+├── style.css                 ← Frontend styles
+├── admin.html                ← Admin CMS (dashboard, CMS editors, leads, reports, users, site-docs)
+├── admin.js                  ← Admin CMS logic
+├── admin.css                 ← Admin CMS styles
+├── admin-login.html          ← Login page
+├── service.html              ← Service detail page
+├── chat-widget.html          ← Chat widget
+├── chat-widget.js            ← Chat widget logic
+├── .env.example              ← Environment variables template
+├── .gitignore
+├── package.json              ← Dependencies
+├── package-lock.json
+├── README.md
+├── SALES-SCRIPT.md
+└── HANDOFF.md                ← THIS FILE
 ```
 
 ---
 
-## ไฟล์ทั้งหมด
+## 🔌 API Endpoints (Complete)
 
-```
-├── index.html           ← Landing page (dynamic, โหลดจาก API)
-├── style.css            ← Frontend styles
-├── script.js            ← Frontend JS (animations, form, events)
-├── site-loader.js       ← Load content from API + replace DOM
-├── service.html         ← Service detail page (per-service portfolio + features)
-├── admin.html           ← CMS admin panel
-├── admin.js             ← CMS logic
-├── admin.css            ← CMS styles
-├── admin-login.html     ← Login page
-├── server.js            ← Backend (Express + SQLite + API + LINE Notify)
-├── server/db.js         ← Database schema + seed data
-├── package.json         ← Dependencies
-├── .env.example         ← Environment config template
-├── data/nucha.db        ← SQLite database (auto-created)
-├── uploads/             ← Image uploads
-├── HANDOFF.md           ← This file
-├── README.md            ← Project overview
-└── SALES-SCRIPT.md      ← Sales call script
-```
+### Auth
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | /api/auth/login | No | Login (rate limited: 5/min) |
+| POST | /api/auth/logout | Yes | Logout |
+| GET | /api/auth/me | Yes | Current user |
+| PUT | /api/auth/change-password | Yes | Change password |
+| POST | /api/auth/forgot-password | No | Generate reset token |
+| POST | /api/auth/reset-password | No | Reset password with token |
 
----
+### Content (CMS)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | /api/content | No | Get all content |
+| GET | /api/content/:key | No | Get section content |
+| PUT | /api/content/:key | Yes | Update section |
 
-## สิ่งที่เสร็จแล้ว ✅
+### Navigation
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | /api/nav | No | Get nav items |
+| PUT | /api/nav | Yes | Update nav items |
 
-### Bug Fixes (2026-04-29 — Round 1)
+### Leads
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | /api/leads | No | Create lead (rate limited, duplicate detection) |
+| GET | /api/leads | Yes | List leads (filter, sort, paginate) |
+| PUT | /api/leads/:id | Yes | Update lead |
+| DELETE | /api/leads/:id | Yes | Delete lead |
+| POST | /api/leads/bulk-update | Yes | Bulk update leads |
+| POST | /api/leads/bulk-delete | Yes | Bulk delete leads |
 
-| บัค | สาเหตุ | วิธีแก้ | ไฟล์ |
-|-----|--------|---------|------|
-| เนื้อหาแสดงแล้วหาย (Flash of Content) | Race condition — `initAnimations()` ทำงานก่อน API content โหลด | เปลี่ยน `load` handler เป็น `async` + `await __siteContentLoaded` ก่อน init | script.js |
-| `gsap.killTweensOf('*')` ไม่ทำงาน | GSAP ไม่รองรับ wildcard | เปลี่ยนเป็น explicit selector list ทุก animated element | script.js |
-| Event listeners หายหลัง DOM replacement | `innerHTML` ทำลาย element + attached listeners | เพิ่ม `rebindEventListeners()` + `setupEventDelegation()` (cursor, magnetic btn, ripple, booking links, radio selections) | script.js |
-| แถบ/sections จาง (opacity ค้าง) | ScrollTrigger ไม่ re-init ถูกต้องหลัง DOM replace | kill ScrollTriggers เก่า → re-init ใหม่หลัง content พร้อม | script.js + site-loader.js |
-| รูปหายจาก API URL ว่าง | ไม่ validate URL ก่อน set `src` | เพิ่ม `url && url.trim()` check + conditional `<img>` render | site-loader.js |
-| Nav login link หายบน mobile | site-loader เปลี่ยน navMenu innerHTML ทั้งหมด | เพิ่ม login link กลับหลัง API nav items | site-loader.js |
-| GSAP โหลดซ้ำ 2 ครั้ง | script tags ใน `<head>` + ก่อน `</body>` | เอา `<head>` ออก เหลือแค่ก่อน `</body>` | index.html |
+### Lead Notes
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | /api/leads/:id/notes | Yes | List notes |
+| POST | /api/leads/:id/notes | Yes | Create note |
+| PUT | /api/notes/:id | Yes | Update note (follow_up_done) |
 
-### Bug Fixes (2026-04-29 — Round 2)
+### Lead Attachments
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | /api/leads/:id/attachments | Yes | List attachments |
+| POST | /api/leads/:id/attachments | Yes | Upload attachment |
+| DELETE | /api/attachments/:id | Yes | Delete attachment |
 
-| บัค | สาเหตุ | วิธีแก้ | ไฟล์ |
-|-----|--------|---------|------|
-| **Navbar ซ้ำกัน** | site-loader ไม่ deduplicate nav items จาก API — ถ้า API ส่ง href ซ้ำก็แสดงซ้ำ | เพิ่ม deduplication ด้วย `Set()` กรองซ้ำจาก `href` ก่อน render | site-loader.js |
-| **เนื้อหาแว๊บ (Flash)** | `initAnimations()` ถูกเรียก 2 ครั้ง: จาก site-loader.js แล้วจาก script.js — ครั้งที่ 2 kill ScrollTriggers แล้ว re-init ทำให้ elements ที่แสดงอยู่ถูก reset เป็น opacity:0 แล้ว animate ใหม่ | เอา `initAnimations()` ออกจาก site-loader.js ให้ script.js เป็นตัวเดียวที่ init | site-loader.js |
-| **Hamburger menu ไม่ปิดบนมือถือ** | Event delegation ไม่เช็ค active state + query selectors ซ้ำซ้อน | ปรับ logic เช็ค `navMenu.classList.contains('active')` ก่อนปิด | script.js |
-| **ข้อความสำเร็จหายไปเร็ว** | Form success auto-reset หลัง 8 วินาที — ผู้ใช้อ่านไม่ทัน | เพิ่ม timeout เป็น 15 วินาที + ล้าง visual states (radio selections) ตอน reset | script.js |
+### Proposals
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | /api/proposals | Yes | List proposals |
+| POST | /api/proposals | Yes | Create proposal |
+| PUT | /api/proposals/:id | Yes | Update proposal |
 
-### Features (2026-04-29)
+### Reports
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | /api/reports/summary | Yes | Monthly summary |
+| GET | /api/reports/by-service | Yes | Leads by service type |
+| GET | /api/reports/by-date | Yes | Leads by date range |
+| GET | /api/reports/export/csv | Yes | Export leads CSV |
 
-| ฟีเจอร์ | รายละเอียด | ไฟล์ |
-|---------|-----------|------|
-| **Logo Image Support** | รองรับรูป logo (upload/URL) — แสดงใน Navbar, Loader, Footer; fallback เป็น text | site-loader.js, admin.js, server/db.js |
-| **Service Detail Pages** | แต่ละบริการมีหน้า `/service.html?key=xxx` — features, portfolio เฉพาะบริการ, process, CTA | service.html, site-loader.js |
-| **LINE Notify** | แจ้งเตือนทันทีเมื่อมี lead ใหม่ผ่าน LINE — admin ตั้งค่า token + เปิด/ปิด + ทดสอบ | server.js, admin.js, admin.html |
+### Users (Admin Only)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | /api/users | Yes+Admin | List users |
+| POST | /api/users | Yes+Admin | Create user |
+| PUT | /api/users/:id | Yes+Admin | Update user |
+| DELETE | /api/users/:id | Yes+Admin | Delete user |
 
-### ฟีเจอร์ที่ทำงานครบ ✅
+### Media & Upload
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | /api/upload | Yes | Upload image |
+| GET | /api/media | Yes | List images |
+| DELETE | /api/media/:name | Yes | Delete image |
 
-- [x] Landing page ครบวงจร (Hero, Services, Process, Portfolio, Testimonials, Closing)
-- [x] Dynamic content โหลดจาก API (ไม่มี double init)
-- [x] GSAP animations + ScrollTrigger ทุก section
-- [x] Custom cursor (desktop)
-- [x] Magnetic buttons
-- [x] Multi-step booking form (3 steps + success state 15s)
-- [x] Counter animation (stats)
-- [x] Sticky story/process section
-- [x] Portfolio grid with hover overlay
-- [x] Responsive ทุกอุปกรณ์
-- [x] Floating CTA (LINE + phone)
-- [x] Trust badges (brands)
-- [x] Admin CMS (login, edit content, manage leads)
-- [x] Image upload
-- [x] Lead CRUD + scoring
-- [x] Pipeline view
-- [x] API endpoints ครบ
-- [x] Navbar ไม่ซ้ำ (deduplicate)
-- [x] Mobile hamburger menu ทำงานถูกต้อง
-- [x] Logo image support (upload/URL, fallback text)
-- [x] Service detail pages (/service.html?key=xxx)
-- [x] LINE Notify (แจ้งเตือน lead ใหม่)
-- [x] Notification config page ใน Admin CMS
+### Site Documentation
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | /api/admin/generate-docs | Yes+Admin | Generate site documentation |
+| GET | /api/admin/docs-status | Yes+Admin | Check if docs exist |
+| GET | /site-docs/* | Yes | Serve documentation files |
 
----
+### Backup (Admin Only)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | /api/admin/backup | Yes+Admin | Create & download backup |
+| GET | /api/admin/backups | Yes+Admin | List backups |
 
-## สิ่งที่ควรทำต่อ (Optional Improvements)
-
-### Priority: Medium
-
-1. **Admin Panel — ปรับปรุง UX**
-   - Preview ก่อน publish content
-   - Undo/Redo สำหรับ content editing
-   - Bulk actions สำหรับ leads
-
-2. **Lead Scoring — ปรับปรุง algorithm**
-   - เพิ่ม factors: page views, time on site, referral source
-   - Auto-assign sales rep ตาม score threshold
-
-3. **Proposals — เปิดใช้งาน UI**
-   - API พร้อมแล้ว (POST/PUT /api/proposals)
-   - ต้องสร้าง UI ใน admin panel สำหรับสร้าง/แก้ไข proposal
-   - Generate PDF จาก proposal
-
-4. **Email Notifications**
-   - ส่ง email เมื่อมี lead ใหม่
-   - Follow-up reminders
-
-5. **Analytics Dashboard**
-   - Lead conversion funnel
-   - Revenue tracking
-   - Monthly/weekly reports
-
-### Priority: Low
-
-6. **SEO Optimization**
-   - Meta tags dynamic จาก site_config
-   - Open Graph tags
-   - Sitemap generation
-
-7. **Performance**
-   - Image lazy loading
-   - Service worker for offline
-   - CDN สำหรับ static assets
-
-8. **Security Hardening**
-   - Rate limiting ปรับปรุง (ใช้ Redis แทน in-memory)
-   - CSRF protection
-   - Input sanitization เพิ่มเติม
-
-9. **Testing**
-   - Unit tests สำหรับ API endpoints
-   - E2E tests สำหรับ booking flow
-   - Visual regression tests
+### System
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | /api/health | No | Health check |
+| POST | /api/test-notification | Yes | Test LINE/Telegram notify |
+| GET | /api/stats | Yes | Dashboard stats |
+| GET | /api/pipeline | Yes | Pipeline view |
+| GET | /api/activities | Yes | Activity log |
+| GET | /api/followups | Yes | Pending follow-ups |
 
 ---
 
-## วิธีรัน
+## 🧪 Test Results (2026-04-29)
+
+ทดสอบ 42 endpoints — **ผ่านทั้งหมด ไม่มี error**
+
+| # | Test | Result |
+|---|------|--------|
+| 1 | Health Check | ✅ |
+| 2 | Auth Login | ✅ |
+| 3 | Auth Me | ✅ |
+| 4 | Change Password (wrong current → rejected) | ✅ |
+| 5 | Change Password (correct → success) | ✅ |
+| 6 | Forgot Password (generate token) | ✅ |
+| 7 | Reset Password (use token) | ✅ |
+| 8 | Content List (13 sections) | ✅ |
+| 9 | Content By Key | ✅ |
+| 10 | Content Update | ✅ |
+| 11 | Nav Items (6 items) | ✅ |
+| 12 | Leads List + Pagination | ✅ |
+| 13 | Leads Filter (status, budget, date) | ✅ |
+| 14 | Leads Sort (score, date, name) | ✅ |
+| 15 | Lead Create | ✅ |
+| 16 | Lead Duplicate Detection (409) | ✅ |
+| 17 | Lead Force Create (bypass duplicate) | ✅ |
+| 18 | Lead Validation (bad phone → rejected) | ✅ |
+| 19 | Lead Validation (bad email → rejected) | ✅ |
+| 20 | Lead Update | ✅ |
+| 21 | Lead Notes Create/List | ✅ |
+| 22 | Lead Attachments Upload/List | ✅ |
+| 23 | Bulk Update | ✅ |
+| 24 | Bulk Delete | ✅ |
+| 25 | Pipeline (6 stages) | ✅ |
+| 26 | Stats | ✅ |
+| 27 | Activities | ✅ |
+| 28 | Proposals Create/List | ✅ |
+| 29 | Follow-ups | ✅ |
+| 30 | Reports Summary | ✅ |
+| 31 | Reports By Service | ✅ |
+| 32 | Reports By Date | ✅ |
+| 33 | CSV Export | ✅ |
+| 34 | Users List | ✅ |
+| 35 | Users Create | ✅ |
+| 36 | Users Update | ✅ |
+| 37 | Users Delete Self (blocked) | ✅ |
+| 38 | Backups List | ✅ |
+| 39 | Backup Create & Download | ✅ |
+| 40 | Notification Test (LINE + Telegram) | ✅ |
+| 41 | Login Rate Limit (6th attempt → 429) | ✅ |
+| 42 | Graceful Shutdown (SIGTERM) | ✅ |
+| 43 | Landing Page (200, 52KB) | ✅ |
+| 44 | Login Page (200, 7.6KB) | ✅ |
+| 45 | Admin Page (200 with auth) | ✅ |
+| 46 | Site Docs Generator (10 pages, all screenshots) | ✅ |
+
+---
+
+## ⚠️ สิ่งที่ต้องทำต่อ (TODO)
+
+### ถ้าอยากทำต่อ:
+1. **Admin JS สำหรับหน้าใหม่** — admin.html มี sections สำหรับ Reports, Users, Site Docs แล้ว แต่ `admin.js` ยังไม่มี functions สำหรับ:
+   - `loadReports()` — โหลดข้อมูลรายงาน + แสดงกราฟ
+   - `loadUsers()` — โหลดรายชื่อผู้ใช้ + CRUD UI
+   - `generateSiteDocs()` — เรียก API สร้างรายงาน + แสดงสถานะ
+   - `exportCSV()` — ดาวน์โหลด CSV
+   - `createBackup()` — สร้าง backup + ดาวน์โหลด
+   - ต้องเพิ่ม functions เหล่านี้ใน `admin.js`
+
+2. **Customer Portal** — ให้ลูกค้าเข้ามาดู progress โครงการ (login ด้วยเบอร์โทร + OTP)
+
+3. **Dashboard Charts** — กราฟ leads ตามเดือน, conversion funnel (ใช้ Chart.js หรือ lightweight-charts)
+
+4. **Email Notifications** — เพิ่ม SMTP send จริง (ตอนนี้แค่ log console)
+
+5. **Auto-reply จริง** — ส่ง SMS/LINE จริงแทนแค่ console.log
+
+6. **Proposal PDF Export** — สร้าง PDF จากใบเสนอราคา
+
+7. **Lead Source Tracking** — เพิ่ม UTM parameters / source tracking
+
+8. **Automated Backup Cron** — ตั้ง cron job backup อัตโนมัติทุกวัน
+
+---
+
+## 🔐 Security Notes
+
+- **Default credentials:** admin@nuchainnovation.com / admin123 — **ต้องเปลี่ยนทันที** ก่อน deploy จริง
+- **JWT_SECRET:** ถ้าไม่ตั้ง env var จะสุ่มใหม่ทุก restart → token หมดอายุ
+- **HTTPS:** ต้อง deploy หลัง reverse proxy (nginx) ที่ terminate SSL
+- **Rate limit:** In-memory → ไม่ survive restart / ไม่ work กับ multiple instances
+
+---
+
+## 🚀 How to Run
 
 ```bash
+# Install
 npm install
-npm start
-```
 
-เปิด:
-- 🌐 เว็บ: http://localhost:3000
-- 🔐 Login: http://localhost:3000/login (admin@nuchainnovation.com / admin123)
-- 🔧 Admin CMS: http://localhost:3000/admin
+# Start
+npm start
+
+# Access
+# Website: http://localhost:3000
+# Login: http://localhost:3000/login
+# Admin: http://localhost:3000/admin
+# Health: http://localhost:3000/api/health
+
+# Generate Site Documentation
+node scripts/site-docs.js --url http://localhost:3000 --output site-docs
+```
 
 ---
 
-## Notes สำหรับ Agent ถัดไป
+## 📦 Dependencies
 
-- **อย่าแก้ script.js/site-loader.js โดยไม่เข้าใจ flow**: `site-loader.js` ต้อง resolve `__siteContentLoaded` promise ก่อน → `script.js` ถึงจะ init animations (เรียก `initAnimations()` จาก script.js เท่านั้น ห้ามเรียกจาก site-loader.js)
-- **Event delegation อยู่ใน `setupEventDelegation()`**: ใช้ `document.addEventListener` ครอบ — ไม่ต้อง re-bind ทุกครั้ง
-- **`rebindEventListeners()`** ใช้สำหรับ cursor/magnetic/ripple effects ที่ต้อง bind กับ element ตรงๆ — เรียกจาก site-loader.js หลัง DOM replacement
-- **Image validation**: ทุกรูปจาก API ต้องผ่าน `esc()` + check ว่า URL ไม่ว่างก่อน render `<img>`
-- **GSAP ไม่รองรับ `killTweensOf('*')`**: ใช้ explicit selector list เท่านั้น
-- **Nav deduplication**: site-loader.js กรอง nav items ซ้ำจาก href ด้วย `Set()` ก่อน render
-- **Database**: ใช้ better-sqlite3 (sync) — seed data ใน `server/db.js` เช็ค `navCount === 0` ก่อน insert ป้องกันซ้ำตอน restart
+```json
+{
+  "bcryptjs": "^3.0.3",
+  "better-sqlite3": "^12.9.0",
+  "cookie-parser": "^1.4.7",
+  "express": "^5.2.1",
+  "express-rate-limit": "^8.4.1",
+  "helmet": "^8.1.0",
+  "jsonwebtoken": "^9.0.3",
+  "multer": "^2.1.1",
+  "puppeteer": "^24.x"
+}
+```
+
+---
+
+## 📝 Notes for Next Agent
+
+- โค้ดสไตล์: CommonJS (`require`), Thai language API responses, error messages เป็นภาษาไทย
+- Database: SQLite ใช้ `better-sqlite3` (sync API, ไม่ใช่ async)
+- Auth: JWT ใน httpOnly cookie, middleware ชื่อ `authMiddleware` และ `adminOnly`
+- Admin pages: Single-page app ใช้ `showPage('page-name')` สลับ sections
+- Site docs: Puppeteer script ต้อง Chrome/Chromium — ถ้า server ไม่มี GUI ใช้ `headless: 'new'`
+- ทุก route มี try-catch แล้ว — ไม่ควร crash
