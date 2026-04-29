@@ -120,14 +120,14 @@ function rebindEventListeners() {
 
 // ===== Event delegation for dynamic elements =====
 function setupEventDelegation() {
-    // Close mobile menu when clicking nav links
+    // Close mobile menu when clicking nav links (including dynamically loaded ones)
     document.addEventListener('click', (e) => {
         const navLink = e.target.closest('.nav-menu a');
-        if (navLink) {
-            const hamburger = document.getElementById('hamburger');
-            const navMenu = document.getElementById('navMenu');
+        const hamburger = document.getElementById('hamburger');
+        const navMenu = document.getElementById('navMenu');
+        if (navLink && navMenu && navMenu.classList.contains('active')) {
             if (hamburger) hamburger.classList.remove('active');
-            if (navMenu) navMenu.classList.remove('active');
+            navMenu.classList.remove('active');
         }
     });
 
@@ -358,12 +358,14 @@ if (bookingForm) {
             const successEl = document.getElementById('formSuccess');
             successEl.classList.add('active');
 
-            // Reset form after delay
+            // Reset form after a generous delay so user can read the success message
             setTimeout(() => {
                 bookingForm.reset();
+                // Remove selected visual states
+                document.querySelectorAll('.service-option-card, .budget-tag, .meeting-option-card').forEach(c => c.classList.remove('selected'));
                 successEl.classList.remove('active');
                 goToStep(1);
-            }, 8000);
+            }, 15000);
 
         } catch (err) {
             console.error('Booking error:', err);

@@ -18,9 +18,16 @@
       // ===== NAV =====
       const navMenu = document.getElementById('navMenu');
       if (navMenu && navRes.length > 0) {
+        // Deduplicate nav items by href to prevent duplicate menu entries
+        const seen = new Set();
+        const uniqueNav = navRes.filter(n => {
+          if (!n.is_visible) return false;
+          if (seen.has(n.href)) return false;
+          seen.add(n.href);
+          return true;
+        });
         // Preserve login link for mobile — add it back after API nav items
-        navMenu.innerHTML = navRes
-          .filter(n => n.is_visible)
+        navMenu.innerHTML = uniqueNav
           .map(n => {
             const safeHref = esc(n.href);
             const safeLabel = esc(n.label);
@@ -364,25 +371,15 @@
         if (el) el.innerHTML = footer.legal_links.map(l => `<a href="${esc(l.href)}">${esc(l.label)}</a>`).join('');
       }
 
-      // ===== Re-init GSAP animations if available =====
-      if (typeof gsap !== 'undefined' && typeof initAnimations === 'function') {
-        if (typeof ScrollTrigger !== 'undefined') {
-          ScrollTrigger.getAll().forEach(t => t.kill());
-        }
-        // Small delay to ensure DOM is settled
-        await new Promise(r => setTimeout(r, 50));
-        initAnimations();
-        // Re-bind event listeners for dynamically replaced elements
-        if (typeof rebindEventListeners === 'function') {
-          rebindEventListeners();
-        }
-      }
-
     } catch (err) {
       console.warn('Site content load failed, using defaults:', err);
     }
 
-    // Signal completion
+    // Signal completion — script.js will handle initAnimations() after this resolves
+    // Re-bind event listeners for dynamically replaced elements (cursor, magnetic, ripple)
+    if (typeof rebindEventListeners === 'function') {
+      rebindEventListeners();
+    }
     _resolve();
   })();
 })();
