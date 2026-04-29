@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NUCHA Chat</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --red: #D60000; --red-dark: #B00000; --red-soft: #FFF0F0;
+            --white: #FFFFFF; --off-white: #FAFAFA;
+            --gray-50: #F7F5F4; --gray-100: #F0EDEB; --gray-200: #E4E0DE;
+            --gray-300: #C8C2BF; --gray-400: #9B9593; --gray-500: #6E6866; --gray-600: #4A4543;
+            --font: 'Noto Sans Thai', 'Inter', sans-serif;
+            --shadow: 0 12px 40px rgba(0,0,0,0.15);
+        }
+        body { font-family: var(--font); }
+
+        /* Chat Widget */
+        .chat-widget {
+            position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+            font-family: var(--font);
+        }
+        .chat-trigger {
+            width: 60px; height: 60px; border-radius: 50%;
+            background: var(--red); color: var(--white);
+            border: none; cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+            box-shadow: 0 4px 20px rgba(214,0,0,0.35);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .chat-trigger:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(214,0,0,0.45); }
+        .chat-trigger svg { width: 28px; height: 28px; }
+        .chat-trigger .chat-close { display: none; }
+        .chat-trigger.active .chat-icon { display: none; }
+        .chat-trigger.active .chat-close { display: block; }
+        .chat-trigger .badge {
+            position: absolute; top: -4px; right: -4px;
+            width: 20px; height: 20px; background: #FFB800;
+            border-radius: 50%; font-size: 0.65rem; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--gray-600); border: 2px solid var(--white);
+            animation: badgePulse 2s ease-in-out infinite;
+        }
+        @keyframes badgePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        /* Chat Panel */
+        .chat-panel {
+            position: absolute; bottom: 72px; right: 0;
+            width: 380px; max-height: 520px;
+            background: var(--white);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+            animation: chatSlideUp 0.3s ease;
+        }
+        .chat-panel.open { display: flex; }
+        @keyframes chatSlideUp {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Chat Header */
+        .chat-header {
+            background: var(--red);
+            color: var(--white);
+            padding: 18px 20px;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .chat-header-avatar {
+            width: 40px; height: 40px; background: rgba(255,255,255,0.2);
+            border-radius: 12px; display: flex; align-items: center;
+            justify-content: center; font-weight: 900; font-size: 1.1rem;
+        }
+        .chat-header-info h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 2px; }
+        .chat-header-info p { font-size: 0.75rem; opacity: 0.8; }
+        .chat-header-status {
+            width: 8px; height: 8px; background: #4ADE80;
+            border-radius: 50%; display: inline-block;
+            margin-right: 4px; animation: statusBlink 2s infinite;
+        }
+        @keyframes statusBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Chat Body */
+        .chat-body {
+            flex: 1; overflow-y: auto; padding: 16px;
+            display: flex; flex-direction: column; gap: 12px;
+            max-height: 340px; min-height: 280px;
+            background: var(--gray-50);
+        }
+        .chat-body::-webkit-scrollbar { width: 4px; }
+        .chat-body::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 2px; }
+
+        /* Messages */
+        .msg {
+            max-width: 85%; padding: 10px 14px;
+            border-radius: 16px; font-size: 0.88rem;
+            line-height: 1.6; animation: msgIn 0.3s ease;
+        }
+        @keyframes msgIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .msg.bot {
+            background: var(--white);
+            color: var(--gray-600);
+            border: 1px solid var(--gray-200);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .msg.user {
+            background: var(--red);
+            color: var(--white);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .msg-time {
+            font-size: 0.65rem; color: var(--gray-400);
+            margin-top: 4px; text-align: right;
+        }
+        .msg.bot .msg-time { text-align: left; color: var(--gray-300); }
+
+        /* Typing indicator */
+        .typing {
+            display: flex; gap: 4px; padding: 10px 14px;
+            background: var(--white); border: 1px solid var(--gray-200);
+            border-radius: 16px; border-bottom-left-radius: 4px;
+            align-self: flex-start; max-width: 60px;
+        }
+        .typing span {
+            width: 7px; height: 7px; background: var(--gray-300);
+            border-radius: 50%; animation: typingDot 1.2s infinite;
+        }
+        .typing span:nth-child(2) { animation-delay: 0.2s; }
+        .typing span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingDot {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-6px); opacity: 1; }
+        }
+
+        /* Quick Replies */
+        .quick-replies {
+            display: flex; flex-wrap: wrap; gap: 8px;
+            padding: 4px 0;
+        }
+        .quick-reply {
+            padding: 8px 16px; background: var(--white);
+            border: 2px solid var(--red); color: var(--red);
+            border-radius: 50px; font-size: 0.82rem; font-weight: 600;
+            cursor: pointer; transition: all 0.3s ease;
+            font-family: var(--font);
+        }
+        .quick-reply:hover {
+            background: var(--red); color: var(--white);
+        }
+
+        /* Chat Input */
+        .chat-input {
+            padding: 12px 16px;
+            background: var(--white);
+            border-top: 1px solid var(--gray-100);
+            display: flex; gap: 8px; align-items: center;
+        }
+        .chat-input input {
+            flex: 1; padding: 10px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: 50px; font-size: 0.88rem;
+            font-family: var(--font); color: var(--gray-600);
+            outline: none; transition: border-color 0.3s;
+        }
+        .chat-input input:focus { border-color: var(--red); }
+        .chat-input input::placeholder { color: var(--gray-300); }
+        .chat-send {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--red); color: var(--white);
+            border: none; cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+            transition: all 0.3s; flex-shrink: 0;
+        }
+        .chat-send:hover { background: var(--red-dark); transform: scale(1.05); }
+        .chat-send:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .chat-send svg { width: 18px; height: 18px; }
+
+        /* Contact Form */
+        .chat-form {
+            padding: 16px; background: var(--white);
+            border-top: 1px solid var(--gray-100);
+            display: none;
+        }
+        .chat-form.show { display: block; }
+        .chat-form h4 {
+            font-size: 0.9rem; font-weight: 700;
+            color: var(--gray-600); margin-bottom: 12px;
+        }
+        .chat-form input, .chat-form select {
+            width: 100%; padding: 10px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: 10px; font-size: 0.85rem;
+            font-family: var(--font); color: var(--gray-600);
+            margin-bottom: 8px; outline: none;
+            transition: border-color 0.3s;
+        }
+        .chat-form input:focus, .chat-form select:focus { border-color: var(--red); }
+        .chat-form-btn {
+            width: 100%; padding: 12px;
+            background: var(--red); color: var(--white);
+            border: none; border-radius: 50px;
+            font-size: 0.9rem; font-weight: 700;
+            font-family: var(--font); cursor: pointer;
+            transition: all 0.3s;
+        }
+        .chat-form-btn:hover { background: var(--red-dark); }
+        .chat-form-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Powered by */
+        .chat-powered {
+            text-align: center; padding: 6px;
+            font-size: 0.65rem; color: var(--gray-300);
+            background: var(--white);
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .chat-panel {
+                width: calc(100vw - 32px);
+                right: -8px;
+                max-height: 70vh;
+            }
+            .chat-widget { bottom: 16px; right: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-widget" id="chatWidget">
+        <div class="chat-panel" id="chatPanel">
+            <div class="chat-header">
+                <div class="chat-header-avatar">N</div>
+                <div class="chat-header-info">
+                    <h3>NUCHA INNOVATION</h3>
+                    <p><span class="chat-header-status"></span>ออนไลน์ — ตอบกลับทันที</p>
+                </div>
+            </div>
+
+            <div class="chat-body" id="chatBody">
+                <!-- Messages loaded dynamically -->
+            </div>
+
+            <div class="chat-form" id="chatForm">
+                <h4>📝 กรอกข้อมูลติดต่อ</h4>
+                <input type="text" id="chatName" placeholder="ชื่อ-นามสกุล">
+                <input type="tel" id="chatPhone" placeholder="เบอร์โทรศัพท์">
+                <select id="chatService">
+                    <option value="">เลือกบริการที่สนใจ</option>
+                    <option value="รับเหมาก่อสร้าง">🏗️ รับเหมาก่อสร้าง</option>
+                    <option value="บิ้วอิน">🪑 บิ้วอิน</option>
+                    <option value="ออกแบบ">✏️ ออกแบบ</option>
+                    <option value="ตกแต่ง">🎨 ตกแต่ง</option>
+                    <option value="บริหารงานขายโครงการ">📋 บริหารโครงการ</option>
+                    <option value="อื่นๆ">💬 อื่นๆ</option>
+                </select>
+                <button class="chat-form-btn" id="chatFormBtn" onclick="submitChatLead()">ส่งข้อมูล</button>
+            </div>
+
+            <div class="chat-input" id="chatInputArea">
+                <input type="text" id="chatInput" placeholder="พิมพ์ข้อความ..." autocomplete="off">
+                <button class="chat-send" id="chatSend" onclick="sendMessage()">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+            </div>
+
+            <div class="chat-powered">Powered by NUCHA CRM</div>
+        </div>
+
+        <button class="chat-trigger" id="chatTrigger" onclick="toggleChat()">
+            <svg class="chat-icon" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg class="chat-close" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="badge" id="chatBadge">1</span>
+        </button>
+    </div>
+
+    <script>
+    // ===== Chat Bot State =====
+    const state = {
+        open: false,
+        step: 'welcome', // welcome, menu, faq, contact, done
+        leadData: {},
+        messageHistory: []
+    };
+
+    // ===== FAQ Database =====
+    const faqs = {
+        'services': {
+            question: 'มีบริการอะไรบ้าง?',
+            answer: 'เรามีบริการ 5 อย่าง:\n\n🏗️ รับเหมาก่อสร้าง\n🪑 บิ้วอิน\n✏️ ออกแบบ\n🎨 ตกแต่ง\n📋 บริหารโครงการ\n\nสนใจบริการไหนครับ?',
+            followUp: ['ดูรายละเอียดแต่ละบริการ', 'ขอใบเสนอราคา']
+        },
+        'price': {
+            question: 'ราคาเท่าไหร่?',
+            answer: 'ราคาขึ้นอยู่กับขนาดและประเภทโครงการ:\n\n🏠 บ้าน: เริ่มต้น 500,000 บ.\n🪑 บิ้วอิน: เริ่มต้น 200,000 บ.\n✏️ ออกแบบ: เริ่มต้น 100,000 บ.\n🎨 ตกแต่ง: เริ่มต้น 150,000 บ.\n\n💡 ปรึกษาฟรี ไม่มีค่าใช้จ่าย!',
+            followUp: ['จองคิวปรึกษาฟรี', 'ดูผลงาน']
+        },
+        'booking': {
+            question: 'จองคิวอย่างไร?',
+            answer: 'จองคิวง่ายๆ 3 ขั้นตอน:\n\n1️⃣ เลือกบริการที่สนใจ\n2️⃣ กรอกชื่อ-เบอร์โทร\n3️⃣ เลือกวัน-เวลาสะดวก\n\nทีมงานจะติดต่อกลับภายใน 24 ชม. ครับ',
+            followUp: ['จองคิวเลย', 'ดูบริการ']
+        },
+        'works': {
+            question: 'ดูผลงาน',
+            answer: 'ดูผลงานของเราได้ที่หน้าเว็บเลยครับ มีทั้งบ้านโมเดิร์น คอนโด ลักชัวรี่ และโครงการรีโนเวท\n\n🌐 ดูผลงานทั้งหมด',
+            followUp: ['ขอใบเสนอราคา', 'จองคิวปรึกษาฟรี']
+        },
+        'warranty': {
+            question: 'รับประกันอย่างไร?',
+            answer: 'เรารับประกัน:\n\n🛡️ โครงสร้าง — ทั้งโครงการ\n✅ ส่งมอบตรงเวลา — ไม่เลื่อน ไม่บวกราคา\n❤️ ดูแลหลังส่งมอบ — ทีม Service ตลอดอายุใช้งาน',
+            followUp: ['จองคิวปรึกษาฟรี', 'มีบริการอะไรบ้าง?']
+        },
+        'contact': {
+            question: 'ติดต่ออย่างไร?',
+            answer: '📞 โทร: 02-123-4567\n📱 LINE: @nuchainnovation\n📧 Email: info@nuchainnovation.com\n\n⏰ เปิดทำการ: จันทร์-เสาร์ 09:00-18:00',
+            followUp: ['จองคิวปรึกษาฟรี', 'ดูบริการ']
+        },
+        'duration': {
+            question: 'ใช้เวลานานแค่ไหน?',
+            answer: 'ระยะเวลาขึ้นอยู่กับขนาดโครงการ:\n\n🏠 บ้าน 2 ชั้น: 6-10 เดือน\n🪑 บิ้วอิน: 2-4 สัปดาห์\n✏️ ออกแบบ: 2-4 สัปดาห์\n🎨 ตกแต่ง: 1-3 เดือน\n\nจะแจ้งไทม์ไลน์ที่ชัดเจนหลังสำรวจหน้างานครับ',
+            followUp: ['จองคิวปรึกษาฟรี', 'ราคาเท่าไหร่?']
+        }
+    };
+
+    // ===== Init =====
+    function init() {
+        addBotMessage('สวัสดีครับ! 👋 ผมผู้ช่วย NUCHA INNOVATION', 300);
+        addBotMessage('มีอะไรให้ช่วยครับ? เลือกหัวข้อด้านล่างได้เลย', 800);
+        setTimeout(() => showMainMenu(), 1200);
+    }
+
+    // ===== Toggle Chat =====
+    function toggleChat() {
+        state.open = !state.open;
+        const panel = document.getElementById('chatPanel');
+        const trigger = document.getElementById('chatTrigger');
+        const badge = document.getElementById('chatBadge');
+
+        if (state.open) {
+            panel.classList.add('open');
+            trigger.classList.add('active');
+            badge.style.display = 'none';
+            if (state.messageHistory.length === 0) init();
+        } else {
+            panel.classList.remove('open');
+            trigger.classList.remove('active');
+        }
+    }
+
+    // ===== Add Messages =====
+    function addBotMessage(text, delay = 0) {
+        setTimeout(() => {
+            showTyping();
+            setTimeout(() => {
+                removeTyping();
+                const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'msg bot';
+                msgDiv.innerHTML = text.replace(/\n/g, '<br>') + `<div class="msg-time">${time}</div>`;
+                document.getElementById('chatBody').appendChild(msgDiv);
+                state.messageHistory.push({ role: 'bot', text });
+                scrollBottom();
+            }, 600 + Math.random() * 400);
+        }, delay);
+    }
+
+    function addUserMessage(text) {
+        const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'msg user';
+        msgDiv.innerHTML = text + `<div class="msg-time">${time}</div>`;
+        document.getElementById('chatBody').appendChild(msgDiv);
+        state.messageHistory.push({ role: 'user', text });
+        scrollBottom();
+    }
+
+    function showTyping() {
+        const existing = document.querySelector('.typing');
+        if (existing) return;
+        const typing = document.createElement('div');
+        typing.className = 'typing';
+        typing.innerHTML = '<span></span><span></span><span></span>';
+        document.getElementById('chatBody').appendChild(typing);
+        scrollBottom();
+    }
+
+    function removeTyping() {
+        const typing = document.querySelector('.typing');
+        if (typing) typing.remove();
+    }
+
+    function addQuickReplies(options) {
+        const container = document.createElement('div');
+        container.className = 'quick-replies';
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'quick-reply';
+            btn.textContent = opt;
+            btn.onclick = () => handleQuickReply(opt);
+            container.appendChild(btn);
+        });
+        document.getElementById('chatBody').appendChild(container);
+        scrollBottom();
+    }
+
+    function scrollBottom() {
+        const body = document.getElementById('chatBody');
+        setTimeout(() => { body.scrollTop = body.scrollHeight; }, 50);
+    }
+
+    // ===== Quick Reply Handler =====
+    function handleQuickReply(text) {
+        // Remove all quick reply buttons
+        document.querySelectorAll('.quick-replies').forEach(el => el.remove());
+        addUserMessage(text);
+
+        if (text === 'มีบริการอะไรบ้าง?') {
+            state.step = 'faq';
+            addBotMessage(faqs.services.answer, 200);
+            setTimeout(() => addQuickReplies(faqs.services.followUp), 1200);
+        }
+        else if (text === 'ราคาเท่าไหร่?') {
+            state.step = 'faq';
+            addBotMessage(faqs.price.answer, 200);
+            setTimeout(() => addQuickReplies(faqs.price.followUp), 1200);
+        }
+        else if (text === 'จองคิวอย่างไร?') {
+            state.step = 'faq';
+            addBotMessage(faqs.booking.answer, 200);
+            setTimeout(() => addQuickReplies(faqs.booking.followUp), 1200);
+        }
+        else if (text === 'ดูผลงาน') {
+            state.step = 'faq';
+            addBotMessage(faqs.works.answer, 200);
+            setTimeout(() => addQuickReplies(faqs.works.followUp), 1200);
+        }
+        else if (text === 'รับประกันอย่างไร?') {
+            state.step = 'faq';
+            addBotMessage(faqs.warranty.answer, 200);
+            setTimeout(() => addQuickReplies(faqs.warranty.followUp), 1200);
+        }
+        else if (text === 'ติดต่ออย่างไร?') {
+            state.step = 'faq';
+            addBotMessage(faqs.contact.answer, 200);
+            setTimeout(() => addQuickReplies(faqs.contact.followUp), 1200);
+        }
+        else if (text === 'ใช้เวลานานแค่ไหน?') {
+            state.step = 'faq';
+            addBotMessage(faqs.duration.answer, 200);
+            setTimeout(() => addQuickReplies(faqs.duration.followUp), 1200);
+        }
+        else if (text === 'จองคิวปรึกษาฟรี' || text === 'จองคิวเลย' || text === 'ขอใบเสนอราคา') {
+            state.step = 'contact';
+            addBotMessage('กรอกข้อมูลด้านล่างเลยครับ ทีมงานจะติดต่อกลับภายใน 24 ชม. 📞', 200);
+            setTimeout(() => showContactForm(), 800);
+        }
+        else if (text === 'ดูรายละเอียดแต่ละบริการ') {
+            addBotMessage('เลือกบริการที่สนใจได้เลยครับ 👇', 200);
+            setTimeout(() => addQuickReplies(['🏗️ รับเหมาก่อสร้าง', '🪑 บิ้วอิน', '✏️ ออกแบบ', '🎨 ตกแต่ง', '📋 บริหารโครงการ']), 800);
+        }
+        else if (text.startsWith('🏗️') || text.startsWith('🪑') || text.startsWith('✏️') || text.startsWith('🎨') || text.startsWith('📋')) {
+            const keyMap = { '🏗️': 'construction', '🪑': 'builtin', '✏️': 'design', '🎨': 'decoration', '📋': 'project-management' };
+            const emoji = text.charAt(0);
+            const key = keyMap[emoji];
+            if (key) {
+                addBotMessage(`ดูรายละเอียดบริการ ${text} ได้ที่หน้าเว็บเลยครับ 👇`, 200);
+                setTimeout(() => {
+                    const link = document.createElement('div');
+                    link.className = 'quick-replies';
+                    link.innerHTML = `<a href="/service.html?key=${key}" target="_blank" class="quick-reply" style="text-decoration:none">🔗 ดูหน้าบริการ</a><button class="quick-reply" onclick="handleQuickReply('จองคิวเลย')">📅 จองคิวเลย</button>`;
+                    document.getElementById('chatBody').appendChild(link);
+                    scrollBottom();
+                }, 800);
+            }
+        }
+        else if (text === 'ดูบริการ') {
+            showMainMenu();
+        }
+        else {
+            addBotMessage('ขอบคุณครับ มีอะไรให้ช่วยเพิ่มเติมมั้ยครับ?', 200);
+            setTimeout(() => addQuickReplies(['มีบริการอะไรบ้าง?', 'ราคาเท่าไหร่?', 'จองคิวเลย']), 800);
+        }
+    }
+
+    // ===== Main Menu =====
+    function showMainMenu() {
+        addQuickReplies(['มีบริการอะไรบ้าง?', 'ราคาเท่าไหร่?', 'จองคิวเลย', 'ดูผลงาน', 'รับประกันอย่างไร?', 'ติดต่ออย่างไร?']);
+    }
+
+    // ===== Contact Form =====
+    function showContactForm() {
+        const form = document.getElementById('chatForm');
+        form.classList.add('show');
+        document.getElementById('chatInputArea').style.display = 'none';
+        scrollBottom();
+    }
+
+    async function submitChatLead() {
+        const name = document.getElementById('chatName').value.trim();
+        const phone = document.getElementById('chatPhone').value.trim();
+        const service = document.getElementById('chatService').value;
+
+        if (!name || !phone) {
+            alert('กรุณากรอกชื่อและเบอร์โทร');
+            return;
+        }
+
+        const btn = document.getElementById('chatFormBtn');
+        btn.disabled = true;
+        btn.textContent = 'กำลังส่ง...';
+
+        try {
+            const res = await fetch('/api/leads', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name,
+                    phone,
+                    service_type: service || 'อื่นๆ',
+                    message: 'ส่งจาก Chat Bot',
+                    budget_range: 'ไม่ระบุ'
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+
+            // Hide form
+            document.getElementById('chatForm').classList.remove('show');
+            document.getElementById('chatInputArea').style.display = 'flex';
+
+            addBotMessage(`ขอบคุณครับคุณ ${name}! 🙏`, 200);
+            addBotMessage('ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมงครับ', 800);
+            state.step = 'done';
+
+            // Show follow-up options after a delay
+            setTimeout(() => {
+                addQuickReplies(['ดูบริการ', 'ดูผลงาน']);
+            }, 1800);
+
+        } catch (err) {
+            alert('เกิดข้อผิดพลาด: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'ส่งข้อมูล';
+        }
+    }
+
+    // ===== Text Input =====
+    function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = '';
+
+        document.querySelectorAll('.quick-replies').forEach(el => el.remove());
+        addUserMessage(text);
+
+        // Simple keyword matching
+        const lower = text.toLowerCase();
+        if (lower.includes('บริการ') || lower.includes('service')) {
+            handleQuickReply('มีบริการอะไรบ้าง?');
+        } else if (lower.includes('ราคา') || lower.includes('price') || lower.includes('เท่าไหร่') || lower.includes('cost')) {
+            handleQuickReply('ราคาเท่าไหร่?');
+        } else if (lower.includes('จอง') || lower.includes('นัด') || lower.includes('book') || lower.includes('ปรึกษา')) {
+            handleQuickReply('จองคิวเลย');
+        } else if (lower.includes('ผลงาน') || lower.includes('portfolio') || lower.includes('งาน')) {
+            handleQuickReply('ดูผลงาน');
+        } else if (lower.includes('รับประกัน') || lower.includes('warranty') || lower.includes('การันตี')) {
+            handleQuickReply('รับประกันอย่างไร?');
+        } else if (lower.includes('ติดต่อ') || lower.includes('contact') || lower.includes('โทร') || lower.includes('line')) {
+            handleQuickReply('ติดต่ออย่างไร?');
+        } else if (lower.includes('นาน') || lower.includes('เวลา') || lower.includes('duration') || lower.includes('กี่วัน')) {
+            handleQuickReply('ใช้เวลานานแค่ไหน?');
+        } else {
+            addBotMessage('ขอบคุณครับ ผมช่วยเรื่องไหนได้บ้าง?', 200);
+            setTimeout(() => addQuickReplies(['มีบริการอะไรบ้าง?', 'ราคาเท่าไหร่?', 'จองคิวเลย']), 800);
+        }
+    }
+
+    // ===== Event Listeners =====
+    document.getElementById('chatInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    // Auto-open after 5 seconds if not opened
+    setTimeout(() => {
+        if (!state.open) {
+            const badge = document.getElementById('chatBadge');
+            if (badge) badge.style.display = 'flex';
+        }
+    }, 5000);
+    </script>
+</body>
+</html>
