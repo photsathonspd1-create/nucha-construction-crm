@@ -3,7 +3,7 @@
 > **Last Updated:** 2026-04-30 00:10 (GMT+8)
 > **Updated By:** OpenClaw AI Agent (site-docs rewrite session)
 > **Branch:** main
-> **Latest Commit:** `fea0c56` — feat: comprehensive chatbot with 18 FAQ topics
+> **Latest Commit:** `aaedc70` — feat: rewrite site-report.html — Thai fonts, admin dedup, PDF export
 > **Status:** ✅ All features implemented, site-docs report fully rewritten
 
 ---
