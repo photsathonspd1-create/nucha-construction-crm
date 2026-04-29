@@ -1,9 +1,10 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> **Last Updated:** 2026-04-29 22:44 (GMT+8)
-> **Updated By:** OpenClaw AI Agent
+> **Last Updated:** 2026-04-29 23:08 (GMT+8)
+> **Updated By:** OpenClaw AI Agent (bug fix session)
 > **Branch:** main
-> **Status:** ✅ All features implemented & tested
+> **Latest Commit:** `484b5d5` — fix: resolve 9 bugs
+> **Status:** ✅ All features implemented, all known bugs fixed
 
 ---
 
@@ -21,13 +22,50 @@
 
 ---
 
+## 🔄 Working Flow (สำหรับ Agent ถัดไป)
+
+### ลำดับการทำงานเมื่อรับช่วงต่อ:
+1. **อ่าน HANDOFF.md (ไฟล์นี้)** เพื่อเข้าใจสถานะปัจจุบัน
+2. **อ่าน SOUL.md + AGENTS.md** ใน workspace หลัก เพื่อเข้าใจ behavior rules
+3. **Clone/pull repo** → `npm install` → `npm start` เพื่อรัน server
+4. **ตรวจสอบ API** ผ่าน `/api/health` ก่อน
+5. **ทำตาม TODO** ด้านล่าง หรือรับ brief จาก user
+
+### สิ่งที่ต้องรู้ก่อนทำงาน:
+- โค้ดสไตล์: CommonJS (`require`), Thai language API responses
+- Database: SQLite sync API (`better-sqlite3`)
+- Auth: JWT ใน httpOnly cookie, middleware: `authMiddleware` + `adminOnly`
+- Admin: Single-page app ใช้ `showPage('page-name')` สลับ sections
+- Site docs: Puppeteer ต้อง Chromium — ใช้ `headless: 'new'`
+- ทุก route มี try-catch แล้ว — ไม่ควร crash
+
+---
+
+## 🐛 Bug Fix Log (2026-04-29 23:08)
+
+### สิ่งที่แก้ไขแล้ว — ทั้งหมด 9 จุด
+
+| # | Severity | Bug | Fix | File |
+|---|----------|-----|-----|------|
+| 1 | 🔴 Critical | Admin Leads API response format mismatch — `allLeads` เป็น object ไม่ใช่ array → crash ทั้ง dashboard | แก้ `loadAll()` ให้ดึง `.data` จาก paginated response | admin.js |
+| 2 | 🔴 Critical | ไม่มีฟังก์ชัน renderReports, renderUsers, showAddUserModal, exportCSV, createBackup, generateSiteDocs, checkSiteDocs | เพิ่มฟังก์ชันครบ 11 ฟังก์ชัน + อัปเดต `showPage()` | admin.js |
+| 3 | 🔴 Critical | Notifications form อ่าน/เขียนผิด key (`notifications` แทน `notification_settings`) | เปลี่ยน key + เพิ่ม Telegram/Auto-reply fields เต็มรูปแบบ | admin.js |
+| 4 | 🟡 Medium | Forgot password คืน `reset_token` ใน response → ใครก็รีเซ็ตได้แค่รู้ email | ลบ token ออกจาก response | server.js |
+| 5 | 🟡 Medium | CSV export — fields ไม่ escape → CSV injection risk | wrap ทุก field ด้วย `"` + escape `"` ภายใน | server.js |
+| 6 | 🟡 Medium | `.gitignore` ไม่ครบ — `*.db-shm`, `*.db-wal`, `backups/` ถูก commit | เพิ่ม entries ครบ | .gitignore |
+| 7 | 🟡 Medium | `supabase/config.js` มี hardcoded placeholder credentials | แทนด้วย legacy notice | supabase/config.js |
+| 8 | 🟢 Minor | `first_contact_at` column ไม่ถูกตั้งค่าเลย | เพิ่ม logic ตั้งค่าเมื่อ status → "Contacted" | server.js |
+| 9 | 🟢 Minor | Site Docs ไม่มี sidebar link ใน admin | เพิ่ม sidebar section | admin.html |
+
+---
+
 ## ✅ สิ่งที่เสร็จแล้ว (Completed Features)
 
 ### 🔴 Security & Stability
 | # | Feature | Files | Status |
 |---|---------|-------|--------|
 | 1 | Change password (ต้องใส่รหัสเดิม) | server.js `PUT /api/auth/change-password` | ✅ |
-| 2 | Forgot password (generate token) | server.js `POST /api/auth/forgot-password` | ✅ |
+| 2 | Forgot password (generate token, ไม่คืน token ให้ client) | server.js `POST /api/auth/forgot-password` | ✅ |
 | 3 | Reset password (ใช้ token) | server.js `POST /api/auth/reset-password` | ✅ |
 | 4 | Password validation (≥8 ตัวอักษร) | utils/validate.js | ✅ |
 | 5 | Input validation (เบอร์ 10 หลัก, email format, name ≤200, message ≤5000) | utils/validate.js | ✅ |
@@ -39,47 +77,60 @@
 | 11 | Security headers (helmet) | server.js | ✅ |
 | 12 | CORS configuration | server.js | ✅ |
 | 13 | Request logging with timestamps | server.js middleware | ✅ |
+| 14 | Path traversal protection (media delete) | server.js `path.basename()` + `startsWith()` | ✅ |
 
 ### 🟡 Core Features
 | # | Feature | Files | Status |
 |---|---------|-------|--------|
-| 14 | LINE Notify integration | server.js `sendLineNotify()` | ✅ |
-| 15 | Telegram Notify integration | server.js `sendTelegramNotify()` | ✅ |
-| 16 | Notification settings (stored in DB) | server/migrations.js, site_content table | ✅ |
-| 17 | Auto-reply system (LINE/SMS/Email templates) | server.js `checkAutoReply()` | ✅ |
-| 18 | Status change notification (LINE + Telegram) | server.js `notifyLeadStatusChange()` | ✅ |
-| 19 | Lead duplicate detection (phone/email) | server.js `POST /api/leads` | ✅ |
-| 20 | Force bypass duplicate (`?force=true`) | server.js | ✅ |
-| 21 | Reports summary (monthly stats) | server.js `GET /api/reports/summary` | ✅ |
-| 22 | Reports by service | server.js `GET /api/reports/by-service` | ✅ |
-| 23 | Reports by date range | server.js `GET /api/reports/by-date` | ✅ |
-| 24 | CSV export (UTF-8 BOM for Excel) | server.js `GET /api/reports/export/csv` | ✅ |
-| 25 | Multi-user roles (admin/manager/sales) | server.js, migrations.js | ✅ |
-| 26 | Users CRUD (admin only) | server.js `GET/POST/PUT/DELETE /api/users` | ✅ |
-| 27 | Role-based access (sales sees only assigned leads) | server.js GET /api/leads | ✅ |
-| 28 | Self-delete protection | server.js DELETE /api/users/:id | ✅ |
+| 15 | LINE Notify integration | server.js `sendLineNotify()` | ✅ |
+| 16 | Telegram Notify integration | server.js `sendTelegramNotify()` | ✅ |
+| 17 | Notification settings (stored in DB, key: `notification_settings`) | server/migrations.js, admin.js | ✅ |
+| 18 | Auto-reply system (LINE/SMS/Email templates) | server.js `checkAutoReply()` | ✅ |
+| 19 | Status change notification (LINE + Telegram) | server.js `notifyLeadStatusChange()` | ✅ |
+| 20 | first_contact_at auto-set on "Contacted" status | server.js `PUT /api/leads/:id` | ✅ |
+| 21 | Lead duplicate detection (phone/email) | server.js `POST /api/leads` | ✅ |
+| 22 | Force bypass duplicate (`?force=true`) | server.js | ✅ |
+| 23 | Reports summary (monthly stats) | server.js `GET /api/reports/summary` | ✅ |
+| 24 | Reports by service | server.js `GET /api/reports/by-service` | ✅ |
+| 25 | Reports by date range | server.js `GET /api/reports/by-date` | ✅ |
+| 26 | CSV export (UTF-8 BOM, all fields escaped) | server.js `GET /api/reports/export/csv` | ✅ |
+| 27 | Multi-user roles (admin/manager/sales) | server.js, migrations.js | ✅ |
+| 28 | Users CRUD (admin only) | server.js `GET/POST/PUT/DELETE /api/users` | ✅ |
+| 29 | Role-based access (sales sees only assigned leads) | server.js GET /api/leads | ✅ |
+| 30 | Self-delete protection | server.js DELETE /api/users/:id | ✅ |
 
-### 🟢 UX Improvements
+### 🟢 Admin CMS (Frontend)
 | # | Feature | Files | Status |
 |---|---------|-------|--------|
-| 29 | Search (name, phone, email) | server.js `?search=` param | ✅ |
-| 30 | Filter (date_from, date_to, budget, service, status) | server.js query params | ✅ |
-| 31 | Sort (created_at, name, score, updated_at, status) | server.js `?sort=&order=` | ✅ |
-| 32 | Pagination (page + limit, max 100) | server.js `?page=&limit=` | ✅ |
-| 33 | Bulk update leads | server.js `POST /api/leads/bulk-update` | ✅ |
-| 34 | Bulk delete leads | server.js `POST /api/leads/bulk-delete` | ✅ |
-| 35 | Lead attachments (upload/list/delete) | server.js, lead_attachments table | ✅ |
-| 36 | Admin pages: Reports + Users + Site Docs | admin.html | ✅ |
+| 31 | Dashboard (stats, pipeline, recent bookings) | admin.js `renderDashboard()` | ✅ |
+| 32 | CMS: Site Config (logo, contact, social) | admin.js `renderSiteConfigForm()` | ✅ |
+| 33 | CMS: Hero Section | admin.js `renderHeroForm()` | ✅ |
+| 34 | CMS: Services (repeatable items) | admin.js `renderServicesForm()` | ✅ |
+| 35 | CMS: Process Steps | admin.js `renderProcessForm()` | ✅ |
+| 36 | CMS: Portfolio | admin.js `renderPortfolioForm()` | ✅ |
+| 37 | CMS: Testimonials | admin.js `renderTestimonialsForm()` | ✅ |
+| 38 | CMS: Closing CTA | admin.js `renderClosingForm()` | ✅ |
+| 39 | CMS: Footer | admin.js `renderFooterForm()` | ✅ |
+| 40 | CMS: Navigation | admin.js `renderNavForm()` | ✅ |
+| 41 | CMS: Notifications (LINE + Telegram + Auto-reply) | admin.js `renderNotificationsForm()` | ✅ |
+| 42 | Leads Management (search, filter, modal edit, notes) | admin.js `renderLeads()` | ✅ |
+| 43 | Bookings View | admin.js `renderBookings()` | ✅ |
+| 44 | Media Library (upload, drag-drop, copy URL, delete) | admin.js `renderMedia()` | ✅ |
+| 45 | Reports Page (summary, by-service, by-date) | admin.js `renderReports()` | ✅ |
+| 46 | Users Page (list, add, edit, delete) | admin.js `renderUsers()` | ✅ |
+| 47 | Site Docs Page (generate, status, view links) | admin.js `generateSiteDocs()` | ✅ |
+| 48 | CSV Export button | admin.js `exportCSV()` | ✅ |
+| 49 | Backup download button | admin.js `createBackup()` | ✅ |
 
 ### 🧱 Technical
 | # | Feature | Files | Status |
 |---|---------|-------|--------|
-| 37 | express-rate-limit (แทน in-memory Map) | package.json, server.js | ✅ |
-| 38 | Database migrations system | server/migrations.js | ✅ |
-| 39 | Path traversal protection (media delete) | server.js | ✅ |
-| 40 | Global error handler middleware | server.js | ✅ |
-| 41 | Site Documentation Generator (Puppeteer) | scripts/site-docs.js | ✅ |
-| 42 | Site docs API endpoint | server.js `/api/admin/generate-docs` | ✅ |
+| 50 | express-rate-limit (แทน in-memory Map) | package.json, server.js | ✅ |
+| 51 | Database migrations system (6 migrations) | server/migrations.js | ✅ |
+| 52 | Global error handler middleware | server.js | ✅ |
+| 53 | Site Documentation Generator (Puppeteer) | scripts/site-docs.js | ✅ |
+| 54 | Site docs API endpoint | server.js `/api/admin/generate-docs` | ✅ |
+| 55 | Supabase legacy files marked | supabase/config.js | ✅ |
 
 ---
 
@@ -89,36 +140,41 @@
 nucha-construction-crm/
 ├── server.js                 ← Backend (Express + SQLite + ALL API routes) [~1200 lines]
 ├── server/
-│   ├── db.js                 ← Database connection + schema + seed
-│   └── migrations.js         ← NEW: Schema versioning (6 migrations)
+│   ├── db.js                 ← Database connection + schema + seed data
+│   └── migrations.js         ← Schema versioning (6 migrations)
 ├── scripts/
-│   ├── backup.js             ← NEW: Database backup utility
-│   └── site-docs.js          ← NEW: Site documentation generator (Puppeteer)
+│   ├── backup.js             ← Database backup utility
+│   └── site-docs.js          ← Site documentation generator (Puppeteer)
 ├── utils/
-│   └── validate.js           ← NEW: Input validation (phone, email, name, password)
+│   └── validate.js           ← Input validation (phone, email, name, password, lead)
 ├── uploads/                  ← Image/file uploads
-├── backups/                  ← NEW: Database backups
-├── site-docs/                ← NEW: Generated site documentation
+├── backups/                  ← Database backups (gitignored)
+├── site-docs/                ← Generated site documentation
 │   ├── site-report.html      ← Visual HTML report
 │   ├── site-report.md        ← Markdown summary
 │   ├── site-data.json        ← Raw structured data
 │   └── screenshots/          ← Page screenshots
 ├── data/
-│   └── nucha.db              ← SQLite database (auto-created)
-├── index.html                ← Landing page (dynamic)
-├── site-loader.js            ← Load content from API
-├── script.js                 ← Frontend JS (GSAP, cursor, booking form)
+│   └── nucha.db              ← SQLite database (auto-created, gitignored)
+├── index.html                ← Landing page (dynamic, loaded via site-loader.js)
+├── site-loader.js            ← Load content from API into index.html
+├── script.js                 ← Frontend JS (GSAP animations, cursor, booking form)
 ├── style.css                 ← Frontend styles
 ├── admin.html                ← Admin CMS (dashboard, CMS editors, leads, reports, users, site-docs)
-├── admin.js                  ← Admin CMS logic
+├── admin.js                  ← Admin CMS logic [~1200 lines, all functions complete]
 ├── admin.css                 ← Admin CMS styles
 ├── admin-login.html          ← Login page
-├── service.html              ← Service detail page
-├── chat-widget.html          ← Chat widget
+├── service.html              ← Service detail page (public)
+├── chat-widget.html          ← Chat widget (standalone)
 ├── chat-widget.js            ← Chat widget logic
+├── supabase/                 ← LEGACY — not used (project uses SQLite)
+│   ├── config.js             ← Marked as legacy
+│   ├── auth.js               ← Supabase auth module (unused)
+│   ├── crm.js                ← Supabase CRM module (unused)
+│   └── functions/            ← Supabase edge functions (unused)
 ├── .env.example              ← Environment variables template
 ├── .gitignore
-├── package.json              ← Dependencies
+├── package.json
 ├── package-lock.json
 ├── README.md
 ├── SALES-SCRIPT.md
@@ -127,24 +183,24 @@ nucha-construction-crm/
 
 ---
 
-## 🔌 API Endpoints (Complete)
+## 🔌 API Endpoints (Complete — 40+ endpoints)
 
 ### Auth
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | /api/auth/login | No | Login (rate limited: 5/min) |
 | POST | /api/auth/logout | Yes | Logout |
-| GET | /api/auth/me | Yes | Current user |
-| PUT | /api/auth/change-password | Yes | Change password |
-| POST | /api/auth/forgot-password | No | Generate reset token |
+| GET | /api/auth/me | Yes | Current user info |
+| PUT | /api/auth/change-password | Yes | Change password (requires current) |
+| POST | /api/auth/forgot-password | No | Generate reset token (console log only) |
 | POST | /api/auth/reset-password | No | Reset password with token |
 
 ### Content (CMS)
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | /api/content | No | Get all content |
-| GET | /api/content/:key | No | Get section content |
-| PUT | /api/content/:key | Yes | Update section |
+| GET | /api/content | No | Get all content sections |
+| GET | /api/content/:key | No | Get single section |
+| PUT | /api/content/:key | Yes | Update section (admin) |
 
 ### Navigation
 | Method | Endpoint | Auth | Description |
@@ -156,8 +212,8 @@ nucha-construction-crm/
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | /api/leads | No | Create lead (rate limited, duplicate detection) |
-| GET | /api/leads | Yes | List leads (filter, sort, paginate) |
-| PUT | /api/leads/:id | Yes | Update lead |
+| GET | /api/leads | Yes | List leads (filter, sort, paginate) — returns `{data, pagination}` |
+| PUT | /api/leads/:id | Yes | Update lead (auto-sets first_contact_at) |
 | DELETE | /api/leads/:id | Yes | Delete lead |
 | POST | /api/leads/bulk-update | Yes | Bulk update leads |
 | POST | /api/leads/bulk-delete | Yes | Bulk delete leads |
@@ -173,23 +229,23 @@ nucha-construction-crm/
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | GET | /api/leads/:id/attachments | Yes | List attachments |
-| POST | /api/leads/:id/attachments | Yes | Upload attachment |
-| DELETE | /api/attachments/:id | Yes | Delete attachment |
+| POST | /api/leads/:id/attachments | Yes | Upload attachment (10MB limit) |
+| DELETE | /api/attachments/:id | Yes | Delete attachment + file |
 
 ### Proposals
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | /api/proposals | Yes | List proposals |
-| POST | /api/proposals | Yes | Create proposal |
+| GET | /api/proposals | Yes | List proposals with lead names |
+| POST | /api/proposals | Yes | Create proposal (auto NP-XXXX number) |
 | PUT | /api/proposals/:id | Yes | Update proposal |
 
 ### Reports
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | /api/reports/summary | Yes | Monthly summary |
-| GET | /api/reports/by-service | Yes | Leads by service type |
+| GET | /api/reports/summary | Yes | Monthly summary stats |
+| GET | /api/reports/by-service | Yes | Leads grouped by service type |
 | GET | /api/reports/by-date | Yes | Leads by date range |
-| GET | /api/reports/export/csv | Yes | Export leads CSV |
+| GET | /api/reports/export/csv | Yes | Export leads CSV (UTF-8 BOM, escaped) |
 
 ### Users (Admin Only)
 | Method | Endpoint | Auth | Description |
@@ -197,19 +253,19 @@ nucha-construction-crm/
 | GET | /api/users | Yes+Admin | List users |
 | POST | /api/users | Yes+Admin | Create user |
 | PUT | /api/users/:id | Yes+Admin | Update user |
-| DELETE | /api/users/:id | Yes+Admin | Delete user |
+| DELETE | /api/users/:id | Yes+Admin | Delete user (self-delete blocked) |
 
 ### Media & Upload
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | /api/upload | Yes | Upload image |
-| GET | /api/media | Yes | List images |
-| DELETE | /api/media/:name | Yes | Delete image |
+| POST | /api/upload | Yes | Upload image (5MB limit, images only) |
+| GET | /api/media | Yes | List uploaded images |
+| DELETE | /api/media/:name | Yes | Delete image (path traversal protected) |
 
 ### Site Documentation
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | /api/admin/generate-docs | Yes+Admin | Generate site documentation |
+| POST | /api/admin/generate-docs | Yes+Admin | Generate site documentation (Puppeteer) |
 | GET | /api/admin/docs-status | Yes+Admin | Check if docs exist |
 | GET | /site-docs/* | Yes | Serve documentation files |
 
@@ -217,99 +273,39 @@ nucha-construction-crm/
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | GET | /api/admin/backup | Yes+Admin | Create & download backup |
-| GET | /api/admin/backups | Yes+Admin | List backups |
+| GET | /api/admin/backups | Yes+Admin | List all backups |
 
 ### System
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | /api/health | No | Health check |
-| POST | /api/test-notification | Yes | Test LINE/Telegram notify |
-| GET | /api/stats | Yes | Dashboard stats |
-| GET | /api/pipeline | Yes | Pipeline view |
+| GET | /api/health | No | Health check (uptime, db status) |
+| POST | /api/test-notification | Yes | Test LINE/Telegram notification |
+| GET | /api/stats | Yes | Dashboard statistics |
+| GET | /api/pipeline | Yes | Pipeline view (6 stages) |
 | GET | /api/activities | Yes | Activity log |
 | GET | /api/followups | Yes | Pending follow-ups |
 
 ---
 
-## 🧪 Test Results (2026-04-29)
+## ⚠️ สิ่งที่ต้องทำต่อ (TODO — เรียงตามลำดับความสำคัญ)
 
-ทดสอบ 42 endpoints — **ผ่านทั้งหมด ไม่มี error**
+### 🔥 Priority 1 — ควรทำก่อน deploy
+1. **เปลี่ยนรหัสผ่าน default** — `admin@nuchainnovation.com / admin123` ต้องเปลี่ยนทันที
+2. **ตั้ง JWT_SECRET** ใน `.env` — ถ้าไม่ตั้งจะสุ่มใหม่ทุก restart → token หมดอายุ
+3. **Deploy หลัง HTTPS** — ใช้ nginx reverse proxy + SSL (Let's Encrypt)
+4. **LINE Notify Token** — ใส่ token จริงในหน้า Notifications settings
 
-| # | Test | Result |
-|---|------|--------|
-| 1 | Health Check | ✅ |
-| 2 | Auth Login | ✅ |
-| 3 | Auth Me | ✅ |
-| 4 | Change Password (wrong current → rejected) | ✅ |
-| 5 | Change Password (correct → success) | ✅ |
-| 6 | Forgot Password (generate token) | ✅ |
-| 7 | Reset Password (use token) | ✅ |
-| 8 | Content List (13 sections) | ✅ |
-| 9 | Content By Key | ✅ |
-| 10 | Content Update | ✅ |
-| 11 | Nav Items (6 items) | ✅ |
-| 12 | Leads List + Pagination | ✅ |
-| 13 | Leads Filter (status, budget, date) | ✅ |
-| 14 | Leads Sort (score, date, name) | ✅ |
-| 15 | Lead Create | ✅ |
-| 16 | Lead Duplicate Detection (409) | ✅ |
-| 17 | Lead Force Create (bypass duplicate) | ✅ |
-| 18 | Lead Validation (bad phone → rejected) | ✅ |
-| 19 | Lead Validation (bad email → rejected) | ✅ |
-| 20 | Lead Update | ✅ |
-| 21 | Lead Notes Create/List | ✅ |
-| 22 | Lead Attachments Upload/List | ✅ |
-| 23 | Bulk Update | ✅ |
-| 24 | Bulk Delete | ✅ |
-| 25 | Pipeline (6 stages) | ✅ |
-| 26 | Stats | ✅ |
-| 27 | Activities | ✅ |
-| 28 | Proposals Create/List | ✅ |
-| 29 | Follow-ups | ✅ |
-| 30 | Reports Summary | ✅ |
-| 31 | Reports By Service | ✅ |
-| 32 | Reports By Date | ✅ |
-| 33 | CSV Export | ✅ |
-| 34 | Users List | ✅ |
-| 35 | Users Create | ✅ |
-| 36 | Users Update | ✅ |
-| 37 | Users Delete Self (blocked) | ✅ |
-| 38 | Backups List | ✅ |
-| 39 | Backup Create & Download | ✅ |
-| 40 | Notification Test (LINE + Telegram) | ✅ |
-| 41 | Login Rate Limit (6th attempt → 429) | ✅ |
-| 42 | Graceful Shutdown (SIGTERM) | ✅ |
-| 43 | Landing Page (200, 52KB) | ✅ |
-| 44 | Login Page (200, 7.6KB) | ✅ |
-| 45 | Admin Page (200 with auth) | ✅ |
-| 46 | Site Docs Generator (10 pages, all screenshots) | ✅ |
+### 🟡 Priority 2 — เพิ่มประสิทธิภาพ
+5. **Email Notifications** — เพิ่ม SMTP send จริง (ตอนนี้แค่ log console)
+6. **Auto-reply จริง** — ส่ง SMS/LINE จริงแทนแค่ console.log
+7. **Automated Backup Cron** — ตั้ง cron job backup อัตโนมัติทุกวัน
+8. **Dashboard Charts** — กราฟ leads ตามเดือน, conversion funnel (ใช้ Chart.js)
 
----
-
-## ⚠️ สิ่งที่ต้องทำต่อ (TODO)
-
-### ถ้าอยากทำต่อ:
-1. **Admin JS สำหรับหน้าใหม่** — admin.html มี sections สำหรับ Reports, Users, Site Docs แล้ว แต่ `admin.js` ยังไม่มี functions สำหรับ:
-   - `loadReports()` — โหลดข้อมูลรายงาน + แสดงกราฟ
-   - `loadUsers()` — โหลดรายชื่อผู้ใช้ + CRUD UI
-   - `generateSiteDocs()` — เรียก API สร้างรายงาน + แสดงสถานะ
-   - `exportCSV()` — ดาวน์โหลด CSV
-   - `createBackup()` — สร้าง backup + ดาวน์โหลด
-   - ต้องเพิ่ม functions เหล่านี้ใน `admin.js`
-
-2. **Customer Portal** — ให้ลูกค้าเข้ามาดู progress โครงการ (login ด้วยเบอร์โทร + OTP)
-
-3. **Dashboard Charts** — กราฟ leads ตามเดือน, conversion funnel (ใช้ Chart.js หรือ lightweight-charts)
-
-4. **Email Notifications** — เพิ่ม SMTP send จริง (ตอนนี้แค่ log console)
-
-5. **Auto-reply จริง** — ส่ง SMS/LINE จริงแทนแค่ console.log
-
-6. **Proposal PDF Export** — สร้าง PDF จากใบเสนอราคา
-
-7. **Lead Source Tracking** — เพิ่ม UTM parameters / source tracking
-
-8. **Automated Backup Cron** — ตั้ง cron job backup อัตโนมัติทุกวัน
+### 🟢 Priority 3 — Features ใหม่
+9. **Customer Portal** — ให้ลูกค้าเข้ามาดู progress โครงการ (login ด้วยเบอร์โทร + OTP)
+10. **Proposal PDF Export** — สร้าง PDF จากใบเสนอราคา
+11. **Lead Source Tracking** — เพิ่ม UTM parameters / source tracking
+12. **Chat Widget AI Integration** — เชื่อม chat widget กับ AI API (PromptDee)
 
 ---
 
@@ -319,6 +315,7 @@ nucha-construction-crm/
 - **JWT_SECRET:** ถ้าไม่ตั้ง env var จะสุ่มใหม่ทุก restart → token หมดอายุ
 - **HTTPS:** ต้อง deploy หลัง reverse proxy (nginx) ที่ terminate SSL
 - **Rate limit:** In-memory → ไม่ survive restart / ไม่ work กับ multiple instances
+- **Supabase files:** ใน `supabase/` เป็น legacy code ไม่ได้ใช้งาน — ระบบใช้ SQLite + Express
 
 ---
 
@@ -332,12 +329,12 @@ npm install
 npm start
 
 # Access
-# Website: http://localhost:3000
-# Login: http://localhost:3000/login
-# Admin: http://localhost:3000/admin
-# Health: http://localhost:3000/api/health
+# Website:  http://localhost:3000
+# Login:    http://localhost:3000/login
+# Admin:    http://localhost:3000/admin
+# Health:   http://localhost:3000/api/health
 
-# Generate Site Documentation
+# Generate Site Documentation (ต้อง Chromium)
 node scripts/site-docs.js --url http://localhost:3000 --output site-docs
 ```
 
@@ -358,14 +355,3 @@ node scripts/site-docs.js --url http://localhost:3000 --output site-docs
   "puppeteer": "^24.x"
 }
 ```
-
----
-
-## 📝 Notes for Next Agent
-
-- โค้ดสไตล์: CommonJS (`require`), Thai language API responses, error messages เป็นภาษาไทย
-- Database: SQLite ใช้ `better-sqlite3` (sync API, ไม่ใช่ async)
-- Auth: JWT ใน httpOnly cookie, middleware ชื่อ `authMiddleware` และ `adminOnly`
-- Admin pages: Single-page app ใช้ `showPage('page-name')` สลับ sections
-- Site docs: Puppeteer script ต้อง Chrome/Chromium — ถ้า server ไม่มี GUI ใช้ `headless: 'new'`
-- ทุก route มี try-catch แล้ว — ไม่ควร crash
