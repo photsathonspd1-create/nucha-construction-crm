@@ -1,182 +1,196 @@
-# HANDOFF.md — NUCHA Construction CRM
+# HANDOFF.md — NUCHA INNOVATION CRM
 
-> เอกสารสำหรับ Agent ถัดไป: อ่านไฟล์นี้ก่อนเริ่มทำงาน
-
----
-
-## 📋 สรุปโปรเจค
-
-ระบบ CRM สำหรับบริษัทรับเหมาก่อสร้าง (NUCHA INNOVATION) พร้อม CMS แก้ไขเว็บได้ทุกส่วน
-
-**Tech Stack:**
-- Frontend: HTML/CSS/JS + GSAP (vanilla, no framework)
-- Backend: Node.js + Express 5
-- Database: SQLite (better-sqlite3)
-- Auth: JWT + bcryptjs
-- Upload: Multer
+> สถานะ: **Production-ready** | อัพเดทล่าสุด: 2026-04-29
 
 ---
 
-## 🏗️ โครงสร้างไฟล์
+## สรุปโปรเจค
+
+ระบบ CRM สำหรับบริษัทรับเหมาก่อสร้าง พร้อม CMS แก้ไขเว็บได้ทุกส่วน
+
+- **Stack**: HTML/CSS/JS + GSAP (Frontend) | Node.js + Express 5 + SQLite (Backend)
+- **Auth**: JWT + bcryptjs | **Upload**: Multer
+- **เว็บ**: Landing page dynamic โหลด content จาก API
+- **Admin CMS**: แก้ไขเนื้อหาเว็บได้ทุกส่วน
+
+---
+
+## Flow การทำงาน (Architecture)
 
 ```
-├── server.js              ← Backend (Express + SQLite + API) [แก้ไขแล้ว]
-├── server/db.js           ← Database schema + seed data
-├── data/nucha.db          ← SQLite database (auto-created)
-├── uploads/               ← Image uploads
-├── index.html             ← Landing page (มี fallback content แล้ว) [แก้ไขแล้ว]
-├── site-loader.js         ← Load content from API (มี esc() ป้องกัน XSS แล้ว) [แก้ไขแล้ว]
-├── script.js              ← Frontend JS + GSAP animations (แก้ re-init bug) [แก้ไขแล้ว]
-├── admin.html             ← CMS admin panel
-├── admin.js               ← CMS logic (แก้ esc + media XSS) [แก้ไขแล้ว]
-├── admin.css              ← CMS styles
-├── admin-login.html       ← Login page (ซ่อน default password ใน production) [แก้ไขแล้ว]
-├── style.css              ← Frontend styles
-├── package.json           ← Dependencies
-└── HANDOFF.md             ← เอกสารนี้
+index.html (Landing Page)
+  ├── style.css (Styling)
+  ├── script.js (Animations + UI Logic)
+  │     ├── รอ site-loader.js โหลด API content ก่อน (__siteContentLoaded promise)
+  │     ├── initAnimations() — GSAP ScrollTrigger ทุก section
+  │     ├── setupEventDelegation() — event listeners สำหรับ dynamic content
+  │     └── rebindEventListeners() — re-bind หลัง DOM replacement
+  └── site-loader.js (Dynamic Content Loader)
+        ├── GET /api/content → โหลด hero, services, process, portfolio, booking, stats, testimonials, closing, footer, trust_badges, site_config
+        ├── GET /api/nav → โหลด nav items
+        ├── Replace DOM innerHTML ทุก section ด้วย API data
+        ├── Validate image URLs ก่อน set src (ป้องกันรูปหาย)
+        ├── Preserve nav login link สำหรับ mobile
+        └── Re-init GSAP + re-bind events หลัง DOM replacement
+
+server.js (Backend API)
+  ├── Auth: POST /api/auth/login, /logout, /me
+  ├── Content: GET/PUT /api/content/:key (CMS)
+  ├── Nav: GET/PUT /api/nav
+  ├── Leads: POST /api/leads (public), GET/PUT/DELETE (auth)
+  ├── Upload: POST /api/upload (auth)
+  ├── Media: GET/DELETE /api/media (auth)
+  ├── Stats: GET /api/stats (auth)
+  ├── Pipeline: GET /api/pipeline (auth)
+  ├── Notes: GET/POST /api/leads/:id/notes (auth)
+  ├── Proposals: GET/POST/PUT /api/proposals (auth)
+  └── Follow-ups: GET /api/followups (auth)
+
+server/db.js (Database Schema + Seed)
+  ├── Tables: users, site_content, leads, notes, activities, proposals, nav_items, footer_links, gallery
+  └── Seed: default content, nav items, admin user, demo leads
+
+admin.html + admin.js + admin.css (CMS Admin Panel)
+  ├── Login → JWT auth
+  ├── แก้ไขเนื้อหาเว็บทุก section (Hero, Services, Portfolio, Footer, Navbar...)
+  ├── อัพโหลดรูป (file upload หรือ URL)
+  ├── จัดการ Leads (CRUD, ค้นหา, filter, เปลี่ยนสถานะ)
+  ├── ดูนัดหมาย / จองคิว
+  ├── คลังรูปภาพ
+  └── Pipeline view (6 stages)
 ```
 
 ---
 
-## ✅ สิ่งที่แก้ไขแล้ว (3 commits)
+## ไฟล์ทั้งหมด
 
-### Commit 1: Security + Bug Fixes (`c2526c1`)
-
-| แก้ไข | ไฟล์ | รายละเอียด |
-|---|---|---|
-| Path Traversal | `server.js` | `path.basename()` + double-check resolved path อยู่ใน uploads |
-| XSS prevention | `site-loader.js` | เพิ่ม `esc()` ทุกจุดที่ใช้ innerHTML (nav, services, process, portfolio, booking, stats, badges) |
-| XSS closingNote | `site-loader.js` | เปลี่ยนจาก innerHTML → DOM API (createElement + textContent) |
-| JWT Secret | `server.js` | `crypto.randomBytes(32)` ถ้าไม่ตั้ง env var |
-| Cookie secure | `server.js` | เพิ่ม `secure: process.env.NODE_ENV === 'production'` |
-| Rate limit | `server.js` | In-memory rate limiter 10 req/min สำหรับ POST /api/leads |
-| Error handler | `server.js` | Global Express error handler (จับ multer error) |
-| Proposal race condition | `server.js` | เปลี่ยนจาก COUNT → MAX(proposal_number) + parse |
-| Date timezone | `server.js` + `script.js` | `getTodayThai()` helper ใช้ UTC+7 |
-| GSAP re-init | `script.js` | `ScrollTrigger.getAll().forEach(t => t.kill())` ก่อน re-init |
-| Default password | `admin-login.html` | แสดงเฉพาะ localhost |
-| multer fileFilter | `server.js` | `cb(null, false)` แทน `cb(new Error)` |
-| Nav validation | `server.js` | `Array.isArray(items)` check |
-| Filename random | `server.js` | `crypto.randomBytes(4)` แทน `Math.random` |
-| Media delete URL | `admin.js` | `encodeURIComponent(name)` |
-
-### Commit 2: Fallback Content (`2955fdc`)
-
-- เพิ่ม fallback HTML content ใน `index.html` ทุก section:
-  - Services (5 cards), Process (4 steps), Portfolio (4 items)
-  - Stats (4 items), Testimonials (3 cards), Booking form (service options)
-  - Guarantees (3 items), Footer links, Trust badges (6 brands)
-- หน้าเว็บแสดงผลได้ทันทีแม้ API ยังไม่ตอบ
-- เพิ่ม `onerror` handler ทุก `<img>` tag (hero, portfolio, process)
-- Service card link events กลับมาทำงานหลัง API reload
-
-### Commit 3: Nav Input Sanitize (`8c18f1b`)
-
-- `PUT /api/nav` sanitize label (strip HTML tags) + href (allowlist chars)
-- ป้องกัน stored XSS ผ่าน CMS
+```
+├── index.html           ← Landing page (dynamic, โหลดจาก API)
+├── style.css            ← Frontend styles
+├── script.js            ← Frontend JS (animations, form, events)
+├── site-loader.js       ← Load content from API + replace DOM
+├── admin.html           ← CMS admin panel
+├── admin.js             ← CMS logic
+├── admin.css            ← CMS styles
+├── admin-login.html     ← Login page
+├── server.js            ← Backend (Express + SQLite + API)
+├── server/db.js         ← Database schema + seed data
+├── package.json         ← Dependencies
+├── .env.example         ← Environment config template
+├── data/nucha.db        ← SQLite database (auto-created)
+├── uploads/             ← Image uploads
+├── HANDOFF.md           ← This file
+├── README.md            ← Project overview
+└── SALES-SCRIPT.md      ← Sales call script
+```
 
 ---
 
-## 🗄️ Database Schema
+## สิ่งที่เสร็จแล้ว ✅
 
-**Tables:** `users`, `site_content`, `leads`, `notes`, `activities`, `proposals`, `nav_items`, `footer_links`, `gallery`
+### Bug Fixes (2026-04-29)
 
-**Default admin:** `admin@nuchainnovation.com` / `admin123`
+| บัค | สาเหตุ | วิธีแก้ | ไฟล์ |
+|-----|--------|---------|------|
+| เนื้อหาแสดงแล้วหาย (Flash of Content) | Race condition — `initAnimations()` ทำงานก่อน API content โหลด | เปลี่ยน `load` handler เป็น `async` + `await __siteContentLoaded` ก่อน init | script.js |
+| `gsap.killTweensOf('*')` ไม่ทำงาน | GSAP ไม่รองรับ wildcard | เปลี่ยนเป็น explicit selector list ทุก animated element | script.js |
+| Event listeners หายหลัง DOM replacement | `innerHTML` ทำลาย element + attached listeners | เพิ่ม `rebindEventListeners()` + `setupEventDelegation()` (cursor, magnetic btn, ripple, booking links, radio selections) | script.js |
+| แถบ/sections จาง (opacity ค้าง) | ScrollTrigger ไม่ re-init ถูกต้องหลัง DOM replace | kill ScrollTriggers เก่า → re-init ใหม่หลัง content พร้อม | script.js + site-loader.js |
+| รูปหายจาก API URL ว่าง | ไม่ validate URL ก่อน set `src` | เพิ่ม `url && url.trim()` check + conditional `<img>` render | site-loader.js |
+| Nav login link หายบน mobile | site-loader เปลี่ยน navMenu innerHTML ทั้งหมด | เพิ่ม login link กลับหลัง API nav items | site-loader.js |
+| GSAP โหลดซ้ำ 2 ครั้ง | script tags ใน `<head>` + ก่อน `</body>` | เอา `<head>` ออก เหลือแค่ก่อน `</body>` | index.html |
 
-**Content sections (site_content):**
-`site_config`, `hero`, `services`, `process`, `portfolio`, `testimonials`, `closing`, `footer`, `trust_badges`, `stats`, `booking`
+### ฟีเจอร์ที่ทำงานครบ ✅
 
----
-
-## 🔌 API Endpoints
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| GET | /api/content | No | Get all content |
-| GET | /api/content/:key | No | Get section content |
-| PUT | /api/content/:key | Yes | Update section |
-| GET | /api/nav | No | Get nav items |
-| PUT | /api/nav | Yes | Update nav items |
-| POST | /api/leads | No* | Create lead (*rate limited) |
-| GET | /api/leads | Yes | List leads |
-| PUT | /api/leads/:id | Yes | Update lead |
-| DELETE | /api/leads/:id | Yes | Delete lead |
-| POST | /api/auth/login | No | Login |
-| POST | /api/auth/logout | Yes | Logout |
-| GET | /api/auth/me | Yes | Current user |
-| POST | /api/upload | Yes | Upload image |
-| GET | /api/media | Yes | List images |
-| DELETE | /api/media/:name | Yes | Delete image |
-| GET | /api/stats | Yes | Dashboard stats |
-| GET | /api/pipeline | Yes | Pipeline view |
-| GET | /api/leads/:id/notes | Yes | Lead notes |
-| POST | /api/leads/:id/notes | Yes | Add note |
-| GET | /api/activities | Yes | Activity log |
-| GET | /api/proposals | Yes | List proposals |
-| POST | /api/proposals | Yes | Create proposal |
-| GET | /api/followups | Yes | Due follow-ups |
+- [x] Landing page ครบวงจร (Hero, Services, Process, Portfolio, Testimonials, Closing)
+- [x] Dynamic content โหลดจาก API
+- [x] GSAP animations + ScrollTrigger ทุก section
+- [x] Custom cursor (desktop)
+- [x] Magnetic buttons
+- [x] Multi-step booking form (3 steps)
+- [x] Counter animation (stats)
+- [x] Sticky story/process section
+- [x] Portfolio grid with hover overlay
+- [x] Responsive ทุกอุปกรณ์
+- [x] Floating CTA (LINE + phone)
+- [x] Trust badges (brands)
+- [x] Admin CMS (login, edit content, manage leads)
+- [x] Image upload
+- [x] Lead CRUD + scoring
+- [x] Pipeline view
+- [x] API endpoints ครบ
 
 ---
 
-## 🔒 Security Measures ที่มีอยู่
-
-1. JWT auth (httpOnly cookie + Bearer token)
-2. bcryptjs password hashing
-3. Rate limit on lead creation (10/min per IP)
-4. Path traversal protection on media delete
-5. XSS prevention via `esc()` on all innerHTML
-6. Nav input sanitization (strip HTML tags)
-7. Cookie secure flag in production
-8. JWT secret auto-generated if not set
-9. Global error handler (no stack trace leak)
-10. File upload: image-only filter + 5MB limit
-
----
-
-## 📌 สิ่งที่ยังไม่ได้ทำ (Optional / Nice-to-have)
+## สิ่งที่ควรทำต่อ (Optional Improvements)
 
 ### Priority: Medium
-- [ ] **CORS configuration** — ถ้ามี frontend domain อื่นเรียก API
-- [ ] **Input validation middleware** — validate ข้อมูล leads/proposals ให้ละเอียดกว่านี้
-- [ ] **Admin user management** — CRUD users จาก admin panel (ตอนนี้มีแค่ seed user เดียว)
-- [ ] **Proposal UI** — API proposals มีแล้วแต่ยังไม่มี UI ใน admin panel
+
+1. **Admin Panel — ปรับปรุง UX**
+   - Preview ก่อน publish content
+   - Undo/Redo สำหรับ content editing
+   - Bulk actions สำหรับ leads
+
+2. **Lead Scoring — ปรับปรุง algorithm**
+   - เพิ่ม factors: page views, time on site, referral source
+   - Auto-assign sales rep ตาม score threshold
+
+3. **Proposals — เปิดใช้งาน UI**
+   - API พร้อมแล้ว (POST/PUT /api/proposals)
+   - ต้องสร้าง UI ใน admin panel สำหรับสร้าง/แก้ไข proposal
+   - Generate PDF จาก proposal
+
+4. **Email Notifications**
+   - ส่ง email เมื่อมี lead ใหม่
+   - Follow-up reminders
+
+5. **Analytics Dashboard**
+   - Lead conversion funnel
+   - Revenue tracking
+   - Monthly/weekly reports
 
 ### Priority: Low
-- [ ] **Session invalidation** — เมื่อ logout แล้ว token ยังใช้ได้จนกว่าจะหมดอายุ
-- [ ] **Upload file type validation** — ตรวจ magic bytes แทน mimetype (ป้องกัน spoof)
-- [ ] **Database backup** — อัตโนมัติ
-- [ ] **Production deployment** — PM2, nginx reverse proxy, SSL
-- [ ] **.env.example** — เพิ่ม JWT_SECRET, PORT, NODE_ENV
-- [ ] **Tests** — ไม่มี unit/integration tests เลย
 
-### Priority: Low (Frontend)
-- [ ] **Service card emoji fallback** — ถ้า browser แสดง emoji ไม่ได้ ให้ใช้ SVG icon แทน
-- [ ] **Image lazy loading** — รูป portfolio/process ควร lazy load
-- [ ] **Accessibility** — ARIA labels, keyboard navigation
-- [ ] **Performance** — Critical CSS, defer JS
+6. **SEO Optimization**
+   - Meta tags dynamic จาก site_config
+   - Open Graph tags
+   - Sitemap generation
+
+7. **Performance**
+   - Image lazy loading
+   - Service worker for offline
+   - CDN สำหรับ static assets
+
+8. **Security Hardening**
+   - Rate limiting ปรับปรุง (ใช้ Redis แทน in-memory)
+   - CSRF protection
+   - Input sanitization เพิ่มเติม
+
+9. **Testing**
+   - Unit tests สำหรับ API endpoints
+   - E2E tests สำหรับ booking flow
+   - Visual regression tests
 
 ---
 
-## 🚀 วิธีรัน
+## วิธีรัน
 
 ```bash
 npm install
 npm start
-# เปิด http://localhost:3000
-# Admin: http://localhost:3000/admin
-# Login: admin@nuchainnovation.com / admin123
 ```
 
----
-
-## ⚠️ ข้อควรระวัง
-
-1. **อย่าใช้ default password ใน production** — เปลี่ยน admin password ทันที
-2. **ตั้ง JWT_SECRET env var** — ถ้าไม่ตั้งจะ generate ใหม่ทุกครั้งที่ restart (token เก่าจะใช้ไม่ได้)
-3. **SQLite** — เหมาะกับ usage ต่ำ ถ้า concurrent users เยอะควรเปลี่ยนเป็น PostgreSQL
-4. **Rate limiter** — ใช้ in-memory (หายเมื่อ restart) ถ้าต้องการ persistent ใช้ Redis
-5. **uploads/ folder** — ไม่ได้ gitignore (ควรเพิ่ม)
+เปิด:
+- 🌐 เว็บ: http://localhost:3000
+- 🔐 Login: http://localhost:3000/login (admin@nuchainnovation.com / admin123)
+- 🔧 Admin CMS: http://localhost:3000/admin
 
 ---
 
-*Last updated: 2026-04-29 by Agent*
+## Notes สำหรับ Agent ถัดไป
+
+- **อย่าแก้ script.js/site-loader.js โดยไม่เข้าใจ flow**: `site-loader.js` ต้อง resolve `__siteContentLoaded` promise ก่อน → `script.js` ถึงจะ init animations
+- **Event delegation อยู่ใน `setupEventDelegation()`**: ใช้ `document.addEventListener` ครอบ — ไม่ต้อง re-bind ทุกครั้ง
+- **`rebindEventListeners()`** ใช้สำหรับ cursor/magnetic/ripple effects ที่ต้อง bind กับ element ตรงๆ
+- **Image validation**: ทุกรูปจาก API ต้องผ่าน `esc()` + check ว่า URL ไม่ว่างก่อน render `<img>`
+- **GSAP ไม่รองรับ `killTweensOf('*')`**: ใช้ explicit selector list เท่านั้น

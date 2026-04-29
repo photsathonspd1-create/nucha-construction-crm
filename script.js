@@ -2,12 +2,27 @@
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
 
 // ===== Loader =====
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
     const loader = document.getElementById('loader');
+
+    // Wait for site-loader.js to finish loading API content
+    if (window.__siteContentLoaded) {
+        await window.__siteContentLoaded;
+    }
+
+    // Small delay to ensure DOM is fully settled after site-loader replacements
+    await new Promise(r => setTimeout(r, 100));
+
+    // Initialize animations AFTER content is ready
+    initAnimations();
+
+    // Set up event delegation for dynamically replaced elements
+    setupEventDelegation();
+
+    // Hide loader after animations are set up
     setTimeout(() => {
         loader.classList.add('hidden');
-        initAnimations();
-    }, 2000);
+    }, 800);
 });
 
 // ===== Custom Cursor (desktop only) =====
@@ -47,9 +62,120 @@ function animateFollower() {
     }
 }
 
+// ===== Re-bind event listeners after DOM replacement =====
+function rebindEventListeners() {
+    // Re-bind cursor hover effects on dynamic elements
+    if (!isMobile && cursor && follower) {
+        const hoverTargets = document.querySelectorAll('a, button, .service-card, .portfolio-item, .magnetic-btn');
+        hoverTargets.forEach(el => {
+            // Avoid duplicate listeners by using a flag
+            if (el._cursorBound) return;
+            el._cursorBound = true;
+            el.addEventListener('mouseenter', () => { cursor.classList.add('hover'); follower.classList.add('hover'); });
+            el.addEventListener('mouseleave', () => { cursor.classList.remove('hover'); follower.classList.remove('hover'); });
+        });
+    }
+
+    // Re-bind magnetic button effects on dynamic elements
+    if (!isMobile && typeof gsap !== 'undefined') {
+        document.querySelectorAll('.magnetic-btn').forEach(btn => {
+            if (btn._magneticBound) return;
+            btn._magneticBound = true;
+            btn.addEventListener('mousemove', (e) => {
+                const rect = btn.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+                gsap.to(btn, { x: x * 0.2, y: y * 0.2, duration: 0.3, ease: 'power2.out' });
+            });
+            btn.addEventListener('mouseleave', () => {
+                gsap.to(btn, { x: 0, y: 0, duration: 0.5, ease: 'elastic.out(1, 0.5)' });
+            });
+        });
+    }
+
+    // Re-bind ripple effect on primary buttons
+    if (typeof gsap !== 'undefined') {
+        document.querySelectorAll('.btn-primary').forEach(btn => {
+            if (btn._rippleBound) return;
+            btn._rippleBound = true;
+            btn.addEventListener('click', function(e) {
+                const rect = this.getBoundingClientRect();
+                const ripple = document.createElement('span');
+                ripple.style.cssText = `
+                    position: absolute; width: 0; height: 0; border-radius: 50%;
+                    background: rgba(255,255,255,0.3);
+                    left: ${e.clientX - rect.left}px; top: ${e.clientY - rect.top}px;
+                    transform: translate(-50%, -50%); pointer-events: none;
+                `;
+                this.appendChild(ripple);
+                gsap.to(ripple, {
+                    width: 300, height: 300, opacity: 0,
+                    duration: 0.8, ease: 'power2.out',
+                    onComplete: () => ripple.remove()
+                });
+            });
+        });
+    }
+}
+
+// ===== Event delegation for dynamic elements =====
+function setupEventDelegation() {
+    // Close mobile menu when clicking nav links
+    document.addEventListener('click', (e) => {
+        const navLink = e.target.closest('.nav-menu a');
+        if (navLink) {
+            const hamburger = document.getElementById('hamburger');
+            const navMenu = document.getElementById('navMenu');
+            if (hamburger) hamburger.classList.remove('active');
+            if (navMenu) navMenu.classList.remove('active');
+        }
+    });
+
+    // Service card booking links → scroll to booking + pre-select service
+    document.addEventListener('click', (e) => {
+        const bookingLink = e.target.closest('[data-booking-service]');
+        if (bookingLink) {
+            e.preventDefault();
+            const service = bookingLink.dataset.bookingService;
+            const serviceMap = {
+                'construction': 'รับเหมาก่อสร้าง',
+                'builtin': 'บิ้วอิน',
+                'design': 'ออกแบบ',
+                'decoration': 'ตกแต่ง',
+                'project-management': 'บริหารงานขายโครงการ'
+            };
+            const mappedValue = serviceMap[service];
+            if (mappedValue) {
+                const radio = document.querySelector(`input[name="service_type"][value="${mappedValue}"]`);
+                if (radio) radio.checked = true;
+            }
+            document.getElementById('booking').scrollIntoView({ behavior: 'smooth' });
+        }
+    });
+
+    // Service option card selection visual feedback (delegation)
+    document.addEventListener('change', (e) => {
+        if (e.target.matches('.service-option input')) {
+            document.querySelectorAll('.service-option-card').forEach(c => c.classList.remove('selected'));
+            e.target.closest('.service-option').querySelector('.service-option-card').classList.add('selected');
+        }
+        if (e.target.matches('.budget-option input')) {
+            document.querySelectorAll('.budget-tag').forEach(t => t.classList.remove('selected'));
+            e.target.closest('.budget-option').querySelector('.budget-tag').classList.add('selected');
+        }
+        if (e.target.matches('.meeting-option input')) {
+            document.querySelectorAll('.meeting-option-card').forEach(c => c.classList.remove('selected'));
+            e.target.closest('.meeting-option').querySelector('.meeting-option-card').classList.add('selected');
+        }
+    });
+}
+
+// ===== Initial cursor binding (static elements) =====
 if (!isMobile) {
     const hoverTargets = document.querySelectorAll('a, button, .service-card, .portfolio-item, .magnetic-btn');
     hoverTargets.forEach(el => {
+        if (el._cursorBound) return;
+        el._cursorBound = true;
         el.addEventListener('mouseenter', () => { cursor.classList.add('hover'); follower.classList.add('hover'); });
         el.addEventListener('mouseleave', () => { cursor.classList.remove('hover'); follower.classList.remove('hover'); });
     });
@@ -57,9 +183,11 @@ if (!isMobile) {
     document.querySelectorAll('.cursor, .cursor-follower').forEach(el => el.remove());
 }
 
-// ===== Magnetic Button (desktop only) =====
+// ===== Magnetic Button (desktop only, static elements) =====
 if (!isMobile) {
     document.querySelectorAll('.magnetic-btn').forEach(btn => {
+        if (btn._magneticBound) return;
+        btn._magneticBound = true;
         btn.addEventListener('mousemove', (e) => {
             const rect = btn.getBoundingClientRect();
             const x = e.clientX - rect.left - rect.width / 2;
@@ -79,13 +207,6 @@ const navMenu = document.getElementById('navMenu');
 hamburger.addEventListener('click', () => {
     hamburger.classList.toggle('active');
     navMenu.classList.toggle('active');
-});
-
-document.querySelectorAll('.nav-menu a').forEach(link => {
-    link.addEventListener('click', () => {
-        hamburger.classList.remove('active');
-        navMenu.classList.remove('active');
-    });
 });
 
 // ===== Navbar & Progress =====
@@ -193,24 +314,6 @@ function showFormError(step, msg) {
     setTimeout(() => errEl.style.display = 'none', 3000);
 }
 
-// Service card links → pre-select service
-document.querySelectorAll('[data-booking-service]').forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const service = link.dataset.bookingService;
-        const serviceMap = {
-            'construction': 'รับเหมาก่อสร้าง',
-            'builtin': 'บิ้วอิน',
-            'design': 'ออกแบบ',
-            'decoration': 'ตกแต่ง',
-            'project-management': 'บริหารโครงการ'
-        };
-        const radio = document.querySelector(`input[name="service_type"][value="${serviceMap[service]}"]`);
-        if (radio) radio.checked = true;
-        document.getElementById('booking').scrollIntoView({ behavior: 'smooth' });
-    });
-});
-
 // Set min date to today (Thai timezone)
 const dateInput = document.getElementById('bookingDate');
 if (dateInput) {
@@ -291,7 +394,8 @@ function initAnimations() {
     // Kill existing ScrollTriggers if re-initializing (e.g. after site-loader loads content)
     if (_animationsInitialized) {
         ScrollTrigger.getAll().forEach(t => t.kill());
-        gsap.killTweensOf('*');
+        // Kill all tweens on animated elements
+        gsap.killTweensOf('.hero-badge, .title-line, .hero-subtitle, .hero-desc, .hero-buttons .btn, .hero-stats-row, .hero-image-wrapper, .hero-float-card, .scroll-indicator, .break-scene-tag, .break-line, .break-scene-sub, .break-scene-line, .services, .services .section-header, .service-card, .story, .story-step, .portfolio .section-header, .portfolio-item, .booking-info, .booking-form-container, .stat-item, .trust .section-header, .testimonial-card, .closing-tag, .closing-title, .closing-desc, .guarantee-item, .closing-cta, .trust-badges-label, .trust-badge-item, .floating-cta .fab, .footer-top > *');
     }
     _animationsInitialized = true;
 
@@ -545,8 +649,10 @@ function initAnimations() {
     });
 }
 
-// ===== Ripple on Click =====
+// ===== Ripple on Click (static elements) =====
 document.querySelectorAll('.btn-primary').forEach(btn => {
+    if (btn._rippleBound) return;
+    btn._rippleBound = true;
     btn.addEventListener('click', function(e) {
         const rect = this.getBoundingClientRect();
         const ripple = document.createElement('span');
@@ -562,27 +668,5 @@ document.querySelectorAll('.btn-primary').forEach(btn => {
             duration: 0.8, ease: 'power2.out',
             onComplete: () => ripple.remove()
         });
-    });
-});
-
-// ===== Service option selection visual feedback =====
-document.querySelectorAll('.service-option input').forEach(input => {
-    input.addEventListener('change', () => {
-        document.querySelectorAll('.service-option-card').forEach(c => c.classList.remove('selected'));
-        input.closest('.service-option').querySelector('.service-option-card').classList.add('selected');
-    });
-});
-
-document.querySelectorAll('.budget-option input').forEach(input => {
-    input.addEventListener('change', () => {
-        document.querySelectorAll('.budget-tag').forEach(t => t.classList.remove('selected'));
-        input.closest('.budget-option').querySelector('.budget-tag').classList.add('selected');
-    });
-});
-
-document.querySelectorAll('.meeting-option input').forEach(input => {
-    input.addEventListener('change', () => {
-        document.querySelectorAll('.meeting-option-card').forEach(c => c.classList.remove('selected'));
-        input.closest('.meeting-option').querySelector('.meeting-option-card').classList.add('selected');
     });
 });
