@@ -91,18 +91,18 @@ async function renderDashboard() {
     const bookings = allLeads.filter(l => l.appointment_date).sort((a, b) => a.appointment_date.localeCompare(b.appointment_date)).slice(0, 5);
 
     document.getElementById('dashStats').innerHTML = `
-      <div class="stat-card"><div class="label">Leads ทั้งหมด</div><div class="value">${stats.totalLeads}</div></div>
-      <div class="stat-card"><div class="label">ปิดดีลสำเร็จ</div><div class="value green">${stats.closedDeals}</div></div>
-      <div class="stat-card"><div class="label">นัดวันนี้</div><div class="value">${stats.todayAppts}</div></div>
-      <div class="stat-card"><div class="label">Lead ใหม่</div><div class="value red">${stats.newLeads}</div></div>
+      <div class="stat-card"><div class="label">Leads ทั้งหมด</div><div class="value">${esc(String(stats.totalLeads))}</div></div>
+      <div class="stat-card"><div class="label">ปิดดีลสำเร็จ</div><div class="value green">${esc(String(stats.closedDeals))}</div></div>
+      <div class="stat-card"><div class="label">นัดวันนี้</div><div class="value">${esc(String(stats.todayAppts))}</div></div>
+      <div class="stat-card"><div class="label">Lead ใหม่</div><div class="value red">${esc(String(stats.newLeads))}</div></div>
     `;
 
     const colors = { 'New Lead': '#3b82f6', 'Contacted': '#eab308', 'Appointment Set': '#16a34a', 'Proposal Sent': '#8b5cf6', 'Closed Won': '#22c55e', 'Closed Lost': '#ef4444' };
     document.getElementById('dashPipeline').innerHTML = pipeline.map(p => `
       <div class="pipeline-bar">
         <div class="pipeline-dot" style="background:${colors[p.stage] || '#999'}"></div>
-        <div class="pipeline-name">${p.stage}</div>
-        <div class="pipeline-count">${p.count}</div>
+        <div class="pipeline-name">${esc(p.stage)}</div>
+        <div class="pipeline-count">${esc(String(p.count))}</div>
       </div>
     `).join('');
 
@@ -926,7 +926,7 @@ function renderLeads() {
       <td>${esc(l.service_type)}</td>
       <td>${esc(l.budget_range)}</td>
       <td><span class="score-dot ${l.score >= 5 ? 'high' : l.score >= 3 ? 'mid' : 'low'}"></span>${l.score}</td>
-      <td><span class="status-badge ${statusClass(l.status)}">${l.status}</span></td>
+      <td><span class="status-badge ${statusClass(l.status)}">${esc(l.status)}</span></td>
       <td>${new Date(l.created_at).toLocaleDateString('th-TH')}</td>
       <td><button class="btn btn-sm btn-outline" onclick="openLeadModal(${l.id})">📝</button></td>
     </tr>
@@ -1102,23 +1102,23 @@ async function renderReports() {
   try {
     const summary = await api('/api/reports/summary');
     document.getElementById('reportStats').innerHTML = `
-      <div class="stat-card"><div class="label">Leads ทั้งหมด</div><div class="value">${summary.total_leads}</div></div>
-      <div class="stat-card"><div class="label">เดือนนี้</div><div class="value">${summary.monthly_leads}</div></div>
-      <div class="stat-card"><div class="label">ปิดดีล</div><div class="value green">${summary.closed_won}</div></div>
-      <div class="stat-card"><div class="label">Conversion</div><div class="value">${summary.conversion_rate}%</div></div>
+      <div class="stat-card"><div class="label">Leads ทั้งหมด</div><div class="value">${esc(String(summary.total_leads))}</div></div>
+      <div class="stat-card"><div class="label">เดือนนี้</div><div class="value">${esc(String(summary.monthly_leads))}</div></div>
+      <div class="stat-card"><div class="label">ปิดดีล</div><div class="value green">${esc(String(summary.closed_won))}</div></div>
+      <div class="stat-card"><div class="label">Conversion</div><div class="value">${esc(String(summary.conversion_rate))}%</div></div>
     `;
     const byService = await api('/api/reports/by-service');
     document.getElementById('reportByService').innerHTML = byService.map(s => `
       <div class="pipeline-bar">
         <div class="pipeline-name">${esc(s.service_type || 'ไม่ระบุ')}</div>
-        <div class="pipeline-count">${s.count} (ปิด: ${s.closed})</div>
+        <div class="pipeline-count">${esc(String(s.count))} (ปิด: ${esc(String(s.closed))})</div>
       </div>
     `).join('') || '<p style="color:var(--gray-400)">ยังไม่มีข้อมูล</p>';
     const byDate = await api('/api/reports/by-date');
     document.getElementById('reportByDate').innerHTML = byDate.slice(-10).map(d => `
       <div class="pipeline-bar">
-        <div class="pipeline-name">${d.date}</div>
-        <div class="pipeline-count">${d.count} (ปิด: ${d.closed})</div>
+        <div class="pipeline-name">${esc(d.date)}</div>
+        <div class="pipeline-count">${esc(String(d.count))} (ปิด: ${esc(String(d.closed))})</div>
       </div>
     `).join('') || '<p style="color:var(--gray-400)">ยังไม่มีข้อมูล</p>';
   } catch (err) {
@@ -1134,7 +1134,7 @@ async function renderUsers() {
       <tr>
         <td><strong>${esc(u.full_name || '-')}</strong></td>
         <td>${esc(u.email)}</td>
-        <td><span class="status-badge ${u.role === 'admin' ? 'won' : 'new'}">${u.role}</span></td>
+        <td><span class="status-badge ${u.role === 'admin' ? 'won' : 'new'}">${esc(u.role)}</span></td>
         <td>${new Date(u.created_at).toLocaleDateString('th-TH')}</td>
         <td>
           <button class="btn btn-sm btn-outline" onclick="editUser(${u.id}, '${esc(u.full_name)}', '${u.role}')">✏️</button>
@@ -1215,7 +1215,7 @@ function exportCSV() {
 
 async function createBackup() {
   try {
-    const res = await fetch('/api/admin/backup');
+    const res = await fetch('/api/admin/backup', { cache: 'no-store', credentials: 'include' });
     if (!res.ok) throw new Error('Backup failed');
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);

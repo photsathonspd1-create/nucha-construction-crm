@@ -228,7 +228,7 @@
   // ===== LOAD FAQ FROM API =====
   async function loadFAQ() {
     try {
-      const res = await fetch('/api/content/chatbot_faq');
+      const res = await fetch('/api/content/chatbot_faq', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         if (data && Object.keys(data).length > 0) {
