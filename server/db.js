@@ -123,6 +123,7 @@ const defaultContent = {
     site_tagline: 'บริการออกแบบ ก่อสร้าง ตกแต่งครบวงจร',
     logo_text: 'N',
     logo_full: 'NUCHA\nINNOVATION',
+    logo_url: '',
     phone: '02-123-4567',
     email: 'info@nuchainnovation.com',
     address: '123 ถนนสุขุมวิท แขวงคลองเตย กรุงเทพฯ 10110',

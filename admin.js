@@ -134,9 +134,10 @@ function renderSiteConfigForm() {
         <div class="form-group"><label>Tagline</label><input type="text" id="sc_site_tagline" value="${esc(c.site_tagline || '')}"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Logo Text (ตัวอักษร)</label><input type="text" id="sc_logo_text" value="${esc(c.logo_text || '')}"></div>
+        <div class="form-group"><label>Logo Text (ตัวอักษร — ใช้ถ้าไม่มีรูป)</label><input type="text" id="sc_logo_text" value="${esc(c.logo_text || '')}"></div>
         <div class="form-group"><label>Logo Full (ใช้ \\n ขึ้นบรรทัดใหม่)</label><input type="text" id="sc_logo_full" value="${esc(c.logo_full || '')}"></div>
       </div>
+      ${imageField('sc_logo_url', c.logo_url, 'Logo Image (ถ้ามีรูปจะใช้รูปแทนตัวอักษร)')}
       ${imageField('sc_favicon', c.favicon, 'Favicon URL')}
     </div>
     <div class="form-section">
@@ -166,6 +167,7 @@ async function saveSiteConfig() {
   const data = {
     site_name: gv('sc_site_name'), site_tagline: gv('sc_site_tagline'),
     logo_text: gv('sc_logo_text'), logo_full: gv('sc_logo_full'),
+    logo_url: getImageValue('sc_logo_url'),
     phone: gv('sc_phone'), email: gv('sc_email'), address: gv('sc_address'),
     line_id: gv('sc_line_id'), facebook_url: gv('sc_facebook'),
     instagram_url: gv('sc_instagram'), copyright: gv('sc_copyright'),
