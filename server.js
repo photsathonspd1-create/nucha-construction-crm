@@ -1151,7 +1151,7 @@ app.post("/api/admin/generate-docs", authMiddleware, adminOnly, (req, res) => {
     // Run site-docs script
     const scriptPath = path.join(__dirname, "scripts", "site-docs.js");
     execSync(`node "${scriptPath}" --url "${baseUrl}" --output "${outputDir}"`, {
-      timeout: 120000,
+      timeout: 300000,
       stdio: "pipe"
     });
     

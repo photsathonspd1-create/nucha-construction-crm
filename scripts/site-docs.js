@@ -64,7 +64,7 @@ async function main() {
   if (needsAuth) {
     console.log('🔑 Logging in for authenticated pages...');
     const loginPage = await browser.newPage();
-    await loginPage.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle2', timeout: 10000 });
+    await loginPage.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
     // Try to fill login form
     try {
       await loginPage.evaluate(() => {
@@ -113,7 +113,10 @@ async function main() {
 
       // Navigate
       const url = `${BASE_URL}${page.path}`;
-      await tab.goto(url, { waitUntil: 'networkidle2', timeout: 15000 });
+      await tab.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+      // Wait for network to settle (best-effort, don't fail on timeout)
+      await tab.waitForNetworkIdle({ timeout: 5000 }).catch(() => {});
 
       // Wait for loader to hide (if any)
       await tab.evaluate(() => {
@@ -123,7 +126,7 @@ async function main() {
 
       // Wait for admin content to load (if authenticated page)
       if (page.auth) {
-        await tab.waitForSelector('.admin-layout, .sidebar, .page-section', { timeout: 5000 }).catch(() => {});
+        await tab.waitForSelector('.admin-layout, .sidebar, .page-section', { timeout: 10000 }).catch(() => {});
         // Trigger the target page/tab if hash is present
         if (page.path.includes('#')) {
           const hash = page.path.split('#')[1];
@@ -131,10 +134,11 @@ async function main() {
             if (typeof showPage === 'function') showPage(h);
           }, hash).catch(() => {});
         }
-        await new Promise(r => setTimeout(r, 1500));
+        await new Promise(r => setTimeout(r, 2000));
       }
 
-      await new Promise(r => setTimeout(r, 1000));
+      // Extra settle time for animations and images
+      await new Promise(r => setTimeout(r, 2000));
 
       // Take full-page screenshot
       const screenshotPath = path.join(SCREENSHOTS_DIR, `${slug}.png`);
