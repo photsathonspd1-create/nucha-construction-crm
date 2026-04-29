@@ -139,7 +139,12 @@ app.put('/api/nav', authMiddleware, (req, res) => {
   if (!Array.isArray(items)) return res.status(400).json({ error: 'ข้อมูลไม่ถูกต้อง' });
   db.prepare('DELETE FROM nav_items').run();
   const insert = db.prepare('INSERT INTO nav_items (label, href, sort_order, is_visible) VALUES (?, ?, ?, ?)');
-  items.forEach((item, i) => insert.run(item.label, item.href, item.sort_order || i + 1, item.is_visible ?? 1));
+  items.forEach((item, i) => {
+    // Sanitize: strip HTML tags from label
+    const safeLabel = String(item.label || '').replace(/<[^>]*>/g, '');
+    const safeHref = String(item.href || '#').replace(/[^a-zA-Z0-9\-_/#.?&=:@]/g, '');
+    insert.run(safeLabel, safeHref, item.sort_order || i + 1, item.is_visible ?? 1);
+  });
   res.json({ success: true });
 });
 
