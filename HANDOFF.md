@@ -1,10 +1,10 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> **Last Updated:** 2026-04-30 01:55 (GMT+8)
-> **Updated By:** OpenClaw AI Agent (scroll animation fix + auth cookie fix)
+> **Last Updated:** 2026-04-30 02:17 (GMT+8)
+> **Updated By:** OpenClaw AI Agent (304 cache fix)
 > **Branch:** main
-> **Latest Commit:** `8b12256` — fix: trigger GSAP scroll animations before screenshot + fix httpOnly cookie auth
-> **Status:** ✅ All features implemented, site-docs script fixed for animation-heavy pages
+> **Latest Commit:** `23d7bba` — fix: prevent 304 cache breaking client-side JSON parsing
+> **Status:** ✅ All features implemented, 304 caching bug fixed
 ---
 
 ## 📋 Project Overview
@@ -58,7 +58,30 @@
 | 8 | 🟢 Minor | `first_contact_at` column ไม่ถูกตั้งค่าเลย | เพิ่ม logic ตั้งค่าเมื่อ status → "Contacted" | server.js |
 | 9 | 🟢 Minor | Site Docs ไม่มี sidebar link ใน admin | เพิ่ม sidebar section | admin.html |
 
-## 🐛 Bug Fix Log (2026-04-30 01:55) — Site Docs Screenshot
+## 🐛 Bug Fix Log (2026-04-30 02:17) — 304 Cache Breaking All Pages
+
+### ปัญหา: เว็บค้างทุกหน้า เทาๆ คลิกอะไรไม่ได้
+
+| # | Severity | Bug | Fix | File |
+|---|----------|-----|-----|------|
+| 12 | 🔴 Critical | **Express ETag → 304 → JSON parse crash** — Express ส่ง ETag header, browser cache จำ, ครั้งถัดไป server ตอบ 304 (no body), `api()` ทำ `res.json()` กับ body ว่าง → throw → `!res.ok` (304 ≠ 200-299) → redirect /login → loop ค้างทั้งหน้า | ปิด ETag (`app.set('etag', false)`) + เพิ่ม `Cache-Control: no-store` สำหรับ /api routes | server.js |
+| 13 | 🔴 Critical | **admin.js api() ไม่ handle 304** — fetch default cache ทำ conditional request, ได้ 304 กลับมา, `res.json()` ล้มเหลว | เพิ่ม `cache: 'no-store'` ใน fetch + fallback สำหรับ 304 | admin.js |
+| 14 | 🔴 Critical | **script.js loader ค้างตลอดกาล** — ถ้า `initAnimations()` throw (GSAP CDN fail, DOM error) → `loader.classList.add('hidden')` ไม่เคยถูกเรียก → หน้าถูกบังด้วย loader overlay | เพิ่ม try/catch + timeout 8 วินาที → loader ซ่อนเสมอ | script.js |
+| 15 | 🟡 Medium | **site-loader.js fetch ไม่มี cache control** — main page content loader ใช้ default cache → อาจโดน 304 | เพิ่ม `cache: 'no-store'` ใน fetch calls | site-loader.js |
+
+### Root Cause Analysis
+- **Express.js** เปิด ETag โดย default — สร้าง hash ของ response body, ส่งเป็น `ETag` header
+- **Browser** จำ ETag ไว้, ครั้งถัดไปส่ง `If-None-Match` header กลับ
+- **Express** เทียบ hash → ถ้าตรง → ตอบ `304 Not Modified` (ไม่มี body)
+- **`fetch().json()`** กับ 304 → body ว่าง → SyntaxError
+- **`response.ok`** สำหรับ 304 = `false` (ไม่ใช่ 200-299)
+- **admin.js init** catch → `window.location.href = '/login'` → ถ้า login redirect กลับ → **infinite loop**
+- **script.js** ไม่มี try/catch → `initAnimations()` fail → loader ไม่ถูกซ่อน → **หน้าถูกบัง**
+
+### ผลกระทบ
+- ทุกหน้าที่ใช้ fetch API ได้รับผลกระทบ (admin panel, main page)
+- เกิดขึ้นหลังจากหน้าโหลดสำเร็จครั้งแรก → ครั้งถัดไป browser ส่ง conditional request
+- ผู้ใช้เห็นหน้า "เทาๆ" (loader overlay) หรือถูก redirect ไป login ซ้ำๆ
 
 ### ปัญหา: site-report.html บางหน้าว่าง / แสดงผิด
 
@@ -153,6 +176,7 @@ node scripts/site-docs.js           # รัน script (จะ scroll + force vi
 | 53 | Site Documentation Generator (Puppeteer) | scripts/site-docs.js | ✅ |
 | 54 | Site docs API endpoint | server.js `/api/admin/generate-docs` | ✅ |
 | 55 | Supabase legacy files marked | supabase/config.js | ✅ |
+| 56 | **304 cache fix** — ปิด ETag + no-store headers + client cache control | server.js, admin.js, script.js, site-loader.js | ✅ |
 
 ### 📄 Site Documentation Report (2026-04-30 Rewrite)
 | # | Feature | Files | Status |
