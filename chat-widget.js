@@ -273,7 +273,11 @@
   function userMsg(text) {
     const d = document.createElement('div');
     d.className = 'msg user';
-    d.innerHTML = text + `<div class="msg-time">${time()}</div>`;
+    d.textContent = text;
+    const t = document.createElement('div');
+    t.className = 'msg-time';
+    t.textContent = time();
+    d.appendChild(t);
     $('chatBody').appendChild(d);
     S.history.push({ r: 'user', t: text });
     scrollB();
@@ -415,7 +419,7 @@
       if (!res.ok) throw new Error((await res.json()).error);
       $('chatFormArea').classList.remove('show');
       $('chatInputArea').style.display = 'flex';
-      botMsg(`ขอบคุณครับคุณ ${name}! 🙏`, 200);
+      botMsg(`ขอบคุณครับคุณ ${name.replace(/</g, '&lt;').replace(/>/g, '&gt;')}! 🙏`, 200);
       botMsg('ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมงครับ', 800);
       S.step = 'done';
       setTimeout(() => addQR(['ดูบริการ', 'ดูผลงาน']), 1800);

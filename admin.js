@@ -1029,7 +1029,7 @@ function renderBookings() {
         <h4>${esc(b.name)}</h4>
         <p>${esc(b.service_type)} · ${esc(b.appointment_time || '')} · ${esc(b.meeting_type || 'onsite')} · ${esc(b.phone)}</p>
       </div>
-      <span class="status-badge ${b.status === 'Closed Won' ? 'won' : 'new'}">${b.status}</span>
+      <span class="status-badge ${b.status === 'Closed Won' ? 'won' : 'new'}">${esc(b.status)}</span>
     </div>`;
   }).join('') : '<p style="color:var(--gray-400);text-align:center;padding:40px">ยังไม่มีการจองคิว</p>';
 }
@@ -1044,8 +1044,8 @@ async function renderMedia() {
         <div class="media-info">
           <div class="media-name">${esc(f.name)}</div>
           <div class="media-actions">
-            <button class="copy-url" onclick="copyUrl('${esc(f.url)}')">📋 Copy URL</button>
-            <button class="delete-img" onclick="deleteMedia('${esc(f.name)}')">🗑️</button>
+            <button class="copy-url" onclick="copyUrl('${esc(f.url).replace(/'/g, "\\'")}')">📋 Copy URL</button>
+            <button class="delete-img" onclick="deleteMedia('${esc(f.name).replace(/'/g, "\\'")}')">🗑️</button>
           </div>
         </div>
       </div>
@@ -1137,7 +1137,7 @@ async function renderUsers() {
         <td><span class="status-badge ${u.role === 'admin' ? 'won' : 'new'}">${esc(u.role)}</span></td>
         <td>${new Date(u.created_at).toLocaleDateString('th-TH')}</td>
         <td>
-          <button class="btn btn-sm btn-outline" onclick="editUser(${u.id}, '${esc(u.full_name)}', '${u.role}')">✏️</button>
+          <button class="btn btn-sm btn-outline" onclick="editUser(${u.id}, '${esc(u.full_name)}', '${esc(u.role)}')">✏️</button>
           <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})">🗑️</button>
         </td>
       </tr>
