@@ -516,7 +516,7 @@ body { font-family: 'Inter', 'Noto Sans Thai', sans-serif; background: var(--bg)
 
     ${r.screenshot ? `
     <div class="screenshot-area">
-      <img src="screenshots/${r.screenshot}" alt="${r.name}" onclick="document.getElementById('lb-img').src=this.src;document.getElementById('lb').classList.add('show')" onerror="this.parentElement.style.display='none'">
+      <img src="screenshots/${r.screenshot}" alt="${r.name}" onclick="document.getElementById('lb-img').src=this.src;document.getElementById('lb').classList.add('show')">
     </div>` : ''}
 
     ${features.length > 0 ? `
