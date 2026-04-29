@@ -1,11 +1,10 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> **Last Updated:** 2026-04-30 00:25 (GMT+8)
-> **Updated By:** OpenClaw AI Agent (timeout fix + report redesign)
+> **Last Updated:** 2026-04-30 01:55 (GMT+8)
+> **Updated By:** OpenClaw AI Agent (scroll animation fix + auth cookie fix)
 > **Branch:** main
-> **Latest Commit:** `40cb5d1` — fix: Puppeteer timeout 60s, redesign report for non-technical audience
-> **Status:** ✅ All features implemented, report redesigned for boss-friendly viewing
-
+> **Latest Commit:** `8b12256` — fix: trigger GSAP scroll animations before screenshot + fix httpOnly cookie auth
+> **Status:** ✅ All features implemented, site-docs script fixed for animation-heavy pages
 ---
 
 ## 📋 Project Overview
@@ -37,6 +36,8 @@
 - Auth: JWT ใน httpOnly cookie, middleware: `authMiddleware` + `adminOnly`
 - Admin: Single-page app ใช้ `showPage('page-name')` สลับ sections
 - Site docs: Puppeteer ต้อง Chromium — ใช้ `headless: 'new'`
+- **GSAP + ScrollTrigger:** หน้าเว็บใช้ animation เยอะ — element เริ่ม `opacity:0` → ต้อง scroll ก่อน screenshot (site-docs.js แก้แล้ว)
+- **httpOnly cookies:** ใช้ CDP `Network.getAllCookies` ดึง cookie — ห้ามใช้ `page.cookies()` (อ่าน httpOnly ไม่ได้)
 - ทุก route มี try-catch แล้ว — ไม่ควร crash
 
 ---
@@ -56,6 +57,27 @@
 | 7 | 🟡 Medium | `supabase/config.js` มี hardcoded placeholder credentials | แทนด้วย legacy notice | supabase/config.js |
 | 8 | 🟢 Minor | `first_contact_at` column ไม่ถูกตั้งค่าเลย | เพิ่ม logic ตั้งค่าเมื่อ status → "Contacted" | server.js |
 | 9 | 🟢 Minor | Site Docs ไม่มี sidebar link ใน admin | เพิ่ม sidebar section | admin.html |
+
+## 🐛 Bug Fix Log (2026-04-30 01:55) — Site Docs Screenshot
+
+### ปัญหา: site-report.html บางหน้าว่าง / แสดงผิด
+
+| # | Severity | Bug | Fix | File |
+|---|----------|-----|-----|------|
+| 10 | 🔴 Critical | **GSAP ScrollTrigger ทำให้หน้าว่าง** — element เริ่ม `opacity:0` รอ scroll, Puppeteer ไม่ trigger → screenshot จับได้แค่ส่วนบนที่มองเห็น | เพิ่ม scroll ทั้งหน้าทีละ step + force `opacity:1, transform:none` ทุก element + kill ScrollTriggers + force lazy-load images | scripts/site-docs.js |
+| 11 | 🔴 Critical | **Auth cookie ไม่ส่งผ่าน** — `httpOnly:true` cookie ใช้ `page.cookies()` + `setCookie()` ไม่สำเร็จ → admin pages แสดงหน้า login แทน | ใช้ CDP `Network.getAllCookies` ดึง cookie จาก browser แทน + เพิ่ม verify auth หลัง login | scripts/site-docs.js |
+
+### Root Cause Analysis
+- **หน้าว่าง:** เว็บใช้ GSAP + ScrollTrigger — ทุก section เริ่มจาก `opacity: 0`, `transform: translateY(50px)` แล้ว animate เมื่อ scroll เข้า viewport Puppeteer screenshot ไม่ scroll → element ยัง invisible
+- **หน้า login ซ้ำ:** Server ตั้ง cookie เป็น `httpOnly: true` → Puppeteer `page.cookies()` อ่านไม่ได้ → `setCookie()` บนหน้าใหม่ไม่มี token → admin redirect กลับ login
+
+### วิธี regenerate report หลังแก้
+```bash
+cd /path/to/nucha-construction-crm
+npm install
+node server.js &                    # เปิด server
+node scripts/site-docs.js           # รัน script (จะ scroll + force visible ก่อน screenshot)
+```
 
 ---
 
@@ -145,6 +167,10 @@
 | 63 | Screenshot lightbox (click to zoom) | site-docs/site-report.html | ✅ |
 | 64 | Form fields grouped by prefix, unnamed fields filtered | site-docs/site-report.html | ✅ |
 | 65 | Admin summary cards with nav tab visualization | site-docs/site-report.html | ✅ |
+| 66 | **Scroll animation trigger** — scroll ทั้งหน้า + force visible ก่อน screenshot (GSAP ScrollTrigger fix) | scripts/site-docs.js | ✅ |
+| 67 | **httpOnly cookie auth fix** — ใช้ CDP Network.getAllCookies แทน page.cookies() | scripts/site-docs.js | ✅ |
+| 68 | **Auth verify** — ตรวจสอบ login สำเร็จจริงก่อน screenshot admin pages | scripts/site-docs.js | ✅ |
+| 69 | **Lazy image force load** — บังคับโหลด lazy images ก่อน screenshot | scripts/site-docs.js | ✅ |
 
 ---
 
