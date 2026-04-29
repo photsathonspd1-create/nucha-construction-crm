@@ -1,10 +1,10 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> **Last Updated:** 2026-04-30 02:17 (GMT+8)
-> **Updated By:** OpenClaw AI Agent (304 cache fix)
+> **Last Updated:** 2026-04-30 02:30 (GMT+8)
+> **Updated By:** OpenClaw AI Agent (XSS fix + cache/auth headers)
 > **Branch:** main
-> **Latest Commit:** `23d7bba` — fix: prevent 304 cache breaking client-side JSON parsing
-> **Status:** ✅ All features implemented, 304 caching bug fixed
+> **Latest Commit:** `a1f3b56` — fix: XSS in dashboard/reports/users + missing cache/auth headers
+> **Status:** ✅ All features implemented, security hardened
 ---
 
 ## 📋 Project Overview
@@ -58,7 +58,20 @@
 | 8 | 🟢 Minor | `first_contact_at` column ไม่ถูกตั้งค่าเลย | เพิ่ม logic ตั้งค่าเมื่อ status → "Contacted" | server.js |
 | 9 | 🟢 Minor | Site Docs ไม่มี sidebar link ใน admin | เพิ่ม sidebar section | admin.html |
 
-## 🐛 Bug Fix Log (2026-04-30 02:17) — 304 Cache Breaking All Pages
+## 🐛 Bug Fix Log (2026-04-30 02:30) — XSS + Missing Headers
+
+### ปัญหา: XSS injection ใน admin panel + fetch calls ไม่มี auth/cache
+
+| # | Severity | Bug | Fix | File |
+|---|----------|-----|-----|------|
+| 16 | 🔴 Critical | **XSS ใน renderDashboard()** — `stats.totalLeads`, `stats.closedDeals`, `stats.todayAppts`, `stats.newLeads` ถูก inject โดยไม่ escape → ถ้า DB มี malicious data จะ run JS ได้ | เพิ่ม `esc()` ทุกค่า stats | admin.js |
+| 17 | 🔴 Critical | **XSS ใน renderDashboard() pipeline** — `p.stage` และ `p.count` ไม่ escape | เพิ่ม `esc()` | admin.js |
+| 18 | 🔴 Critical | **XSS ใน renderReports()** — `summary.total_leads`, `summary.monthly_leads`, `summary.closed_won`, `summary.conversion_rate`, `s.count`, `s.closed`, `d.date`, `d.count`, `d.closed` ไม่ escape | เพิ่ม `esc()` ทุกค่า | admin.js |
+| 19 | 🟡 Medium | **XSS ใน renderLeads()** — `l.status` แสดงโดยไม่ escape (แม้ class จะใช้ lookup map) | เพิ่ม `esc()` | admin.js |
+| 20 | 🟡 Medium | **XSS ใน renderUsers()** — `u.role` แสดงโดยไม่ escape | เพิ่ม `esc()` | admin.js |
+| 21 | 🟡 Medium | **createBackup() ไม่มี auth headers** — fetch `/api/admin/backup` ไม่ส่ง credentials → 401 error | เพิ่ม `credentials: 'include'` + `cache: 'no-store'` | admin.js |
+| 22 | 🟡 Medium | **admin-login.html auth check ไม่มี cache control** — fetch `/api/auth/me` อาจโดน 304 → ไม่ redirect ไป admin | เพิ่ม `cache: 'no-store'` | admin-login.html |
+| 23 | 🟢 Minor | **chat-widget.js FAQ fetch ไม่มี cache control** — fetch `/api/content/chatbot_faq` อาจโดน 304 | เพิ่ม `cache: 'no-store'` | chat-widget.js |
 
 ### ปัญหา: เว็บค้างทุกหน้า เทาๆ คลิกอะไรไม่ได้
 
