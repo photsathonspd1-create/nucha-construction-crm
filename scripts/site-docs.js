@@ -325,7 +325,23 @@ async function main() {
   );
 
   // Generate HTML report
-  const html = generateHTML(results);
+  let html = generateHTML(results);
+
+  // Embed screenshots as base64 so the HTML works when opened from file://
+  console.log('   📦 Embedding screenshots as base64...');
+  for (const r of results) {
+    if (r.screenshot) {
+      const imgPath = path.join(SCREENSHOTS_DIR, r.screenshot);
+      if (fs.existsSync(imgPath)) {
+        const b64 = fs.readFileSync(imgPath).toString('base64');
+        const ext = r.screenshot.split('.').pop().toLowerCase();
+        const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
+        const dataUri = `data:${mime};base64,${b64}`;
+        html = html.replace(`src="screenshots/${r.screenshot}"`, `src="${dataUri}"`);
+      }
+    }
+  }
+
   fs.writeFileSync(path.join(OUTPUT_DIR, 'site-report.html'), html, 'utf8');
 
   // Generate Markdown summary
