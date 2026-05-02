@@ -155,6 +155,13 @@ function renderSiteConfigForm() {
         <div class="form-group"><label>Logo Full (ใช้ \\n ขึ้นบรรทัดใหม่)</label><input type="text" id="sc_logo_full" value="${esc(c.logo_full || '')}"></div>
       </div>
       ${imageField('sc_logo_url', c.logo_url, 'Logo Image (ถ้ามีรูปจะใช้รูปแทนตัวอักษร)')}
+      <div class="form-row">
+        <div class="form-group">
+          <label>Logo Scale (40–200px)</label>
+          <input type="range" id="sc_logo_scale" min="40" max="200" value="${c.logo_scale || 80}" oninput="document.getElementById('logoScaleVal').textContent=this.value+'px'" style="width:100%">
+          <small style="color:var(--gray-400)">ขนาดปัจจุบัน: <span id="logoScaleVal">${c.logo_scale || 80}px</span></small>
+        </div>
+      </div>
       ${imageField('sc_favicon', c.favicon, 'Favicon URL')}
     </div>
     <div class="form-section">
@@ -185,6 +192,7 @@ async function saveSiteConfig() {
     site_name: gv('sc_site_name'), site_tagline: gv('sc_site_tagline'),
     logo_text: gv('sc_logo_text'), logo_full: gv('sc_logo_full'),
     logo_url: getImageValue('sc_logo_url'),
+    logo_scale: parseInt(gv('sc_logo_scale')) || 80,
     phone: gv('sc_phone'), email: gv('sc_email'), address: gv('sc_address'),
     line_id: gv('sc_line_id'), facebook_url: gv('sc_facebook'),
     instagram_url: gv('sc_instagram'), copyright: gv('sc_copyright'),

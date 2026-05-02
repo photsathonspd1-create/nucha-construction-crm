@@ -41,6 +41,7 @@
       const config = contentRes.site_config || {};
       // Logo — support both image and text
       const logoUrl = config.logo_url && config.logo_url.trim() ? config.logo_url.trim() : '';
+      const logoScale = config.logo_scale || 80;
       if (logoUrl) {
         // Image logo — replace text icon with <img> and hide text labels
         ['loaderLogo', 'navLogoIcon', 'footerLogoIcon'].forEach(id => {
@@ -48,6 +49,8 @@
           if (el) {
             el.innerHTML = `<img src="${esc(logoUrl)}" alt="Logo" style="width:100%;height:100%;object-fit:contain">`;
             el.style.padding = '0';
+            el.style.width = logoScale + 'px';
+            el.style.height = logoScale + 'px';
           }
         });
         // Hide logo text when image logo is present
