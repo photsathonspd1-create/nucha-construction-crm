@@ -1,9 +1,9 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> **Last Updated:** 2026-05-02 17:42 (GMT+8)
-> **Updated By:** OpenClaw AI Agent (Chat fixes + Bulk delete + Favicon + Responsive logo)
+> **Last Updated:** 2026-05-02 17:50 (GMT+8)
+> **Updated By:** OpenClaw AI Agent (DB repair script)
 > **Branch:** main
-> **Latest Commit:** `338c7fe` — fix: chat duplicate messages, add bulk delete, admin name, favicon, responsive logo
+> **Latest Commit:** `4fb7a76` — feat: add database repair script for corrupted SQLite
 > **Status:** ✅ All features implemented, chat system fully functional, production ready
 ---
 
