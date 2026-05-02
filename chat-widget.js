@@ -109,7 +109,15 @@
   document.body.appendChild(widget);
 
   // ===== State =====
-  const S = { open: false, step: 'welcome', history: [], faqLoaded: false, sessionId: 'chat_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), customerName: '', customerPhone: '', isLiveChat: false, pollInterval: null };
+  const S = {
+    open: false, step: 'welcome', history: [], faqLoaded: false,
+    sessionId: localStorage.getItem('nucha_chat_session') || 'chat_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+    customerName: localStorage.getItem('nucha_chat_name') || '',
+    customerPhone: localStorage.getItem('nucha_chat_phone') || '',
+    isLiveChat: false, pollInterval: null
+  };
+  // Persist session ID
+  localStorage.setItem('nucha_chat_session', S.sessionId);
 
   // ===== DEFAULT FAQ (ใช้ถ้า API ไม่ตอบ) =====
   const DEFAULT_FAQ = {
@@ -421,6 +429,8 @@
       $('chatInputArea').style.display = 'flex';
       S.customerName = name;
       S.customerPhone = phone;
+      localStorage.setItem('nucha_chat_name', name);
+      localStorage.setItem('nucha_chat_phone', phone);
       botMsg(`ขอบคุณครับคุณ ${name.replace(/</g, '&lt;').replace(/>/g, '&gt;')}! 🙏`, 200);
       botMsg('ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมงครับ', 800);
       botMsg('หากมีคำถามเพิ่มเติม พิมพ์ได้เลยครับ — แอดมินจะตอบกลับเร็วๆ นี้ 💬', 1400);
@@ -439,18 +449,72 @@
     $('chatTrigger').classList.toggle('active', S.open);
     if (S.open) {
       $('chatBadge').style.display = 'none';
-      // Load FAQ from API on first open
       if (!S.faqLoaded) await loadFAQ();
-      if (!S.history.length) {
-        botMsg('สวัสดีครับ! 👋 ผมผู้ช่วย NUCHA INNOVATION', 300);
-        botMsg('มีอะไรให้ช่วยครับ? เลือกหัวข้อด้านล่างได้เลย', 800);
-        setTimeout(() => addQR(['มีบริการอะไรบ้าง?', 'ราคาเท่าไหร่?', 'จองคิวเลย', 'ดูผลงาน', 'รับประกันอย่างไร?', 'ติดต่ออย่างไร?']), 1200);
+      // Load previous messages from server if we have a session
+      if (S.history.length === 0) {
+        const loaded = await loadHistory();
+        if (!loaded) {
+          botMsg('สวัสดีครับ! 👋 ผมผู้ช่วย NUCHA INNOVATION', 300);
+          botMsg('มีอะไรให้ช่วยครับ? เลือกหัวข้อด้านล่างได้เลย', 800);
+          setTimeout(() => addQR(['มีบริการอะไรบ้าง?', 'ราคาเท่าไหร่?', 'จองคิวเลย', 'ดูผลงาน', 'รับประกันอย่างไร?', 'ติดต่ออย่างไร?']), 1200);
+        }
       }
+      // Start polling for admin responses
+      startPolling();
+    }
+  }
+
+  // ===== Load chat history from server =====
+  async function loadHistory() {
+    try {
+      const res = await fetch(`/api/chat/messages/${S.sessionId}`, { cache: 'no-store' });
+      if (!res.ok) return false;
+      const messages = await res.json();
+      if (!messages.length) return false;
+      // Restore customer info from first message
+      const first = messages.find(m => m.customer_name);
+      if (first) {
+        S.customerName = first.customer_name || '';
+        S.customerPhone = first.customer_phone || '';
+      }
+      // Render all messages
+      messages.forEach(m => {
+        if (m.sender === 'customer') {
+          const d = document.createElement('div');
+          d.className = 'msg user';
+          d.textContent = m.message;
+          const t = document.createElement('div');
+          t.className = 'msg-time';
+          t.textContent = new Date(m.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+          d.appendChild(t);
+          $('chatBody').appendChild(d);
+          S.history.push({ r: 'user', t: m.message });
+        } else if (m.sender === 'bot') {
+          const d = document.createElement('div');
+          d.className = 'msg bot';
+          d.innerHTML = m.message.replace(/\n/g, '<br>') + `<div class="msg-time">${new Date(m.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</div>`;
+          $('chatBody').appendChild(d);
+          S.history.push({ r: 'bot', t: m.message });
+        } else if (m.sender === 'admin') {
+          const d = document.createElement('div');
+          d.className = 'msg bot';
+          d.innerHTML = '👩‍💼 ' + m.message.replace(/\n/g, '<br>') + `<div class="msg-time">${new Date(m.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</div>`;
+          $('chatBody').appendChild(d);
+          S.history.push({ r: 'admin', t: m.message });
+        }
+      });
+      scrollB();
+      S.isLiveChat = true;
+      // Show quick replies after history
+      setTimeout(() => addQR(['มีบริการอะไรบ้าง?', 'จองคิวเลย', 'ติดต่ออย่างไร?']), 500);
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 
   // ===== Send chat message to server =====
-  async function sendToServer(message) {
+  async function sendToServer(message, sender) {
     try {
       await fetch('/api/chat/messages', {
         method: 'POST',
@@ -458,6 +522,7 @@
         body: JSON.stringify({
           session_id: S.sessionId,
           message: message,
+          sender: sender || 'customer',
           customer_name: S.customerName || null,
           customer_phone: S.customerPhone || null
         })
@@ -497,23 +562,27 @@
     document.querySelectorAll('.quick-replies').forEach(el => el.remove());
     userMsg(text);
 
+    // Send EVERY user message to server for admin visibility
+    sendToServer(text, 'customer');
+
     // Use the same keyword matching engine
     const faqKey = findFAQByKeyword(text);
     if (faqKey && FAQ[faqKey]) {
       const faq = FAQ[faqKey];
-      // Check if it's a booking action
       if (faqKey === 'quote' || faqKey === 'booking') {
         botMsg(faq.a, 200);
+        // Also send bot response to server
+        setTimeout(() => sendToServer(faq.a, 'bot'), 300);
         setTimeout(() => addQR(faq.f || ['จองคิวเลย']), 1000);
       } else {
         botMsg(faq.a, 200);
+        setTimeout(() => sendToServer(faq.a, 'bot'), 300);
         if (faq.f && faq.f.length) {
           setTimeout(() => addQR(faq.f), 1000);
         }
       }
     } else {
-      // No FAQ match — forward to admin as live chat message
-      sendToServer(text);
+      // No FAQ match — notify admin
       botMsg('ส่งข้อความถึงแอดมินแล้ว รอสักครู่... 💬', 200);
       if (!S.isLiveChat) {
         S.isLiveChat = true;

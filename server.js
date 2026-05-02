@@ -1243,13 +1243,14 @@ app.use("/site-docs", authMiddleware, express.static(path.join(__dirname, "site-
 // Customer sends a message (no auth required)
 app.post('/api/chat/messages', leadsLimiter, (req, res) => {
   try {
-    const { session_id, message, customer_name, customer_phone } = req.body;
+    const { session_id, message, customer_name, customer_phone, sender } = req.body;
     if (!session_id || !message) return res.status(400).json({ error: 'กรุณากรอกข้อความ' });
     const safeName = customer_name ? String(customer_name).replace(/<[^>]*>/g, '').slice(0, 100) : null;
     const safePhone = customer_phone ? String(customer_phone).replace(/[^0-9\-+ ]/g, '').slice(0, 20) : null;
     const safeMsg = String(message).replace(/<[^>]*>/g, '').slice(0, 2000);
+    const safeSender = (sender === 'bot' || sender === 'admin') ? sender : 'customer';
     db.prepare('INSERT INTO chat_messages (session_id, sender, message, customer_name, customer_phone) VALUES (?, ?, ?, ?, ?)')
-      .run(session_id, 'customer', safeMsg, safeName, safePhone);
+      .run(session_id, safeSender, safeMsg, safeName, safePhone);
     res.json({ success: true });
   } catch (err) {
     console.error('Chat message error:', err);
