@@ -3,7 +3,7 @@
 > **Last Updated:** 2026-05-02 17:50 (GMT+8)
 > **Updated By:** OpenClaw AI Agent (DB repair script)
 > **Branch:** main
-> **Latest Commit:** `4fb7a76` — feat: add database repair script for corrupted SQLite
+> **Latest Commit:** `d29fc08` — fix: repair script — disable foreign keys, drop tables before create
 > **Status:** ✅ All features implemented, chat system fully functional, production ready
 ---
 
@@ -212,6 +212,7 @@ node scripts/site-docs.js           # รัน script (จะ scroll + force vi
 | 77 | **Logo responsive** — เปลี่ยนจาก fix pixel → max-width/max-height ไม่ล้น container | site-loader.js, service.html | ✅ |
 | 78 | **Leads bulk delete** — เพิ่ม checkbox ทุกแถว + select all + ปุ่ม "ลบที่เลือก" (server API มีอยู่แล้ว) | admin.js, admin.html | ✅ |
 | 79 | **Migration 009** — เพิ่ม column `admin_name` ในตาราง chat_messages | server/migrations.js | ✅ |
+| 80 | **DB Repair Script** — กู้ database เสีย (corrupted SQLite), dump ข้อมูล, สร้างใหม่ | scripts/repair-db.js | ✅ |
 
 ### 🧱 Technical
 | # | Feature | Files | Status |
