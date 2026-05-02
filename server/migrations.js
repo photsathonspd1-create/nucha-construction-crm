@@ -103,6 +103,39 @@ function runMigrations() {
             .run('notification_settings', JSON.stringify(settings));
         }
       }
+    },
+    {
+      name: '007_create_chat_messages_table',
+      sql: () => {
+        db.exec(`CREATE TABLE IF NOT EXISTS chat_messages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id TEXT NOT NULL,
+          sender TEXT NOT NULL,
+          message TEXT NOT NULL,
+          customer_name TEXT,
+          customer_phone TEXT,
+          is_read INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id)`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_chat_messages_unread ON chat_messages(sender, is_read)`);
+      }
+    },
+    {
+      name: '008_update_notification_settings_line_messaging',
+      sql: () => {
+        const existing = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+        if (existing) {
+          const config = JSON.parse(existing.content);
+          if (!config.line_channel_access_token) {
+            config.line_channel_access_token = '';
+            config.line_user_id = '';
+            config.line_messaging_enabled = false;
+            db.prepare("UPDATE site_content SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE section_key = 'notification_settings'")
+              .run(JSON.stringify(config));
+          }
+        }
+      }
     }
   ];
 

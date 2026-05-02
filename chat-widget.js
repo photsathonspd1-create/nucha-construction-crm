@@ -109,7 +109,7 @@
   document.body.appendChild(widget);
 
   // ===== State =====
-  const S = { open: false, step: 'welcome', history: [], faqLoaded: false };
+  const S = { open: false, step: 'welcome', history: [], faqLoaded: false, sessionId: 'chat_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), customerName: '', customerPhone: '', isLiveChat: false, pollInterval: null };
 
   // ===== DEFAULT FAQ (ใช้ถ้า API ไม่ตอบ) =====
   const DEFAULT_FAQ = {
@@ -419,10 +419,15 @@
       if (!res.ok) throw new Error((await res.json()).error);
       $('chatFormArea').classList.remove('show');
       $('chatInputArea').style.display = 'flex';
+      S.customerName = name;
+      S.customerPhone = phone;
       botMsg(`ขอบคุณครับคุณ ${name.replace(/</g, '&lt;').replace(/>/g, '&gt;')}! 🙏`, 200);
       botMsg('ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมงครับ', 800);
+      botMsg('หากมีคำถามเพิ่มเติม พิมพ์ได้เลยครับ — แอดมินจะตอบกลับเร็วๆ นี้ 💬', 1400);
       S.step = 'done';
-      setTimeout(() => addQR(['ดูบริการ', 'ดูผลงาน']), 1800);
+      // Send lead info to chat system too
+      sendToServer(`[ข้อมูลติดต่อ] ชื่อ: ${name}, โทร: ${phone}, บริการ: ${service || 'อื่นๆ'}`);
+      setTimeout(() => addQR(['ดูบริการ', 'ดูผลงาน']), 2200);
     } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
     finally { btn.disabled = false; btn.textContent = 'ส่งข้อมูล'; }
   }
@@ -442,6 +447,45 @@
         setTimeout(() => addQR(['มีบริการอะไรบ้าง?', 'ราคาเท่าไหร่?', 'จองคิวเลย', 'ดูผลงาน', 'รับประกันอย่างไร?', 'ติดต่ออย่างไร?']), 1200);
       }
     }
+  }
+
+  // ===== Send chat message to server =====
+  async function sendToServer(message) {
+    try {
+      await fetch('/api/chat/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: S.sessionId,
+          message: message,
+          customer_name: S.customerName || null,
+          customer_phone: S.customerPhone || null
+        })
+      });
+    } catch (e) {
+      console.warn('Failed to send chat to server:', e);
+    }
+  }
+
+  // ===== Poll for admin responses =====
+  function startPolling() {
+    if (S.pollInterval) return;
+    S.pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/chat/messages/${S.sessionId}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const messages = await res.json();
+        // Find admin messages not yet shown
+        const adminMsgs = messages.filter(m => m.sender === 'admin');
+        const shownCount = S.history.filter(h => h.r === 'admin').length;
+        if (adminMsgs.length > shownCount) {
+          // Show new admin messages
+          for (let i = shownCount; i < adminMsgs.length; i++) {
+            botMsg(adminMsgs[i].message, 200);
+          }
+        }
+      } catch {}
+    }, 5000);
   }
 
   // ===== Text Input =====
@@ -468,10 +512,13 @@
         }
       }
     } else {
-      // Fallback
-      const fb = FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)];
-      botMsg(fb.a, 200);
-      setTimeout(() => addQR(fb.f), 800);
+      // No FAQ match — forward to admin as live chat message
+      sendToServer(text);
+      botMsg('ส่งข้อความถึงแอดมินแล้ว รอสักครู่... 💬', 200);
+      if (!S.isLiveChat) {
+        S.isLiveChat = true;
+        startPolling();
+      }
     }
   }
 

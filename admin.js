@@ -75,6 +75,7 @@ function showPage(pageId) {
   if (pageId === 'users') renderUsers();
   if (pageId === 'site-docs') checkSiteDocs();
   if (pageId === 'chatbot') renderChatbotForm();
+  if (pageId === 'customer-chat') renderCustomerChat();
 }
 
 // ===== LOGOUT =====
@@ -684,16 +685,37 @@ function renderNotificationsForm() {
   const n = allContent.notification_settings || {};
   document.getElementById('notificationsForm').innerHTML = `
     <div class="form-section">
-      <h3>📱 LINE Notify</h3>
+      <h3>📱 LINE Messaging API</h3>
       <p style="font-size:0.85rem;color:var(--gray-400);margin-bottom:16px">
-        แจ้งเตือนทันทีเมื่อมี Lead ใหม่ผ่าน LINE — ไปที่
-        <a href="https://notify-bot.line.me/my/" target="_blank" style="color:var(--red)">notify-bot.line.me</a>
-        เพื่อสร้าง Token
+        แจ้งเตือนทันทีเมื่อมี Lead ใหม่ผ่าน LINE Messaging API — ไปที่
+        <a href="https://developers.line.biz/console/" target="_blank" style="color:var(--red)">LINE Developers Console</a>
+        เพื่อสร้าง Channel และรับ Token
+      </p>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="nt_line_messaging_enabled" ${n.line_messaging_enabled ? 'checked' : ''} style="margin-right:8px">
+          เปิดใช้ LINE Messaging API
+        </label>
+      </div>
+      <div class="form-group">
+        <label>Channel Access Token</label>
+        <input type="text" id="nt_line_channel_access_token" value="${esc(n.line_channel_access_token || '')}" placeholder="ใส่ Channel Access Token จาก LINE Developers">
+      </div>
+      <div class="form-group">
+        <label>LINE User ID หรือ Group ID</label>
+        <input type="text" id="nt_line_user_id" value="${esc(n.line_user_id || '')}" placeholder="ใส่ User ID หรือ Group ID สำหรับรับข้อความ">
+        <small>สามารถดู User ID ได้จาก webhook หรือ LINE Official Account Manager</small>
+      </div>
+    </div>
+    <div class="form-section">
+      <h3>📱 LINE Notify (Legacy)</h3>
+      <p style="font-size:0.85rem;color:var(--gray-400);margin-bottom:16px">
+        ระบบเก่า — แนะนำใช้ LINE Messaging API ด้านบนแทน
       </p>
       <div class="form-group">
         <label>
           <input type="checkbox" id="nt_line_enabled" ${n.line_notify_enabled !== false ? 'checked' : ''} style="margin-right:8px">
-          เปิดใช้ LINE Notify
+          เปิดใช้ LINE Notify (Legacy)
         </label>
       </div>
       <div class="form-group">
@@ -755,6 +777,9 @@ function renderNotificationsForm() {
 
 async function saveNotifications() {
   const data = {
+    line_messaging_enabled: document.getElementById('nt_line_messaging_enabled')?.checked ?? false,
+    line_channel_access_token: gv('nt_line_channel_access_token'),
+    line_user_id: gv('nt_line_user_id'),
     line_notify_enabled: document.getElementById('nt_line_enabled')?.checked ?? false,
     line_notify_token: gv('nt_line_token'),
     telegram_enabled: document.getElementById('nt_telegram_enabled')?.checked ?? false,
@@ -1348,6 +1373,115 @@ function collectLinks(labelClass, hrefClass) {
   });
   return links;
 }
+
+// ===== CUSTOMER CHAT =====
+let currentChatSession = null;
+let chatPollInterval = null;
+
+async function renderCustomerChat() {
+  try {
+    const sessions = await api('/api/chat/sessions');
+    const container = document.getElementById('chatSessionsList');
+    if (!sessions.length) {
+      container.innerHTML = '<div class="chat-session-empty">💬 ยังไม่มีข้อความจากลูกค้า</div>';
+      return;
+    }
+    container.innerHTML = sessions.map(s => {
+      const initials = (s.customer_name || 'U').slice(0, 2).toUpperCase();
+      const time = s.last_message_at ? new Date(s.last_message_at).toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : '';
+      return `
+        <div class="chat-session-item ${currentChatSession === s.session_id ? 'active' : ''}" onclick="openChatSession('${esc(s.session_id)}')">
+          <div class="chat-session-avatar">${esc(initials)}</div>
+          <div class="chat-session-info">
+            <div class="chat-session-name">${esc(s.customer_name || 'ลูกค้าไม่ระบุชื่อ')}</div>
+            <div class="chat-session-preview">${esc((s.last_message || '').slice(0, 50))}</div>
+          </div>
+          <div class="chat-session-meta">
+            <div class="chat-session-time">${time}</div>
+            ${s.unread_count > 0 ? `<div class="chat-session-unread">${s.unread_count}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Chat sessions error:', err);
+  }
+}
+
+async function openChatSession(sessionId) {
+  currentChatSession = sessionId;
+  document.getElementById('chatConvInput').style.display = 'flex';
+  // Highlight active session
+  document.querySelectorAll('.chat-session-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.chat-session-item').forEach(el => {
+    if (el.onclick.toString().includes(sessionId)) el.classList.add('active');
+  });
+  await loadChatMessages(sessionId);
+  // Mark as read
+  await api(`/api/chat/sessions/${sessionId}/read`, { method: 'PUT' }).catch(() => {});
+  // Start polling for new messages
+  if (chatPollInterval) clearInterval(chatPollInterval);
+  chatPollInterval = setInterval(() => loadChatMessages(sessionId), 5000);
+  // Update badge
+  updateChatBadge();
+  renderCustomerChat();
+}
+
+async function loadChatMessages(sessionId) {
+  try {
+    const messages = await api(`/api/chat/messages/${sessionId}`);
+    const container = document.getElementById('chatConvMessages');
+    const header = document.getElementById('chatConvHeader');
+    const customerName = messages.find(m => m.customer_name)?.customer_name || 'ลูกค้า';
+    const customerPhone = messages.find(m => m.customer_phone)?.customer_phone || '';
+    header.innerHTML = `<h3>${esc(customerName)}</h3>${customerPhone ? `<p>📞 ${esc(customerPhone)}</p>` : ''}`;
+    container.innerHTML = messages.map(m => {
+      const time = new Date(m.created_at).toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      return `<div class="chat-msg ${m.sender}"><div>${esc(m.message)}</div><div class="chat-msg-time">${time}</div></div>`;
+    }).join('');
+    container.scrollTop = container.scrollHeight;
+  } catch (err) {
+    console.error('Load messages error:', err);
+  }
+}
+
+async function sendAdminChatMessage() {
+  if (!currentChatSession) return;
+  const input = document.getElementById('adminChatInput');
+  const message = input.value.trim();
+  if (!message) return;
+  input.value = '';
+  try {
+    await api(`/api/chat/sessions/${currentChatSession}`, { method: 'POST', body: JSON.stringify({ message }) });
+    await loadChatMessages(currentChatSession);
+  } catch (err) {
+    toast('❌ ส่งข้อความไม่สำเร็จ', 'error');
+  }
+}
+
+async function updateChatBadge() {
+  try {
+    const result = await api('/api/chat/unread-count');
+    const badge = document.getElementById('chatBadge');
+    if (badge) {
+      if (result.count > 0) {
+        badge.textContent = result.count;
+        badge.style.display = '';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  } catch {}
+}
+
+// Admin chat input enter key
+document.getElementById('adminChatInput')?.addEventListener('keypress', e => {
+  if (e.key === 'Enter') sendAdminChatMessage();
+});
+
+// Poll for unread chat count
+setInterval(updateChatBadge, 15000);
+updateChatBadge();
 
 // ===== MOBILE SIDEBAR =====
 document.getElementById('sidebarToggle')?.addEventListener('click', () => {

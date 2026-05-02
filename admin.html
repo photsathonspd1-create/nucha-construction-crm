@@ -58,6 +58,7 @@
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">🤖 Chatbot</div>
                     <div class="sidebar-link" data-page="chatbot" onclick="showPage('chatbot')"><span>💬 ตั้งค่า Chatbot</span></div>
+                    <div class="sidebar-link" data-page="customer-chat" onclick="showPage('customer-chat')"><span>💬 แชทลูกค้า</span><span class="badge" id="chatBadge" style="display:none">0</span></div>
                 </div>
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">📸 เอกสาร</div>
@@ -282,6 +283,29 @@
                 <div class="dash-card" id="siteDocsPreview" style="display:none">
                     <h3>📄 ตัวอย่างรายงาน</h3>
                     <div id="siteDocsPreviewContent"></div>
+                </div>
+            </div>
+
+            <!-- Customer Chat -->
+            <div class="page-section" id="page-customer-chat">
+                <div class="page-header">
+                    <h1>💬 แชทลูกค้า</h1>
+                    <p>พูดคุยกับลูกค้าแบบเรียลไทม์</p>
+                </div>
+                <div class="chat-layout" id="chatLayout">
+                    <div class="chat-sessions-list" id="chatSessionsList">
+                        <div style="padding:20px;text-align:center;color:var(--gray-400)">⏳ กำลังโหลด...</div>
+                    </div>
+                    <div class="chat-conversation" id="chatConversation">
+                        <div class="chat-conv-header" id="chatConvHeader">
+                            <p style="color:var(--gray-400);text-align:center;padding:40px">👈 เลือกแชทจากรายการด้านซ้าย</p>
+                        </div>
+                        <div class="chat-conv-messages" id="chatConvMessages"></div>
+                        <div class="chat-conv-input" id="chatConvInput" style="display:none">
+                            <input type="text" id="adminChatInput" placeholder="พิมพ์ข้อความ..." autocomplete="off">
+                            <button class="btn btn-primary btn-sm" onclick="sendAdminChatMessage()">ส่ง</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 

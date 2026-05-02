@@ -177,20 +177,48 @@ function getTodayThai() {
 async function sendLineNotify(message) {
   try {
     const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
-    if (!row) {
-      // Fallback to old notifications key
-      const oldRow = db.prepare("SELECT content FROM site_content WHERE section_key = 'notifications'").get();
-      if (!oldRow) return;
-      const config = JSON.parse(oldRow.content);
-      if (!config.line_notify_token) return;
+    if (!row) return;
+    const config = JSON.parse(row.content);
+    // LINE Messaging API (new)
+    if (config.line_messaging_enabled && config.line_channel_access_token && config.line_user_id) {
+      return sendLineMessaging(config.line_channel_access_token, config.line_user_id, message);
+    }
+    // Legacy LINE Notify (fallback)
+    if (config.line_notify_enabled && config.line_notify_token) {
       return sendLineNotifyRaw(config.line_notify_token, message);
     }
-    const config = JSON.parse(row.content);
-    if (!config.line_notify_enabled || !config.line_notify_token) return;
-    return sendLineNotifyRaw(config.line_notify_token, message);
   } catch (err) {
     console.error('LINE Notify error:', err.message);
   }
+}
+
+function sendLineMessaging(accessToken, to, message) {
+  const postData = JSON.stringify({
+    to: to,
+    messages: [{ type: 'text', text: message }]
+  });
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'api.line.me',
+      path: '/v2/bot/message/push',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + accessToken,
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode === 200) resolve(data);
+        else reject(new Error('LINE Messaging API error: ' + res.statusCode + ' ' + data));
+      });
+    });
+    req.on('error', reject);
+    req.write(postData);
+    req.end();
+  });
 }
 
 function sendLineNotifyRaw(token, message) {
@@ -1211,6 +1239,92 @@ app.get("/api/admin/docs-status", authMiddleware, adminOnly, (req, res) => {
 
 // Serve site-docs static files
 app.use("/site-docs", authMiddleware, express.static(path.join(__dirname, "site-docs")));
+// ===== CUSTOMER CHAT =====
+// Customer sends a message (no auth required)
+app.post('/api/chat/messages', leadsLimiter, (req, res) => {
+  try {
+    const { session_id, message, customer_name, customer_phone } = req.body;
+    if (!session_id || !message) return res.status(400).json({ error: 'กรุณากรอกข้อความ' });
+    const safeName = customer_name ? String(customer_name).replace(/<[^>]*>/g, '').slice(0, 100) : null;
+    const safePhone = customer_phone ? String(customer_phone).replace(/[^0-9\-+ ]/g, '').slice(0, 20) : null;
+    const safeMsg = String(message).replace(/<[^>]*>/g, '').slice(0, 2000);
+    db.prepare('INSERT INTO chat_messages (session_id, sender, message, customer_name, customer_phone) VALUES (?, ?, ?, ?, ?)')
+      .run(session_id, 'customer', safeMsg, safeName, safePhone);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Chat message error:', err);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+// Customer polls for admin responses
+app.get('/api/chat/messages/:session_id', (req, res) => {
+  try {
+    const messages = db.prepare('SELECT * FROM chat_messages WHERE session_id = ? ORDER BY created_at ASC').all(req.params.session_id);
+    // Mark admin messages as read
+    db.prepare("UPDATE chat_messages SET is_read = 1 WHERE session_id = ? AND sender = 'admin' AND is_read = 0").run(req.params.session_id);
+    res.json(messages);
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+// Admin gets all chat sessions
+app.get('/api/chat/sessions', authMiddleware, (req, res) => {
+  try {
+    const sessions = db.prepare(`
+      SELECT session_id, customer_name, customer_phone,
+        MAX(created_at) as last_message_at,
+        COUNT(*) as message_count,
+        SUM(CASE WHEN sender = 'customer' AND is_read = 0 THEN 1 ELSE 0 END) as unread_count,
+        (SELECT message FROM chat_messages cm2 WHERE cm2.session_id = chat_messages.session_id ORDER BY cm2.created_at DESC LIMIT 1) as last_message
+      FROM chat_messages
+      GROUP BY session_id
+      ORDER BY last_message_at DESC
+    `).all();
+    res.json(sessions);
+  } catch (err) {
+    console.error('Chat sessions error:', err);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+// Admin replies to a session
+app.post('/api/chat/sessions/:session_id', authMiddleware, (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: 'กรุณากรอกข้อความ' });
+    const safeMsg = String(message).replace(/<[^>]*>/g, '').slice(0, 2000);
+    db.prepare("INSERT INTO chat_messages (session_id, sender, message) VALUES (?, 'admin', ?)")
+      .run(req.params.session_id, safeMsg);
+    // Mark all customer messages in this session as read
+    db.prepare("UPDATE chat_messages SET is_read = 1 WHERE session_id = ? AND sender = 'customer' AND is_read = 0").run(req.params.session_id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+// Admin marks session as read
+app.put('/api/chat/sessions/:session_id/read', authMiddleware, (req, res) => {
+  try {
+    db.prepare("UPDATE chat_messages SET is_read = 1 WHERE session_id = ? AND sender = 'customer' AND is_read = 0").run(req.params.session_id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+// Get unread chat count (for badge)
+app.get('/api/chat/unread-count', authMiddleware, (req, res) => {
+  try {
+    const result = db.prepare("SELECT COUNT(DISTINCT session_id) as count FROM chat_messages WHERE sender = 'customer' AND is_read = 0").get();
+    res.json({ count: result ? result.count : 0 });
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
 // ===== HEALTH CHECK =====
 app.get('/api/health', (req, res) => {
   try {
