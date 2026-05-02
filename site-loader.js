@@ -63,7 +63,7 @@
         const footerIcon = document.getElementById('footerLogoIcon');
         if (footerIcon) footerIcon.textContent = config.logo_text;
       }
-      if (config.logo_full) {
+      if (config.logo_full && !logoUrl) {
         const html = config.logo_full.replace(/\n/g, '<br>');
         const el = document.getElementById('loaderText');
         if (el) el.innerHTML = html.replace(/<br>/, ' ');

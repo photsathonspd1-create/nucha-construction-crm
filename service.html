@@ -489,7 +489,7 @@
             const navIcon = document.getElementById('navLogoIcon');
             if (navIcon) navIcon.textContent = config.logo_text;
         }
-        if (config.logo_full) {
+        if (config.logo_full && !logoUrl) {
             const html = config.logo_full.replace(/\n/g, '<br>');
             const loaderText = document.getElementById('loaderText');
             if (loaderText) loaderText.innerHTML = html.replace(/<br>/, ' ');
