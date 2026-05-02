@@ -496,9 +496,12 @@
           $('chatBody').appendChild(d);
           S.history.push({ r: 'bot', t: m.message });
         } else if (m.sender === 'admin') {
+          shownAdminMsgIds.add(m.id); // Track ID to prevent poll duplicates
+          S.hasAdminReply = true;
+          const adminLabel = m.admin_name ? '👩‍💼 ' + m.admin_name + ': ' : '👩‍💼 ';
           const d = document.createElement('div');
           d.className = 'msg bot';
-          d.innerHTML = '👩‍💼 ' + m.message.replace(/\n/g, '<br>') + `<div class="msg-time">${new Date(m.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</div>`;
+          d.innerHTML = adminLabel + m.message.replace(/\n/g, '<br>') + `<div class="msg-time">${new Date(m.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</div>`;
           $('chatBody').appendChild(d);
           S.history.push({ r: 'admin', t: m.message });
         }
@@ -533,6 +536,7 @@
   }
 
   // ===== Poll for admin responses =====
+  const shownAdminMsgIds = new Set(); // Track shown admin message IDs to prevent duplicates
   function startPolling() {
     if (S.pollInterval) return;
     S.pollInterval = setInterval(async () => {
@@ -540,14 +544,26 @@
         const res = await fetch(`/api/chat/messages/${S.sessionId}`, { cache: 'no-store' });
         if (!res.ok) return;
         const messages = await res.json();
-        // Find admin messages not yet shown
-        const adminMsgs = messages.filter(m => m.sender === 'admin');
-        const shownCount = S.history.filter(h => h.r === 'admin').length;
-        if (adminMsgs.length > shownCount) {
-          // Show new admin messages
-          for (let i = shownCount; i < adminMsgs.length; i++) {
-            botMsg(adminMsgs[i].message, 200);
-          }
+        // Find admin messages not yet shown (by ID, not count)
+        const newAdminMsgs = messages.filter(m => m.sender === 'admin' && !shownAdminMsgIds.has(m.id));
+        if (newAdminMsgs.length > 0) {
+          S.hasAdminReply = true; // Mark that admin has replied
+          newAdminMsgs.forEach(m => {
+            shownAdminMsgIds.add(m.id);
+            const adminLabel = m.admin_name ? '👩‍💼 ' + esc(m.admin_name) + ': ' : '👩‍💼 ';
+            setTimeout(() => {
+              showTyping();
+              setTimeout(() => {
+                removeTyping();
+                const d = document.createElement('div');
+                d.className = 'msg bot';
+                d.innerHTML = adminLabel + m.message.replace(/\n/g, '<br>') + `<div class="msg-time">${new Date(m.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</div>`;
+                $('chatBody').appendChild(d);
+                S.history.push({ r: 'admin', t: m.message });
+                scrollB();
+              }, 400);
+            }, 200);
+          });
         }
       } catch {}
     }, 5000);
@@ -562,28 +578,24 @@
     document.querySelectorAll('.quick-replies').forEach(el => el.remove());
     userMsg(text);
 
-    // Send EVERY user message to server for admin visibility
+    // Send user message to server for admin visibility
     sendToServer(text, 'customer');
 
     // Use the same keyword matching engine
     const faqKey = findFAQByKeyword(text);
     if (faqKey && FAQ[faqKey]) {
       const faq = FAQ[faqKey];
-      if (faqKey === 'quote' || faqKey === 'booking') {
-        botMsg(faq.a, 200);
-        // Also send bot response to server
-        setTimeout(() => sendToServer(faq.a, 'bot'), 300);
-        setTimeout(() => addQR(faq.f || ['จองคิวเลย']), 1000);
-      } else {
-        botMsg(faq.a, 200);
-        setTimeout(() => sendToServer(faq.a, 'bot'), 300);
-        if (faq.f && faq.f.length) {
-          setTimeout(() => addQR(faq.f), 1000);
-        }
+      botMsg(faq.a, 200);
+      // Do NOT send bot responses to server — they are local only
+      if (faq.f && faq.f.length) {
+        setTimeout(() => addQR(faq.f), 1000);
       }
     } else {
-      // No FAQ match — notify admin
-      botMsg('ส่งข้อความถึงแอดมินแล้ว รอสักครู่... 💬', 200);
+      // No FAQ match — forward to admin
+      // Only show "waiting" if admin hasn't replied yet in this session
+      if (!S.hasAdminReply) {
+        botMsg('ส่งข้อความถึงแอดมินแล้ว รอสักครู่... 💬', 200);
+      }
       if (!S.isLiveChat) {
         S.isLiveChat = true;
         startPolling();

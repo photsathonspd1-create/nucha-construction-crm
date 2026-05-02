@@ -16,6 +16,16 @@ let allNav = [];
     return;
   }
   await loadAll();
+  // Apply favicon from site config
+  const favCfg = allContent.site_config || {};
+  if (favCfg.favicon && favCfg.favicon.trim()) {
+    let link = document.getElementById('dynamicFavicon');
+    if (!link) { link = document.createElement('link'); link.id = 'dynamicFavicon'; link.rel = 'icon'; document.head.appendChild(link); }
+    const ext = favCfg.favicon.split('.').pop().split('?')[0].toLowerCase();
+    const mimeMap = { 'png': 'image/png', 'svg': 'image/svg+xml', 'ico': 'image/x-icon', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'webp': 'image/webp', 'gif': 'image/gif' };
+    link.type = mimeMap[ext] || 'image/x-icon';
+    link.href = favCfg.favicon.trim();
+  }
   renderDashboard();
   renderAllForms();
 })();
@@ -943,6 +953,8 @@ async function saveNav() {
 }
 
 // ===== LEADS =====
+let selectedLeadIds = new Set();
+
 function renderLeads() {
   const search = document.getElementById('leadSearch')?.value?.toLowerCase() || '';
   const filter = document.getElementById('leadFilter')?.value || '';
@@ -954,6 +966,7 @@ function renderLeads() {
 
   document.getElementById('leadsBody').innerHTML = filtered.map(l => `
     <tr>
+      <td><input type="checkbox" class="lead-checkbox" data-id="${l.id}" ${selectedLeadIds.has(l.id) ? 'checked' : ''} onchange="toggleLeadSelect(${l.id}, this.checked)"></td>
       <td><strong>${esc(l.name)}</strong></td>
       <td>${esc(l.phone)}</td>
       <td>${esc(l.service_type)}</td>
@@ -964,6 +977,47 @@ function renderLeads() {
       <td><button class="btn btn-sm btn-outline" onclick="openLeadModal(${l.id})">📝</button></td>
     </tr>
   `).join('');
+  updateBulkDeleteBtn();
+}
+
+function toggleLeadSelect(id, checked) {
+  if (checked) selectedLeadIds.add(id); else selectedLeadIds.delete(id);
+  updateBulkDeleteBtn();
+}
+
+function toggleSelectAll(checked) {
+  if (checked === undefined) checked = selectedLeadIds.size === 0;
+  document.querySelectorAll('.lead-checkbox').forEach(cb => {
+    cb.checked = checked;
+    const id = parseInt(cb.dataset.id);
+    if (checked) selectedLeadIds.add(id); else selectedLeadIds.delete(id);
+  });
+  const master = document.getElementById('leadsSelectAll');
+  if (master) master.checked = checked;
+  updateBulkDeleteBtn();
+}
+
+function updateBulkDeleteBtn() {
+  const btn = document.getElementById('bulkDeleteBtn');
+  const count = document.getElementById('selectedCount');
+  if (btn && count) {
+    count.textContent = selectedLeadIds.size;
+    btn.style.display = selectedLeadIds.size > 0 ? '' : 'none';
+  }
+}
+
+async function bulkDeleteLeads() {
+  if (selectedLeadIds.size === 0) return;
+  if (!confirm(`ลบ ${selectedLeadIds.size} leads ที่เลือก?`)) return;
+  try {
+    await api('/api/leads/bulk-delete', { method: 'POST', body: JSON.stringify({ ids: [...selectedLeadIds] }) });
+    allLeads = allLeads.filter(l => !selectedLeadIds.has(l.id));
+    selectedLeadIds.clear();
+    renderLeads();
+    toast('🗑️ ลบ Leads สำเร็จ');
+  } catch (err) {
+    toast('❌ ลบไม่สำเร็จ: ' + err.message, 'error');
+  }
 }
 
 // Lead search/filter event listeners
@@ -1388,6 +1442,7 @@ function collectLinks(labelClass, hrefClass) {
 // ===== CUSTOMER CHAT =====
 let currentChatSession = null;
 let chatPollInterval = null;
+let selectedChatSessions = new Set();
 
 async function renderCustomerChat() {
   try {
@@ -1401,21 +1456,84 @@ async function renderCustomerChat() {
       const initials = (s.customer_name || 'U').slice(0, 2).toUpperCase();
       const time = s.last_message_at ? new Date(s.last_message_at).toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : '';
       return `
-        <div class="chat-session-item ${currentChatSession === s.session_id ? 'active' : ''}" onclick="openChatSession('${esc(s.session_id)}')">
-          <div class="chat-session-avatar">${esc(initials)}</div>
-          <div class="chat-session-info">
-            <div class="chat-session-name">${esc(s.customer_name || 'ลูกค้าไม่ระบุชื่อ')}</div>
-            <div class="chat-session-preview">${esc((s.last_message || '').slice(0, 50))}</div>
-          </div>
-          <div class="chat-session-meta">
-            <div class="chat-session-time">${time}</div>
-            ${s.unread_count > 0 ? `<div class="chat-session-unread">${s.unread_count}</div>` : ''}
+        <div class="chat-session-item ${currentChatSession === s.session_id ? 'active' : ''}" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" class="chat-session-checkbox" data-sid="${esc(s.session_id)}" ${selectedChatSessions.has(s.session_id) ? 'checked' : ''} onclick="event.stopPropagation();toggleChatSessionSelect('${esc(s.session_id)}', this.checked)" style="flex-shrink:0">
+          <div style="flex:1;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="openChatSession('${esc(s.session_id)}')">
+            <div class="chat-session-avatar">${esc(initials)}</div>
+            <div class="chat-session-info">
+              <div class="chat-session-name">${esc(s.customer_name || 'ลูกค้าไม่ระบุชื่อ')}</div>
+              <div class="chat-session-preview">${esc((s.last_message || '').slice(0, 50))}</div>
+            </div>
+            <div class="chat-session-meta">
+              <div class="chat-session-time">${time}</div>
+              ${s.unread_count > 0 ? `<div class="chat-session-unread">${s.unread_count}</div>` : ''}
+            </div>
           </div>
         </div>
       `;
     }).join('');
+    updateBulkDeleteChatBtn();
   } catch (err) {
     console.error('Chat sessions error:', err);
+  }
+}
+
+function toggleChatSessionSelect(sid, checked) {
+  if (checked) selectedChatSessions.add(sid); else selectedChatSessions.delete(sid);
+  updateBulkDeleteChatBtn();
+}
+
+function toggleSelectAllChat() {
+  const allChecked = document.querySelectorAll('.chat-session-checkbox:checked').length === document.querySelectorAll('.chat-session-checkbox').length;
+  document.querySelectorAll('.chat-session-checkbox').forEach(cb => {
+    cb.checked = !allChecked;
+    const sid = cb.dataset.sid;
+    if (!allChecked) selectedChatSessions.add(sid); else selectedChatSessions.delete(sid);
+  });
+  updateBulkDeleteChatBtn();
+}
+
+function updateBulkDeleteChatBtn() {
+  const btn = document.getElementById('bulkDeleteChatBtn');
+  const count = document.getElementById('chatSelectedCount');
+  if (btn && count) {
+    count.textContent = selectedChatSessions.size;
+    btn.style.display = selectedChatSessions.size > 0 ? '' : 'none';
+  }
+}
+
+async function bulkDeleteChatSessions() {
+  if (selectedChatSessions.size === 0) return;
+  if (!confirm(`ลบ ${selectedChatSessions.size} แชทที่เลือก? การดำเนินการนี้ไม่สามารถย้อนกลับได้`)) return;
+  try {
+    await api('/api/chat/sessions/bulk-delete', { method: 'POST', body: JSON.stringify({ session_ids: [...selectedChatSessions] }) });
+    if (selectedChatSessions.has(currentChatSession)) {
+      currentChatSession = null;
+      document.getElementById('chatConvMessages').innerHTML = '';
+      document.getElementById('chatConvHeader').innerHTML = '<p style="color:var(--gray-400);text-align:center;padding:40px">👈 เลือกแชทจากรายการด้านซ้าย</p>';
+      document.getElementById('chatConvInput').style.display = 'none';
+    }
+    selectedChatSessions.clear();
+    renderCustomerChat();
+    toast('🗑️ ลบแชทสำเร็จ');
+  } catch (err) {
+    toast('❌ ลบไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function deleteCurrentChatSession() {
+  if (!currentChatSession) return;
+  if (!confirm('ลบแชทนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้')) return;
+  try {
+    await api(`/api/chat/sessions/${currentChatSession}`, { method: 'DELETE' });
+    currentChatSession = null;
+    document.getElementById('chatConvMessages').innerHTML = '';
+    document.getElementById('chatConvHeader').innerHTML = '<p style="color:var(--gray-400);text-align:center;padding:40px">👈 เลือกแชทจากรายการด้านซ้าย</p>';
+    document.getElementById('chatConvInput').style.display = 'none';
+    renderCustomerChat();
+    toast('🗑️ ลบแชทสำเร็จ');
+  } catch (err) {
+    toast('❌ ลบไม่สำเร็จ: ' + err.message, 'error');
   }
 }
 
@@ -1445,12 +1563,17 @@ async function loadChatMessages(sessionId) {
     const header = document.getElementById('chatConvHeader');
     const customerName = messages.find(m => m.customer_name)?.customer_name || 'ลูกค้า';
     const customerPhone = messages.find(m => m.customer_phone)?.customer_phone || '';
-    header.innerHTML = `<h3>${esc(customerName)}</h3>${customerPhone ? `<p>📞 ${esc(customerPhone)}</p>` : ''}`;
+    header.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><h3>${esc(customerName)}</h3>${customerPhone ? `<p>📞 ${esc(customerPhone)}</p>` : ''}</div><span style="font-size:0.75rem;color:var(--gray-400)">${messages.length} ข้อความ</span></div>`;
     container.innerHTML = messages.map(m => {
       const time = new Date(m.created_at).toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit' });
-      return `<div class="chat-msg ${m.sender}"><div>${esc(m.message)}</div><div class="chat-msg-time">${time}</div></div>`;
+      const senderLabel = m.sender === 'admin' && m.admin_name ? `<div style="font-size:0.65rem;color:var(--gray-400);margin-bottom:2px">👩‍💼 ${esc(m.admin_name)}</div>` : '';
+      const readIndicator = m.sender === 'customer' && m.is_read ? '<span style="font-size:0.6rem;color:var(--blue)">✓ อ่านแล้ว</span>' : '';
+      return `<div class="chat-msg ${m.sender}">${senderLabel}<div>${esc(m.message)}</div><div class="chat-msg-time">${time} ${readIndicator}</div></div>`;
     }).join('');
     container.scrollTop = container.scrollHeight;
+    // Show session info
+    const info = document.getElementById('chatSessionInfo');
+    if (info) info.textContent = `Session: ${sessionId} · ${messages.length} ข้อความ`;
   } catch (err) {
     console.error('Load messages error:', err);
   }

@@ -1296,12 +1296,40 @@ app.post('/api/chat/sessions/:session_id', authMiddleware, (req, res) => {
     const { message } = req.body;
     if (!message) return res.status(400).json({ error: 'กรุณากรอกข้อความ' });
     const safeMsg = String(message).replace(/<[^>]*>/g, '').slice(0, 2000);
-    db.prepare("INSERT INTO chat_messages (session_id, sender, message) VALUES (?, 'admin', ?)")
-      .run(req.params.session_id, safeMsg);
+    // Get admin name from JWT
+    const adminUser = db.prepare('SELECT full_name FROM users WHERE id = ?').get(req.user.id);
+    const adminName = adminUser?.full_name || 'Admin';
+    db.prepare("INSERT INTO chat_messages (session_id, sender, message, admin_name) VALUES (?, 'admin', ?, ?)")
+      .run(req.params.session_id, safeMsg, adminName);
     // Mark all customer messages in this session as read
     db.prepare("UPDATE chat_messages SET is_read = 1 WHERE session_id = ? AND sender = 'customer' AND is_read = 0").run(req.params.session_id);
     res.json({ success: true });
   } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+// Delete a chat session (all messages)
+app.delete('/api/chat/sessions/:session_id', authMiddleware, (req, res) => {
+  try {
+    const result = db.prepare('DELETE FROM chat_messages WHERE session_id = ?').run(req.params.session_id);
+    res.json({ success: true, deleted: result.changes });
+  } catch (err) {
+    console.error('Delete chat session error:', err);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+// Bulk delete chat sessions
+app.post('/api/chat/sessions/bulk-delete', authMiddleware, (req, res) => {
+  try {
+    const { session_ids } = req.body;
+    if (!Array.isArray(session_ids) || session_ids.length === 0) return res.status(400).json({ error: 'ไม่มี session ที่เลือก' });
+    const placeholders = session_ids.map(() => '?').join(',');
+    const result = db.prepare(`DELETE FROM chat_messages WHERE session_id IN (${placeholders})`).run(...session_ids);
+    res.json({ success: true, deleted: result.changes });
+  } catch (err) {
+    console.error('Bulk delete chat error:', err);
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });

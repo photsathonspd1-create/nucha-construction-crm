@@ -136,6 +136,15 @@ function runMigrations() {
           }
         }
       }
+    },
+    {
+      name: '009_add_chat_admin_name',
+      sql: () => {
+        const cols = db.prepare("PRAGMA table_info(chat_messages)").all();
+        if (!cols.find(c => c.name === 'admin_name')) {
+          db.exec("ALTER TABLE chat_messages ADD COLUMN admin_name TEXT");
+        }
+      }
     }
   ];
 

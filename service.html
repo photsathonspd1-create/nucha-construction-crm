@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="pageTitle">บริการ — NUCHA INNOVATION</title>
+    <link rel="icon" id="dynamicFavicon" type="image/x-icon" href="/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Thai:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -472,16 +473,30 @@
 
         // Apply site config
         const config = contentRes.site_config || {};
+
+        // Favicon
+        if (config.favicon && config.favicon.trim()) {
+            const faviconUrl = config.favicon.trim();
+            let link = document.getElementById('dynamicFavicon');
+            if (!link) { link = document.createElement('link'); link.id = 'dynamicFavicon'; link.rel = 'icon'; document.head.appendChild(link); }
+            const ext = faviconUrl.split('.').pop().split('?')[0].toLowerCase();
+            const mimeMap = { 'png': 'image/png', 'svg': 'image/svg+xml', 'ico': 'image/x-icon', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'webp': 'image/webp', 'gif': 'image/gif' };
+            link.type = mimeMap[ext] || 'image/x-icon';
+            link.href = faviconUrl;
+        }
+
         const logoUrl = config.logo_url && config.logo_url.trim() ? config.logo_url.trim() : '';
         const logoScale = config.logo_scale || 80;
         if (logoUrl) {
             ['loaderLogo', 'navLogoIcon'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
-                    el.innerHTML = `<img src="${esc(logoUrl)}" alt="Logo" style="width:100%;height:100%;object-fit:contain">`;
+                    el.innerHTML = `<img src="${esc(logoUrl)}" alt="Logo" style="max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain">`;
                     el.style.padding = '0';
                     el.style.width = logoScale + 'px';
                     el.style.height = logoScale + 'px';
+                    el.style.maxWidth = '100%';
+                    el.style.flexShrink = '0';
                 }
             });
             // Hide logo text when image logo is present

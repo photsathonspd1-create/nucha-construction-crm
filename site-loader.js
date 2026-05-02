@@ -39,7 +39,26 @@
 
       // ===== SITE CONFIG =====
       const config = contentRes.site_config || {};
-      // Logo — support both image and text
+
+      // ===== FAVICON =====
+      if (config.favicon && config.favicon.trim()) {
+        const faviconUrl = config.favicon.trim();
+        // Update existing favicon link
+        let link = document.getElementById('dynamicFavicon');
+        if (!link) {
+          link = document.createElement('link');
+          link.id = 'dynamicFavicon';
+          link.rel = 'icon';
+          document.head.appendChild(link);
+        }
+        // Detect mime type from URL
+        const ext = faviconUrl.split('.').pop().split('?')[0].toLowerCase();
+        const mimeMap = { 'png': 'image/png', 'svg': 'image/svg+xml', 'ico': 'image/x-icon', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'webp': 'image/webp', 'gif': 'image/gif' };
+        link.type = mimeMap[ext] || 'image/x-icon';
+        link.href = faviconUrl;
+      }
+
+      // Logo — support both image and text (responsive auto-scale)
       const logoUrl = config.logo_url && config.logo_url.trim() ? config.logo_url.trim() : '';
       const logoScale = config.logo_scale || 80;
       if (logoUrl) {
@@ -47,10 +66,12 @@
         ['loaderLogo', 'navLogoIcon', 'footerLogoIcon'].forEach(id => {
           const el = document.getElementById(id);
           if (el) {
-            el.innerHTML = `<img src="${esc(logoUrl)}" alt="Logo" style="width:100%;height:100%;object-fit:contain">`;
+            el.innerHTML = `<img src="${esc(logoUrl)}" alt="Logo" style="max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain">`;
             el.style.padding = '0';
             el.style.width = logoScale + 'px';
             el.style.height = logoScale + 'px';
+            el.style.maxWidth = '100%'; // responsive: never overflow container
+            el.style.flexShrink = '0';
           }
         });
         // Hide logo text when image logo is present
