@@ -1,10 +1,10 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> **Last Updated:** 2026-05-02 16:25 (GMT+8)
-> **Updated By:** OpenClaw AI Agent (LINE Messaging + Live Chat + Theme + Bug Audit)
+> **Last Updated:** 2026-05-02 17:42 (GMT+8)
+> **Updated By:** OpenClaw AI Agent (Chat fixes + Bulk delete + Favicon + Responsive logo)
 > **Branch:** main
-> **Latest Commit:** `9c109a4` — feat: LINE Messaging API, live chat, sidebar theme, logo fix, cursor fix
-> **Status:** ✅ All features implemented, LINE Messaging integrated, live chat system, production ready
+> **Latest Commit:** `338c7fe` — fix: chat duplicate messages, add bulk delete, admin name, favicon, responsive logo
+> **Status:** ✅ All features implemented, chat system fully functional, production ready
 ---
 
 ## 📋 Project Overview
@@ -199,11 +199,25 @@ node scripts/site-docs.js           # รัน script (จะ scroll + force vi
 | 53 | **Logo Red Box Fix** — โลโก้แสดงโดยไม่มีกรอบแดง (ใช้ CSS `:has(img)`) | style.css | ✅ NEW |
 | 54 | **service.html Cursor Fix** — เมาส์มองเห็นปกติในหน้า service | service.html | ✅ NEW |
 
+### 💬 Chat System Fixes & Enhancements (2026-05-02 17:42)
+| # | Feature | Files | Status |
+|---|---------|-------|--------|
+| 70 | **Chat duplicate fix** — ลบ bot response ที่ส่งเก็บ server (สาเหตุข้อความรัว) + poll ใช้ message ID แทนนับจำนวน | chat-widget.js | ✅ |
+| 71 | **Admin name on messages** — เพิ่ม column `admin_name` ใน chat_messages, server ดึงชื่อจาก JWT บันทึกพร้อมข้อความ | server.js, migrations.js | ✅ |
+| 72 | **Delete chat session** — ลบแชทรายคน + bulk delete หลายแชท (server API + admin UI) | server.js, admin.js, admin.html | ✅ |
+| 73 | **Chat session checkboxes** — เลือกหลาย session, select all, bulk delete | admin.js, admin.html | ✅ |
+| 74 | **Read indicator** — แสดง ✓ อ่านแล้ว บนข้อความลูกค้าที่แอดมินเปิดอ่าน | admin.js | ✅ |
+| 75 | **"Waiting" message fix** — ไม่แสดง "รอสักครู่..." ซ้ำถ้าแอดมินเคยตอบแล้ว (`hasAdminReply` flag) | chat-widget.js | ✅ |
+| 76 | **Favicon dynamic** — เพิ่ม `<link rel="icon">` ทุกหน้า + site-loader/service/admin อ่าน config.favicon เปลี่ยน href อัตโนมัติ | index.html, service.html, admin.html, admin-login.html, site-loader.js, admin.js | ✅ |
+| 77 | **Logo responsive** — เปลี่ยนจาก fix pixel → max-width/max-height ไม่ล้น container | site-loader.js, service.html | ✅ |
+| 78 | **Leads bulk delete** — เพิ่ม checkbox ทุกแถว + select all + ปุ่ม "ลบที่เลือก" (server API มีอยู่แล้ว) | admin.js, admin.html | ✅ |
+| 79 | **Migration 009** — เพิ่ม column `admin_name` ในตาราง chat_messages | server/migrations.js | ✅ |
+
 ### 🧱 Technical
 | # | Feature | Files | Status |
 |---|---------|-------|--------|
 | 55 | express-rate-limit (แทน in-memory Map) | package.json, server.js | ✅ |
-| 56 | Database migrations system (8 migrations) | server/migrations.js | ✅ |
+| 56 | Database migrations system (9 migrations) | server/migrations.js | ✅ |
 | 57 | Global error handler middleware | server.js | ✅ |
 | 58 | Site Documentation Generator (Puppeteer) | scripts/site-docs.js | ✅ |
 | 59 | Site docs API endpoint | server.js `/api/admin/generate-docs` | ✅ |
@@ -211,6 +225,7 @@ node scripts/site-docs.js           # รัน script (จะ scroll + force vi
 | 61 | **304 cache fix** — ปิด ETag + no-store headers + client cache control | server.js, admin.js, script.js, site-loader.js | ✅ |
 | 62 | **chat_messages table** — DB table + indexes สำหรับ live chat | server/migrations.js | ✅ NEW |
 | 63 | **LINE Messaging fields** — migration เพิ่ม channel_access_token, user_id ใน notification_settings | server/migrations.js | ✅ NEW |
+| 64 | **chat admin_name column** — migration 009 เพิ่ม admin_name ใน chat_messages | server/migrations.js | ✅ |
 
 ### 📄 Site Documentation Report (2026-04-30 Rewrite)
 | # | Feature | Files | Status |
@@ -377,10 +392,12 @@ nucha-construction-crm/
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | /api/chat/messages | No | Customer sends message (stored in DB) |
-| GET | /api/chat/messages | Yes | Admin: list all chat sessions with last message |
-| GET | /api/chat/messages/:session_id | Yes | Admin: get messages for session (auto-marks read) |
-| POST | /api/chat/messages/:session_id | Yes | Admin: reply to session |
-| PUT | /api/chat/messages/:session_id/read | Yes | Mark all customer messages as read |
+| GET | /api/chat/messages/:session_id | No | Customer polls for admin responses (+ marks admin msgs read) |
+| GET | /api/chat/sessions | Yes | Admin: list all chat sessions with last message, unread count |
+| POST | /api/chat/sessions/:session_id | Yes | Admin: reply to session (saves admin_name from JWT) |
+| PUT | /api/chat/sessions/:session_id/read | Yes | Mark all customer messages as read |
+| DELETE | /api/chat/sessions/:session_id | Yes | Delete single chat session (all messages) |
+| POST | /api/chat/sessions/bulk-delete | Yes | Bulk delete chat sessions |
 | GET | /api/chat/unread-count | Yes | Get count of sessions with unread messages |
 
 ### System
@@ -409,13 +426,16 @@ nucha-construction-crm/
 7. **Automated Backup Cron** — ตั้ง cron job backup อัตโนมัติทุกวัน
 8. **Dashboard Charts** — กราฟ leads ตามเดือน, conversion funnel (ใช้ Chart.js)
 9. **Live Chat Real-time** — เปลี่ยนจาก polling 5s → WebSocket สำหรับ chat ที่เร็วขึ้น
+10. **Chat typing indicator** — แสดง "แอดมินกำลังพิมพ์..." ฝั่งลูกค้า
 
 ### 🟢 Priority 3 — Features ใหม่
-10. **Customer Portal** — ให้ลูกค้าเข้ามาดู progress โครงการ (login ด้วยเบอร์โทร + OTP)
-11. **Proposal PDF Export** — สร้าง PDF จากใบเสนอราคา
-12. **Lead Source Tracking** — เพิ่ม UTM parameters / source tracking
-13. **Chat Widget AI Integration** — เชื่อม chat widget กับ AI API (PromptDee)
-14. **Chat Attachments** — ลูกค้าส่งรูป/ไฟล์แนบในแชทได้
+11. **Customer Portal** — ให้ลูกค้าเข้ามาดู progress โครงการ (login ด้วยเบอร์โทร + OTP)
+12. **Proposal PDF Export** — สร้าง PDF จากใบเสนอราคา
+13. **Lead Source Tracking** — เพิ่ม UTM parameters / source tracking
+14. **Chat Widget AI Integration** — เชื่อม chat widget กับ AI API (PromptDee)
+15. **Chat Attachments** — ลูกค้าส่งรูป/ไฟล์แนบในแชทได้
+16. **Lead Export by filter** — export เฉพาะ leads ที่กรองแล้ว (ไม่ใช่ทั้งหมด)
+17. **Chat session notes** — แอดมินเพิ่มบันทึกในแชท session ได้
 
 ---
 
