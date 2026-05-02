@@ -188,7 +188,7 @@ async function saveSiteConfig() {
     phone: gv('sc_phone'), email: gv('sc_email'), address: gv('sc_address'),
     line_id: gv('sc_line_id'), facebook_url: gv('sc_facebook'),
     instagram_url: gv('sc_instagram'), copyright: gv('sc_copyright'),
-    favicon: gv('sc_favicon')
+    favicon: getImageValue('sc_favicon')
   };
   await api('/api/content/site_config', { method: 'PUT', body: JSON.stringify(data) });
   allContent.site_config = data;
@@ -247,7 +247,7 @@ async function saveHero() {
     badge: gv('h_badge'), title_line1: gv('h_title1'), title_line2: gv('h_title2'),
     subtitle: gv('h_subtitle'), description: gv('h_desc'),
     cta_primary: gv('h_cta1'), cta_secondary: gv('h_cta2'),
-    image_url: gv('h_image'),
+    image_url: getImageValue('h_image'),
     stat1_number: gv('h_s1n'), stat1_label: gv('h_s1l'),
     stat2_number: gv('h_s2n'), stat2_label: gv('h_s2l'),
     stat3_number: gv('h_s3n'), stat3_label: gv('h_s3l'),
