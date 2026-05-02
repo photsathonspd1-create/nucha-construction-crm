@@ -1,10 +1,10 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> **Last Updated:** 2026-04-30 02:35 (GMT+8)
-> **Updated By:** OpenClaw AI Agent (full security audit + all fixes)
+> **Last Updated:** 2026-05-02 16:25 (GMT+8)
+> **Updated By:** OpenClaw AI Agent (LINE Messaging + Live Chat + Theme + Bug Audit)
 > **Branch:** main
-> **Latest Commit:** `701e7d9` — fix: remaining XSS in bookings, media, users, chat widget
-> **Status:** ✅ All features implemented, fully security hardened, production ready
+> **Latest Commit:** `9c109a4` — feat: LINE Messaging API, live chat, sidebar theme, logo fix, cursor fix
+> **Status:** ✅ All features implemented, LINE Messaging integrated, live chat system, production ready
 ---
 
 ## 📋 Project Overview
@@ -150,9 +150,9 @@ node scripts/site-docs.js           # รัน script (จะ scroll + force vi
 ### 🟡 Core Features
 | # | Feature | Files | Status |
 |---|---------|-------|--------|
-| 15 | LINE Notify integration | server.js `sendLineNotify()` | ✅ |
+| 15 | **LINE Messaging API** (แทน LINE Notify ที่ deprecated) | server.js `sendLineMessaging()` | ✅ NEW |
 | 16 | Telegram Notify integration | server.js `sendTelegramNotify()` | ✅ |
-| 17 | Notification settings (stored in DB, key: `notification_settings`) | server/migrations.js, admin.js | ✅ |
+| 17 | Notification settings (LINE Messaging + Telegram + Auto-reply) | server/migrations.js, admin.js | ✅ |
 | 18 | Auto-reply system (LINE/SMS/Email templates) | server.js `checkAutoReply()` | ✅ |
 | 19 | Status change notification (LINE + Telegram) | server.js `notifyLeadStatusChange()` | ✅ |
 | 20 | first_contact_at auto-set on "Contacted" status | server.js `PUT /api/leads/:id` | ✅ |
@@ -180,7 +180,7 @@ node scripts/site-docs.js           # รัน script (จะ scroll + force vi
 | 38 | CMS: Closing CTA | admin.js `renderClosingForm()` | ✅ |
 | 39 | CMS: Footer | admin.js `renderFooterForm()` | ✅ |
 | 40 | CMS: Navigation | admin.js `renderNavForm()` | ✅ |
-| 41 | CMS: Notifications (LINE + Telegram + Auto-reply) | admin.js `renderNotificationsForm()` | ✅ |
+| 41 | CMS: Notifications (LINE Messaging + Telegram + Auto-reply) | admin.js `renderNotificationsForm()` | ✅ |
 | 42 | Leads Management (search, filter, modal edit, notes) | admin.js `renderLeads()` | ✅ |
 | 43 | Bookings View | admin.js `renderBookings()` | ✅ |
 | 44 | Media Library (upload, drag-drop, copy URL, delete) | admin.js `renderMedia()` | ✅ |
@@ -189,17 +189,28 @@ node scripts/site-docs.js           # รัน script (จะ scroll + force vi
 | 47 | Site Docs Page (generate, status, view links) | admin.js `generateSiteDocs()` | ✅ |
 | 48 | CSV Export button | admin.js `exportCSV()` | ✅ |
 | 49 | Backup download button | admin.js `createBackup()` | ✅ |
+| 50 | **Admin-Customer Live Chat** — แอดมินเห็น session list, ตอบกลับลูกค้า, badge แจ้งเตือน | admin.js `renderCustomerChat()` | ✅ NEW |
+| 51 | **Chat Widget → Live Chat** — ข้อความ unmatched ส่งถึงแอดมิน, poll ทุก 5s | chat-widget.js | ✅ NEW |
+
+### 🎨 UI/UX Fixes (2026-05-02)
+| # | Feature | Files | Status |
+|---|---------|-------|--------|
+| 52 | **Sidebar Theme** — เปลี่ยนจากเทาเป็น gradient แดงเข้มเข้ากับธีมเว็บ | admin.css | ✅ NEW |
+| 53 | **Logo Red Box Fix** — โลโก้แสดงโดยไม่มีกรอบแดง (ใช้ CSS `:has(img)`) | style.css | ✅ NEW |
+| 54 | **service.html Cursor Fix** — เมาส์มองเห็นปกติในหน้า service | service.html | ✅ NEW |
 
 ### 🧱 Technical
 | # | Feature | Files | Status |
 |---|---------|-------|--------|
-| 50 | express-rate-limit (แทน in-memory Map) | package.json, server.js | ✅ |
-| 51 | Database migrations system (6 migrations) | server/migrations.js | ✅ |
-| 52 | Global error handler middleware | server.js | ✅ |
-| 53 | Site Documentation Generator (Puppeteer) | scripts/site-docs.js | ✅ |
-| 54 | Site docs API endpoint | server.js `/api/admin/generate-docs` | ✅ |
-| 55 | Supabase legacy files marked | supabase/config.js | ✅ |
-| 56 | **304 cache fix** — ปิด ETag + no-store headers + client cache control | server.js, admin.js, script.js, site-loader.js | ✅ |
+| 55 | express-rate-limit (แทน in-memory Map) | package.json, server.js | ✅ |
+| 56 | Database migrations system (8 migrations) | server/migrations.js | ✅ |
+| 57 | Global error handler middleware | server.js | ✅ |
+| 58 | Site Documentation Generator (Puppeteer) | scripts/site-docs.js | ✅ |
+| 59 | Site docs API endpoint | server.js `/api/admin/generate-docs` | ✅ |
+| 60 | Supabase legacy files marked | supabase/config.js | ✅ |
+| 61 | **304 cache fix** — ปิด ETag + no-store headers + client cache control | server.js, admin.js, script.js, site-loader.js | ✅ |
+| 62 | **chat_messages table** — DB table + indexes สำหรับ live chat | server/migrations.js | ✅ NEW |
+| 63 | **LINE Messaging fields** — migration เพิ่ม channel_access_token, user_id ใน notification_settings | server/migrations.js | ✅ NEW |
 
 ### 📄 Site Documentation Report (2026-04-30 Rewrite)
 | # | Feature | Files | Status |
@@ -362,6 +373,16 @@ nucha-construction-crm/
 | GET | /api/admin/backup | Yes+Admin | Create & download backup |
 | GET | /api/admin/backups | Yes+Admin | List all backups |
 
+### Live Chat (Customer ↔ Admin)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | /api/chat/messages | No | Customer sends message (stored in DB) |
+| GET | /api/chat/messages | Yes | Admin: list all chat sessions with last message |
+| GET | /api/chat/messages/:session_id | Yes | Admin: get messages for session (auto-marks read) |
+| POST | /api/chat/messages/:session_id | Yes | Admin: reply to session |
+| PUT | /api/chat/messages/:session_id/read | Yes | Mark all customer messages as read |
+| GET | /api/chat/unread-count | Yes | Get count of sessions with unread messages |
+
 ### System
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -380,19 +401,21 @@ nucha-construction-crm/
 1. **เปลี่ยนรหัสผ่าน default** — `admin@nuchainnovation.com / admin123` ต้องเปลี่ยนทันที
 2. **ตั้ง JWT_SECRET** ใน `.env` — ถ้าไม่ตั้งจะสุ่มใหม่ทุก restart → token หมดอายุ
 3. **Deploy หลัง HTTPS** — ใช้ nginx reverse proxy + SSL (Let's Encrypt)
-4. **LINE Notify Token** — ใส่ token จริงในหน้า Notifications settings
+4. **LINE Messaging API** — ใส่ Channel Access Token + LINE User ID ในหน้า Notifications settings (เสร็จแล้ว แค่ config)
 
 ### 🟡 Priority 2 — เพิ่มประสิทธิภาพ
 5. **Email Notifications** — เพิ่ม SMTP send จริง (ตอนนี้แค่ log console)
 6. **Auto-reply จริง** — ส่ง SMS/LINE จริงแทนแค่ console.log
 7. **Automated Backup Cron** — ตั้ง cron job backup อัตโนมัติทุกวัน
 8. **Dashboard Charts** — กราฟ leads ตามเดือน, conversion funnel (ใช้ Chart.js)
+9. **Live Chat Real-time** — เปลี่ยนจาก polling 5s → WebSocket สำหรับ chat ที่เร็วขึ้น
 
 ### 🟢 Priority 3 — Features ใหม่
-9. **Customer Portal** — ให้ลูกค้าเข้ามาดู progress โครงการ (login ด้วยเบอร์โทร + OTP)
-10. **Proposal PDF Export** — สร้าง PDF จากใบเสนอราคา
-11. **Lead Source Tracking** — เพิ่ม UTM parameters / source tracking
-12. **Chat Widget AI Integration** — เชื่อม chat widget กับ AI API (PromptDee)
+10. **Customer Portal** — ให้ลูกค้าเข้ามาดู progress โครงการ (login ด้วยเบอร์โทร + OTP)
+11. **Proposal PDF Export** — สร้าง PDF จากใบเสนอราคา
+12. **Lead Source Tracking** — เพิ่ม UTM parameters / source tracking
+13. **Chat Widget AI Integration** — เชื่อม chat widget กับ AI API (PromptDee)
+14. **Chat Attachments** — ลูกค้าส่งรูป/ไฟล์แนบในแชทได้
 
 ---
 
@@ -403,6 +426,8 @@ nucha-construction-crm/
 - **HTTPS:** ต้อง deploy หลัง reverse proxy (nginx) ที่ terminate SSL
 - **Rate limit:** In-memory → ไม่ survive restart / ไม่ work กับ multiple instances
 - **Supabase files:** ใน `supabase/` เป็น legacy code ไม่ได้ใช้งาน — ระบบใช้ SQLite + Express
+- **LINE Messaging:** ใช้ Channel Access Token (long-lived) + User ID/Group ID — ตั้งค่าในหน้า Notifications
+- **Live Chat:** ข้อความลูกค้าเก็บใน DB `chat_messages` table — sanitize HTML, limit 2000 chars
 
 ---
 
