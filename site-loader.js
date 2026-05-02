@@ -42,13 +42,18 @@
       // Logo — support both image and text
       const logoUrl = config.logo_url && config.logo_url.trim() ? config.logo_url.trim() : '';
       if (logoUrl) {
-        // Image logo — replace text icon with <img> in all 3 locations
+        // Image logo — replace text icon with <img> and hide text labels
         ['loaderLogo', 'navLogoIcon', 'footerLogoIcon'].forEach(id => {
           const el = document.getElementById(id);
           if (el) {
             el.innerHTML = `<img src="${esc(logoUrl)}" alt="Logo" style="width:100%;height:100%;object-fit:contain">`;
-            el.style.padding = '4px';
+            el.style.padding = '0';
           }
+        });
+        // Hide logo text when image logo is present
+        ['loaderText', 'navLogoText', 'footerLogoText'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = 'none';
         });
       } else if (config.logo_text) {
         const el = document.getElementById('loaderLogo');
