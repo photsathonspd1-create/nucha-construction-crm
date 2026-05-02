@@ -73,6 +73,11 @@
         if (footerText) footerText.innerHTML = html;
       }
       if (config.site_name) document.title = config.site_name + ' - ' + (config.site_tagline || '');
+      // Show logo elements after content is processed
+      ['loaderLogo', 'navLogoIcon', 'footerLogoIcon'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.opacity = '1';
+      });
       if (config.phone) {
         const footerPhone = document.getElementById('footerPhone');
         if (footerPhone) footerPhone.textContent = config.phone;
