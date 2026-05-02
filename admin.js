@@ -1084,9 +1084,10 @@ document.getElementById('mediaFileInput')?.addEventListener('change', async (e) 
     const formData = new FormData();
     formData.append('image', file);
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
       const data = await res.json();
-      if (data.url) toast('✅ อัพโหลด ' + file.name + ' สำเร็จ');
+      if (res.ok && data.url) toast('✅ อัพโหลด ' + file.name + ' สำเร็จ');
+      else toast('❌ ' + (data.error || 'อัพโหลดล้มเหลว'), 'error');
     } catch (err) {
       toast('❌ อัพโหลดล้มเหลว: ' + err.message, 'error');
     }
@@ -1105,7 +1106,7 @@ document.getElementById('mediaUploadArea')?.addEventListener('drop', async (e) =
     if (!file.type.startsWith('image/')) continue;
     const formData = new FormData();
     formData.append('image', file);
-    await fetch('/api/upload', { method: 'POST', body: formData });
+    await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
   }
   renderMedia();
 });
@@ -1314,15 +1315,17 @@ async function handleImageUpload(id, input) {
   const formData = new FormData();
   formData.append('image', file);
   try {
-    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
     const data = await res.json();
-    if (data.url) {
+    if (res.ok && data.url) {
       document.getElementById('url-' + id).value = data.url;
       updateImagePreview(id, data.url);
       toast('✅ อัพโหลดรูปสำเร็จ');
+    } else {
+      toast('❌ ' + (data.error || 'อัพโหลดล้มเหลว'), 'error');
     }
   } catch (err) {
-    toast('❌ อัพโหลดล้มเหลว', 'error');
+    toast('❌ อัพโหลดล้มเหลว: ' + err.message, 'error');
   }
 }
 
