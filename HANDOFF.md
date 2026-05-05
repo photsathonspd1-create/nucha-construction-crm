@@ -1,9 +1,9 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> **Last Updated:** 2026-05-02 17:50 (GMT+8)
-> **Updated By:** OpenClaw AI Agent (DB repair script)
+> **Last Updated:** 2026-05-05 21:15 (GMT+8)
+> **Updated By:** OpenClaw AI Agent (GSAP + CSP fix)
 > **Branch:** main
-> **Latest Commit:** `d29fc08` — fix: repair script — disable foreign keys, drop tables before create
+> **Latest Commit:** `0fb8112` — fix: guard GSAP calls + unregister stale service workers
 > **Status:** ✅ All features implemented, chat system fully functional, production ready
 ---
 
@@ -227,6 +227,30 @@ node scripts/site-docs.js           # รัน script (จะ scroll + force vi
 | 62 | **chat_messages table** — DB table + indexes สำหรับ live chat | server/migrations.js | ✅ NEW |
 | 63 | **LINE Messaging fields** — migration เพิ่ม channel_access_token, user_id ใน notification_settings | server/migrations.js | ✅ NEW |
 | 64 | **chat admin_name column** — migration 009 เพิ่ม admin_name ใน chat_messages | server/migrations.js | ✅ |
+
+### 🐛 Bug Fix Log (2026-05-05 21:15) — GSAP + CSP Fix
+
+**ปัญหา:** Browser console เต็มไปด้วย CSP violation errors + `gsap is not defined` crash
+
+| # | Severity | Bug | Fix | File |
+|---|----------|-----|-----|------|
+| 30 | 🔴 Critical | **GSAP CDN 503 → `gsap is not defined`** — script.js:203, 206 ใช้ gsap โดยไม่ check → ReferenceError crash | เพิ่ม `typeof gsap !== 'undefined'` guard ทุกจุด (6 จุด) | script.js |
+| 31 | 🔴 Critical | **initAnimations() crash เมื่อ GSAP ไม่โหลด** — gsap.registerPlugin(ScrollTrigger) fail → หน้าค้าง | เพิ่ม guard + fallback แสดง element ปกติ (opacity:1, transform:none) | script.js |
+| 32 | 🟡 Medium | **Stale Service Worker (sw.js) ทำ CSP Block** — sw.js cache จาก deploy เก่าพยายาม fetch external resources ถูก CSP block ทั้งหมด | เพิ่ม code unregister service workers ทั้งหมดตอนโหลดหน้า | script.js |
+| 33 | 🟡 Medium | **service.html GSAP unguarded** — gsap.registerPlugin + gsap.from ไม่มี guard → crash ถ้า CDN ล่ม | เพิ่ม guard + fallback สำหรับ feature cards | service.html |
+
+**Root Cause:**
+- GSAP โหลดจาก `cdnjs.cloudflare.com` (CDN) — ถ้า CDN ตอบ 503 หรือ network ไม่ถึง → gsap ไม่ defined
+- Service worker จาก deploy ก่อนหน้า (ไม่มีใน repo แล้ว) ยังถูก browser cache ไว้ → พยายาม cache external resources แต่ถูก CSP block
+- `express.static(__dirname)` serve ไฟล์ทั้งหมด — ไม่ได้ isolate server code
+
+**สิ่งที่แก้ไข:**
+1. `script.js` — เพิ่ม service worker unregister ตอนเริ่มต้น
+2. `script.js` — ทุกจุดที่ใช้ gsap มี `typeof gsap !== 'undefined'` guard
+3. `script.js` — `initAnimations()` ถ้า gsap ไม่มา → แสดง element ปกติแทน animation
+4. `service.html` — เพิ่ม guard + fallback สำหรับ GSAP animations
+
+---
 
 ### 📄 Site Documentation Report (2026-04-30 Rewrite)
 | # | Feature | Files | Status |
