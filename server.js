@@ -1412,6 +1412,14 @@ app.get('/service.html', (req, res) => {
   res.sendFile('service.html', { root: __dirname });
 });
 
+// Legal pages (public)
+app.get('/privacy', (req, res) => {
+  res.sendFile('privacy.html', { root: __dirname });
+});
+app.get('/terms', (req, res) => {
+  res.sendFile('terms.html', { root: __dirname });
+});
+
 // Admin pages (protected)
 app.get('/admin', authMiddleware, (req, res) => {
   res.sendFile('admin.html', { root: __dirname });

@@ -398,7 +398,7 @@
             const safe = esc(b);
             return `
             <div class="trust-badge-item">
-              <svg viewBox="0 0 120 40" fill="currentColor" opacity="0.35">
+              <svg viewBox="0 0 120 40" fill="currentColor" opacity="0.7">
                 <text x="10" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="${safe.length > 4 ? '14' : '16'}">${safe}</text>
               </svg>
             </div>

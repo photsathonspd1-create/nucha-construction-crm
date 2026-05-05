@@ -36,6 +36,7 @@
                     <div class="sidebar-link" data-page="edit-testimonials" onclick="showPage('edit-testimonials')"><span>⭐ รีวิว</span></div>
                     <div class="sidebar-link" data-page="edit-closing" onclick="showPage('edit-closing')"><span>🔚 ปิดท้าย</span></div>
                     <div class="sidebar-link" data-page="edit-footer" onclick="showPage('edit-footer')"><span>📎 Footer</span></div>
+                    <div class="sidebar-link" data-page="edit-badges" onclick="showPage('edit-badges')"><span>🏷️ แบรนด์</span></div>
                     <div class="sidebar-link" data-page="edit-nav" onclick="showPage('edit-nav')"><span>📑 เมนูนำทาง</span></div>
                     <div class="sidebar-link" data-page="edit-notifications" onclick="showPage('edit-notifications')"><span>🔔 แจ้งเตือน</span></div>
                 </div>
@@ -160,6 +161,12 @@
             <div class="page-section" id="page-edit-footer">
                 <div class="page-header"><h1>📎 Footer</h1><p>ส่วนท้ายเว็บไซต์</p></div>
                 <form class="cms-form" id="footerForm"></form>
+            </div>
+
+            <!-- Edit Trust Badges -->
+            <div class="page-section" id="page-edit-badges">
+                <div class="page-header"><h1>🏷️ แบรนด์ / Trust Badges</h1><p>แสดงแบรนด์วัสดุที่ใช้</p></div>
+                <form class="cms-form" id="badgesForm"></form>
             </div>
 
             <!-- Edit Nav -->
@@ -348,6 +355,22 @@
                 <button class="modal-close" onclick="closeModal()">✕</button>
             </div>
             <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Media Picker Modal -->
+    <div class="modal-overlay" id="mediaPickerModal" style="display:none">
+        <div class="modal" style="max-width:900px;max-height:85vh">
+            <div class="modal-header">
+                <h2>📁 เลือกจากคลังภาพ</h2>
+                <button class="modal-close" onclick="closeMediaPicker()">✕</button>
+            </div>
+            <div class="modal-body" style="overflow-y:auto">
+                <div style="margin-bottom:16px">
+                    <input type="text" id="mediaPickerSearch" placeholder="🔍 ค้นหารูปภาพ..." oninput="filterMediaPicker(this.value)" style="width:100%;padding:10px 14px;border:2px solid var(--gray-200);border-radius:8px;font-size:0.9rem">
+                </div>
+                <div id="mediaPickerGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px"></div>
+            </div>
         </div>
     </div>
 

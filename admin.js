@@ -144,6 +144,7 @@ function renderAllForms() {
   renderClosingForm();
   renderFooterForm();
   renderNavForm();
+  renderTrustBadgesForm();
   renderNotificationsForm();
   renderLeads();
   renderBookings();
@@ -698,6 +699,56 @@ async function saveFooter() {
   toast('✅ บันทึก Footer สำเร็จ');
 }
 
+// ===== TRUST BADGES FORM =====
+function renderTrustBadgesForm() {
+  const b = allContent.trust_badges || {};
+  const brands = (b.brands || []).join(', ');
+  document.getElementById('badgesForm').innerHTML = `
+    <div class="form-section">
+      <h3>🏷️ ตั้งค่าแบรนด์</h3>
+      <div class="form-group">
+        <label>หัวข้อ</label>
+        <input type="text" id="b_label" value="${esc(b.label || '')}" placeholder="วัสดุคุณภาพจากแบรนด์ชั้นนำ">
+      </div>
+      <div class="form-group">
+        <label>แบรนด์ (คั่นด้วย comma)</label>
+        <input type="text" id="b_brands" value="${esc(brands)}" placeholder="SCG, TOA, COTTO, STIEBEL, DAIKIN, KARAT">
+        <small style="color:var(--gray-400);font-size:0.8rem">ใส่ชื่อแบรนด์คั่นด้วยเครื่องหมาย comma (,)</small>
+      </div>
+      <div style="margin-top:16px;padding:16px;background:var(--gray-50);border-radius:10px">
+        <p style="font-size:0.82rem;color:var(--gray-500);margin-bottom:12px">ตัวอย่างการแสดงผล:</p>
+        <div id="badgesPreview" style="display:flex;gap:24px;flex-wrap:wrap;align-items:center;justify-content:center"></div>
+      </div>
+    </div>
+    <button type="button" class="btn btn-primary" onclick="saveBadges()" style="margin-top:16px">💾 บันทึกแบรนด์</button>
+  `;
+  updateBadgesPreview();
+  document.getElementById('b_brands').addEventListener('input', updateBadgesPreview);
+  document.getElementById('b_label').addEventListener('input', updateBadgesPreview);
+}
+
+function updateBadgesPreview() {
+  const label = document.getElementById('b_label')?.value || '';
+  const brandsStr = document.getElementById('b_brands')?.value || '';
+  const brands = brandsStr.split(',').map(s => s.trim()).filter(Boolean);
+  const preview = document.getElementById('badgesPreview');
+  if (!preview) return;
+  preview.innerHTML = `
+    <div style="width:100%;text-align:center;font-size:0.72rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--gray-500);margin-bottom:8px">${esc(label)}</div>
+    ${brands.map(b => `<div style="opacity:0.7;color:var(--gray-600);font-weight:800;font-size:0.9rem;letter-spacing:1px">${esc(b)}</div>`).join('')}
+  `;
+}
+
+async function saveBadges() {
+  const data = {
+    label: gv('b_label'),
+    brands: gv('b_brands').split(',').map(s => s.trim()).filter(Boolean)
+  };
+  await api('/api/content/trust_badges', { method: 'PUT', body: JSON.stringify(data) });
+  allContent.trust_badges = data;
+  toast('✅ บันทึกแบรนด์สำเร็จ');
+}
+
 // ===== NOTIFICATIONS FORM =====
 function renderNotificationsForm() {
   const n = allContent.notification_settings || {};
@@ -1185,6 +1236,66 @@ async function deleteMedia(name) {
   toast('🗑️ ลบรูปสำเร็จ');
 }
 
+// ===== MEDIA PICKER =====
+let _mediaPickerCallback = null;
+let _mediaPickerFiles = [];
+
+async function openMediaPicker(callback) {
+  _mediaPickerCallback = callback;
+  const modal = document.getElementById('mediaPickerModal');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  try {
+    _mediaPickerFiles = await api('/api/media').catch(() => []);
+    renderMediaPickerGrid(_mediaPickerFiles);
+  } catch (err) {
+    _mediaPickerFiles = [];
+    document.getElementById('mediaPickerGrid').innerHTML = '<p style="color:var(--gray-400);text-align:center;grid-column:1/-1;padding:40px">ไม่สามารถโหลดคลังภาพได้</p>';
+  }
+  document.getElementById('mediaPickerSearch').value = '';
+}
+
+function closeMediaPicker() {
+  document.getElementById('mediaPickerModal').style.display = 'none';
+  document.body.style.overflow = '';
+  _mediaPickerCallback = null;
+}
+
+function renderMediaPickerGrid(files) {
+  const grid = document.getElementById('mediaPickerGrid');
+  if (!files.length) {
+    grid.innerHTML = '<p style="color:var(--gray-400);text-align:center;grid-column:1/-1;padding:40px">คลังภาพว่าง — อัพโหลดรูปก่อน</p>';
+    return;
+  }
+  grid.innerHTML = files.map(f => `
+    <div class="media-picker-item" onclick="selectMediaPicker('${esc(f.url).replace(/'/g, "\\'")}')" style="cursor:pointer;border-radius:10px;overflow:hidden;border:2px solid transparent;transition:all 0.2s;position:relative;aspect-ratio:1;background:var(--gray-100)">
+      <img src="${esc(f.url)}" alt="${esc(f.name)}" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.parentElement.style.display='none'">
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:6px 8px;background:linear-gradient(transparent,rgba(0,0,0,0.7));font-size:0.7rem;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</div>
+    </div>
+  `).join('');
+}
+
+function filterMediaPicker(query) {
+  const q = query.toLowerCase();
+  const filtered = _mediaPickerFiles.filter(f => f.name.toLowerCase().includes(q));
+  renderMediaPickerGrid(filtered);
+}
+
+function selectMediaPicker(url) {
+  if (_mediaPickerCallback) _mediaPickerCallback(url);
+  closeMediaPicker();
+}
+
+// Add hover effect for media picker items
+document.addEventListener('mouseover', (e) => {
+  const item = e.target.closest('.media-picker-item');
+  if (item) { item.style.borderColor = 'var(--red)'; item.style.transform = 'scale(1.03)'; }
+});
+document.addEventListener('mouseout', (e) => {
+  const item = e.target.closest('.media-picker-item');
+  if (item) { item.style.borderColor = 'transparent'; item.style.transform = 'scale(1)'; }
+});
+
 // ===== REPORTS =====
 async function renderReports() {
   try {
@@ -1362,7 +1473,10 @@ function imageField(id, currentUrl, label) {
         ${hasImage ? `<img src="${esc(currentUrl)}" id="preview-${id}"><button type="button" class="remove-btn" onclick="event.stopPropagation();clearImage('${id}')">✕</button>` : `<div class="upload-icon">📤</div><div class="upload-text">คลิกเพื่ออัพโหลด หรือใส่ URL ด้านล่าง</div>`}
         <input type="file" id="file-${id}" accept="image/*" onchange="handleImageUpload('${id}', this)" style="display:none">
       </div>
-      <input type="text" class="url-input" id="url-${id}" value="${esc(currentUrl || '')}" placeholder="หรือใส่ URL รูปภาพ..." oninput="updateImagePreview('${id}', this.value)" style="margin-top:8px;width:100%;padding:8px 12px;border:2px solid var(--gray-200);border-radius:8px;font-size:0.85rem">
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input type="text" class="url-input" id="url-${id}" value="${esc(currentUrl || '')}" placeholder="หรือใส่ URL รูปภาพ..." oninput="updateImagePreview('${id}', this.value)" style="flex:1;padding:8px 12px;border:2px solid var(--gray-200);border-radius:8px;font-size:0.85rem">
+        <button type="button" onclick="openMediaPicker(function(url){document.getElementById('url-${id}').value=url;updateImagePreview('${id}',url)})" style="padding:8px 14px;border:2px solid var(--gray-200);border-radius:8px;background:white;cursor:pointer;font-size:0.82rem;white-space:nowrap;transition:all 0.2s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--gray-200)';this.style.color=''">🖼️ คลังภาพ</button>
+      </div>
     </div>
   `;
 }

@@ -222,8 +222,8 @@ const defaultContent = {
       { label: 'บริหารโครงการ', href: '#' }
     ],
     legal_links: [
-      { label: 'นโยบายความเป็นส่วนตัว', href: '#' },
-      { label: 'ข้อตกลงการใช้บริการ', href: '#' }
+      { label: 'นโยบายความเป็นส่วนตัว', href: '/privacy' },
+      { label: 'ข้อตกลงการใช้บริการ', href: '/terms' }
     ]
   },
   trust_badges: {
