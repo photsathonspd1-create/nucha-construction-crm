@@ -1,6 +1,13 @@
 // ===== Config =====
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
 
+// ===== Unregister stale service workers (fixes CSP blocking from old sw.js caches) =====
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => registration.unregister());
+    }).catch(() => {});
+}
+
 // ===== Loader =====
 window.addEventListener('load', async () => {
     const loader = document.getElementById('loader');
@@ -192,7 +199,7 @@ if (!isMobile) {
 }
 
 // ===== Magnetic Button (desktop only, static elements) =====
-if (!isMobile) {
+if (!isMobile && typeof gsap !== 'undefined') {
     document.querySelectorAll('.magnetic-btn').forEach(btn => {
         if (btn._magneticBound) return;
         btn._magneticBound = true;
@@ -318,7 +325,7 @@ function showFormError(step, msg) {
     }
     errEl.textContent = msg;
     errEl.style.display = 'block';
-    gsap.from(errEl, { opacity: 0, y: -10, duration: 0.3 });
+    if (typeof gsap !== 'undefined') gsap.from(errEl, { opacity: 0, y: -10, duration: 0.3 });
     setTimeout(() => errEl.style.display = 'none', 3000);
 }
 
@@ -399,6 +406,16 @@ function getMeetingTypeLabel(type) {
 // ===== GSAP ANIMATIONS =====
 let _animationsInitialized = false;
 function initAnimations() {
+    if (typeof gsap === 'undefined') {
+        console.warn('GSAP not loaded — animations disabled');
+        // Make all elements visible when GSAP is unavailable
+        document.querySelectorAll('[style*="opacity: 0"], .hero-badge, .title-line, .hero-subtitle, .hero-desc, .hero-buttons .btn, .hero-stats-row, .hero-image-wrapper, .hero-float-card, .scroll-indicator').forEach(el => {
+            el.style.opacity = '1';
+            el.style.transform = 'none';
+            el.style.filter = 'none';
+        });
+        return;
+    }
     gsap.registerPlugin(ScrollTrigger);
 
     // Kill existing ScrollTriggers if re-initializing (e.g. after site-loader loads content)
@@ -660,23 +677,25 @@ function initAnimations() {
 }
 
 // ===== Ripple on Click (static elements) =====
-document.querySelectorAll('.btn-primary').forEach(btn => {
-    if (btn._rippleBound) return;
-    btn._rippleBound = true;
-    btn.addEventListener('click', function(e) {
-        const rect = this.getBoundingClientRect();
-        const ripple = document.createElement('span');
-        ripple.style.cssText = `
-            position: absolute; width: 0; height: 0; border-radius: 50%;
-            background: rgba(255,255,255,0.3);
-            left: ${e.clientX - rect.left}px; top: ${e.clientY - rect.top}px;
-            transform: translate(-50%, -50%); pointer-events: none;
-        `;
-        this.appendChild(ripple);
-        gsap.to(ripple, {
-            width: 300, height: 300, opacity: 0,
-            duration: 0.8, ease: 'power2.out',
-            onComplete: () => ripple.remove()
+if (typeof gsap !== 'undefined') {
+    document.querySelectorAll('.btn-primary').forEach(btn => {
+        if (btn._rippleBound) return;
+        btn._rippleBound = true;
+        btn.addEventListener('click', function(e) {
+            const rect = this.getBoundingClientRect();
+            const ripple = document.createElement('span');
+            ripple.style.cssText = `
+                position: absolute; width: 0; height: 0; border-radius: 50%;
+                background: rgba(255,255,255,0.3);
+                left: ${e.clientX - rect.left}px; top: ${e.clientY - rect.top}px;
+                transform: translate(-50%, -50%); pointer-events: none;
+            `;
+            this.appendChild(ripple);
+            gsap.to(ripple, {
+                width: 300, height: 300, opacity: 0,
+                duration: 0.8, ease: 'power2.out',
+                onComplete: () => ripple.remove()
+            });
         });
     });
-});
+}

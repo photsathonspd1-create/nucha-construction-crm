@@ -721,25 +721,33 @@
         }, { passive: true });
 
         // GSAP animations
-        gsap.registerPlugin(ScrollTrigger);
-        gsap.utils.toArray('[data-animate="fade-up"]').forEach(el => {
-            gsap.from(el, {
-                scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' },
-                opacity: 0, y: 60, duration: 1, ease: 'power3.out'
+        if (typeof gsap !== 'undefined') {
+            gsap.registerPlugin(ScrollTrigger);
+            gsap.utils.toArray('[data-animate="fade-up"]').forEach(el => {
+                gsap.from(el, {
+                    scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' },
+                    opacity: 0, y: 60, duration: 1, ease: 'power3.out'
+                });
             });
-        });
-        gsap.utils.toArray('.feature-card').forEach((card, i) => {
-            gsap.from(card, {
-                scrollTrigger: { trigger: card, start: 'top 90%', toggleActions: 'play none none none' },
-                opacity: 0, y: 50, duration: 0.8, delay: i * 0.1, ease: 'power3.out'
+            gsap.utils.toArray('.feature-card').forEach((card, i) => {
+                gsap.from(card, {
+                    scrollTrigger: { trigger: card, start: 'top 90%', toggleActions: 'play none none none' },
+                    opacity: 0, y: 50, duration: 0.8, delay: i * 0.1, ease: 'power3.out'
+                });
             });
-        });
-        gsap.utils.toArray('.service-portfolio-item').forEach((item, i) => {
-            gsap.from(item, {
-                scrollTrigger: { trigger: item, start: 'top 90%', toggleActions: 'play none none none' },
-                opacity: 0, y: 40, scale: 0.95, duration: 0.9, delay: i * 0.1, ease: 'power3.out'
+            gsap.utils.toArray('.service-portfolio-item').forEach((item, i) => {
+                gsap.from(item, {
+                    scrollTrigger: { trigger: item, start: 'top 90%', toggleActions: 'play none none none' },
+                    opacity: 0, y: 40, scale: 0.95, duration: 0.9, delay: i * 0.1, ease: 'power3.out'
+                });
             });
-        });
+        } else {
+            // Make elements visible when GSAP unavailable
+            document.querySelectorAll('[data-animate="fade-up"], .feature-card, .service-portfolio-item').forEach(el => {
+                el.style.opacity = '1';
+                el.style.transform = 'none';
+            });
+        }
 
         hideLoader();
 
