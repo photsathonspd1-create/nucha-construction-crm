@@ -153,6 +153,7 @@ function adminOnly(req, res, next) {
 // ===== LEAD SCORING =====
 function calculateScore(lead) {
   let score = 0;
+  const MAX_SCORE = 10;
   const budgetScores = {
     'มากกว่า 10,000,000': 5, '5,000,000 - 10,000,000': 4,
     '3,000,000 - 5,000,000': 3, '1,000,000 - 3,000,000': 2,
@@ -162,6 +163,7 @@ function calculateScore(lead) {
   if (lead.service_type && lead.service_type !== 'อื่นๆ') score += 2;
   if (lead.message && lead.message.length > 10) score += 1;
   if (lead.appointment_date) score += 2;
+  score = Math.min(score, MAX_SCORE);
   return Math.round(score * 10) / 10;
 }
 
@@ -331,8 +333,9 @@ app.post('/api/auth/login', loginLimiter, (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production'
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/'
     });
     res.json({ success: true, user: { id: user.id, email: user.email, full_name: user.full_name, role: user.role } });
   } catch (err) {
@@ -581,10 +584,11 @@ app.get('/api/leads', authMiddleware, (req, res) => {
       params.push(req.query.status);
     }
 
-    // Search by name, phone, email
+    // Search by name, phone, email (escape LIKE wildcards)
     if (req.query.search) {
       conditions.push('(name LIKE ? OR phone LIKE ? OR email LIKE ?)');
-      const searchTerm = `%${req.query.search}%`;
+      const escaped = String(req.query.search).replace(/[%_]/g, '\\$&');
+      const searchTerm = `%${escaped}%`;
       params.push(searchTerm, searchTerm, searchTerm);
     }
 
@@ -594,9 +598,10 @@ app.get('/api/leads', authMiddleware, (req, res) => {
 
     // Sorting
     const sortField = req.query.sort || 'created_at';
-    const sortOrder = req.query.order === 'asc' ? 'ASC' : 'DESC';
     const allowedSortFields = ['created_at', 'name', 'score', 'updated_at', 'status'];
     const safeSortField = allowedSortFields.includes(sortField) ? sortField : 'created_at';
+    const allowedSortOrders = ['ASC', 'DESC'];
+    const sortOrder = allowedSortOrders.includes(String(req.query.order).toUpperCase()) ? String(req.query.order).toUpperCase() : 'DESC';
     query += ` ORDER BY ${safeSortField} ${sortOrder}`;
 
     // Pagination
@@ -1020,17 +1025,25 @@ app.get('/api/reports/summary', authMiddleware, (req, res) => {
 app.get('/api/reports/export/csv', authMiddleware, (req, res) => {
   try {
     const leads = db.prepare('SELECT * FROM leads ORDER BY created_at DESC').all();
+    // Sanitize CSV field to prevent formula injection in spreadsheet apps
+    function safeCsvField(val) {
+      const str = String(val || '').replace(/"/g, '""');
+      // Prefix with single quote if starts with formula-triggering chars
+      if (/^[=+\-@\t\r]/.test(str)) return `"'${str}"`;
+      return `"${str}"`;
+    }
+
     const headers = ['ID', 'ชื่อ', 'เบอร์โทร', 'อีเมล', 'บริการ', 'งบประมาณ', 'สถานะ', 'คะแนน', 'วันที่สร้าง'];
     const rows = leads.map(l => [
       l.id,
-      `"${(l.name || '').replace(/"/g, '""')}"`,
-      `"${(l.phone || '').replace(/"/g, '""')}"`,
-      `"${(l.email || '').replace(/"/g, '""')}"`,
-      `"${(l.service_type || '').replace(/"/g, '""')}"`,
-      `"${(l.budget_range || '').replace(/"/g, '""')}"`,
-      `"${(l.status || '').replace(/"/g, '""')}"`,
+      safeCsvField(l.name),
+      safeCsvField(l.phone),
+      safeCsvField(l.email),
+      safeCsvField(l.service_type),
+      safeCsvField(l.budget_range),
+      safeCsvField(l.status),
       l.score || 0,
-      `"${(l.created_at || '').replace(/"/g, '""')}"`
+      safeCsvField(l.created_at)
     ]);
 
     let csv = '\uFEFF'; // BOM for Excel UTF-8
@@ -1188,32 +1201,52 @@ app.get('/api/admin/backups', authMiddleware, adminOnly, (req, res) => {
 
 
 // ===== SITE DOCUMENTATION =====
-const { execSync } = require("child_process");
+const { execFile } = require("child_process");
 
 app.post("/api/admin/generate-docs", authMiddleware, adminOnly, (req, res) => {
   try {
     const baseUrl = req.body.url || `http://localhost:${PORT}`;
-    const outputDir = path.join(__dirname, "site-docs");;
-    
-    // Run site-docs script
+    const outputDir = path.join(__dirname, "site-docs");
+
+    // Validate URL to prevent command injection
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(baseUrl);
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        return res.status(400).json({ error: 'URL ต้องเป็น http หรือ https เท่านั้น' });
+      }
+    } catch {
+      return res.status(400).json({ error: 'URL ไม่ถูกต้อง' });
+    }
+
+    // Run site-docs script using execFile (no shell injection risk)
     const scriptPath = path.join(__dirname, "scripts", "site-docs.js");
-    execSync(`node "${scriptPath}" --url "${baseUrl}" --output "${outputDir}"`, {
-      timeout: 300000,
-      stdio: "pipe"
-    });
-    
-    // Read the generated data
-    const dataPath = path.join(outputDir, "site-data.json");
-    const data = JSON.parse(fs.readFileSync(dataPath, "utf8"));
-    
-    res.json({
-      success: true,
-      message: `สร้างรายงานสำเร็จ ${data.length} หน้า`,
-      pages: data.length,
-      files: {
-        html: "/site-docs/site-report.html",
-        md: "/site-docs/site-report.md",
-        json: "/site-docs/site-data.json"
+    execFile("node", [scriptPath, "--url", baseUrl, "--output", outputDir], {
+      timeout: 300000
+    }, (err) => {
+      if (err) {
+        console.error("Generate docs exec error:", err);
+        return res.status(500).json({ error: "ไม่สามารถสร้างรายงานได้: " + err.message });
+      }
+
+      try {
+        // Read the generated data
+        const dataPath = path.join(outputDir, "site-data.json");
+        const data = JSON.parse(fs.readFileSync(dataPath, "utf8"));
+
+        res.json({
+          success: true,
+          message: `สร้างรายงานสำเร็จ ${data.length} หน้า`,
+          pages: data.length,
+          files: {
+            html: "/site-docs/site-report.html",
+            md: "/site-docs/site-report.md",
+            json: "/site-docs/site-data.json"
+          }
+        });
+      } catch (readErr) {
+        console.error("Generate docs read error:", readErr);
+        res.status(500).json({ error: "ไม่สามารถอ่านรายงานได้: " + readErr.message });
       }
     });
   } catch (err) {
@@ -1254,6 +1287,10 @@ app.post('/api/chat/messages', leadsLimiter, (req, res) => {
   try {
     const { session_id, message, customer_name, customer_phone, sender } = req.body;
     if (!session_id || !message) return res.status(400).json({ error: 'กรุณากรอกข้อความ' });
+    // Validate session_id format (alphanumeric, hyphens, underscores, max 100 chars)
+    if (typeof session_id !== 'string' || session_id.length > 100 || !/^[a-zA-Z0-9_\-]+$/.test(session_id)) {
+      return res.status(400).json({ error: 'session_id ไม่ถูกต้อง' });
+    }
     const safeName = customer_name ? String(customer_name).replace(/<[^>]*>/g, '').slice(0, 100) : null;
     const safePhone = customer_phone ? String(customer_phone).replace(/[^0-9\-+ ]/g, '').slice(0, 20) : null;
     const safeMsg = String(message).replace(/<[^>]*>/g, '').slice(0, 2000);
@@ -1368,15 +1405,13 @@ app.get('/api/health', (req, res) => {
   try {
     // Test DB connection
     db.prepare('SELECT 1').get();
-    const uptime = Math.floor((Date.now() - serverStartTime) / 1000);
     res.json({
       status: 'ok',
-      uptime: `${uptime} seconds`,
       database: 'connected',
       timestamp: new Date().toISOString()
     });
   } catch (err) {
-    res.status(500).json({ status: 'error', database: 'disconnected', error: err.message });
+    res.status(500).json({ status: 'error', database: 'disconnected' });
   }
 });
 
@@ -1540,6 +1575,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🌐 Website: http://localhost:${PORT}`);
   console.log(`🔧 Admin: http://localhost:${PORT}/admin`);
   console.log(`❤️  Health: http://localhost:${PORT}/api/health`);
+  console.log(`⚠️  Default admin: admin@nuchainnovation.com / admin123 — เปลี่ยนรหัสผ่านก่อน deploy จริง!`);
 });
 
 // ===== GRACEFUL SHUTDOWN =====

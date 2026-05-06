@@ -3,7 +3,7 @@
 function validatePhone(phone) {
   if (!phone) return { valid: false, error: 'กรุณากรอกเบอร์โทร' };
   const digits = phone.replace(/[\s\-]/g, '');
-  if (!/^\d{10}$/.test(digits)) return { valid: false, error: 'เบอร์โทรต้องเป็นตัวเลข 10 หลัก' };
+  if (!/^0\d{9}$/.test(digits)) return { valid: false, error: 'เบอร์โทรต้องเป็นตัวเลข 10 หลัก เริ่มต้นด้วย 0' };
   return { valid: true, cleaned: digits };
 }
 

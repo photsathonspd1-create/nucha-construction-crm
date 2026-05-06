@@ -303,6 +303,14 @@ function renderServicesForm() {
               <div class="form-group"><label>ชื่อบริการ</label><input type="text" class="sv-item-name" value="${esc(item.name || '')}"></div>
             </div>
             <div class="form-group"><label>รายละเอียด</label><textarea class="sv-item-desc">${esc(item.desc || '')}</textarea></div>
+            <div class="form-group">
+              <label>รูปภาพ (URL)</label>
+              <div class="image-upload-row">
+                <input type="text" class="sv-item-image" value="${esc(item.image_url || '')}" placeholder="https://... หรืออัพโหลด">
+                <input type="file" class="sv-item-image-file" accept="image/*" onchange="uploadServiceImage(this, ${i})">
+              </div>
+              <div class="image-preview" id="sv-img-preview-${i}">${item.image_url ? `<img src="${esc(item.image_url)}" onerror="this.parentElement.innerHTML=''">` : ''}</div>
+            </div>
             <div class="form-row">
               <div class="form-group"><label>งบประมาณ</label><input type="text" class="sv-item-budget" value="${esc(item.budget || '')}"></div>
               <div class="form-group"><label>Key (ภาษาอังกฤษ)</label><input type="text" class="sv-item-key" value="${esc(item.key || '')}"></div>
@@ -321,6 +329,7 @@ function renderServicesForm() {
 
 function addServiceItem() {
   const list = document.getElementById('servicesItemsList');
+  const idx = list.querySelectorAll('.repeatable-body').length;
   const html = `
     <div class="repeatable-header" onclick="toggleRepeatable(this)"><h4>🔧 บริการใหม่</h4><span class="toggle">▼</span></div>
     <div class="repeatable-body open">
@@ -329,6 +338,14 @@ function addServiceItem() {
         <div class="form-group"><label>ชื่อบริการ</label><input type="text" class="sv-item-name" value=""></div>
       </div>
       <div class="form-group"><label>รายละเอียด</label><textarea class="sv-item-desc"></textarea></div>
+      <div class="form-group">
+        <label>รูปภาพ (URL)</label>
+        <div class="image-upload-row">
+          <input type="text" class="sv-item-image" value="" placeholder="https://... หรืออัพโหลด">
+          <input type="file" class="sv-item-image-file" accept="image/*" onchange="uploadServiceImage(this, ${idx})">
+        </div>
+        <div class="image-preview" id="sv-img-preview-${idx}"></div>
+      </div>
       <div class="form-row">
         <div class="form-group"><label>งบประมาณ</label><input type="text" class="sv-item-budget" value=""></div>
         <div class="form-group"><label>Key</label><input type="text" class="sv-item-key" value=""></div>
@@ -339,6 +356,26 @@ function addServiceItem() {
   list.insertAdjacentHTML('beforeend', html);
 }
 
+async function uploadServiceImage(input, idx) {
+  const file = input.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('image', file);
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
+    const data = await res.json();
+    if (data.url) {
+      const urlInput = document.querySelectorAll('.sv-item-image')[idx];
+      if (urlInput) urlInput.value = data.url;
+      const preview = document.getElementById('sv-img-preview-' + idx);
+      if (preview) preview.innerHTML = `<img src="${data.url}">`;
+      toast('✅ อัพโหลดรูปสำเร็จ');
+    }
+  } catch (err) {
+    toast('❌ อัพโหลดไม่สำเร็จ');
+  }
+}
+
 async function saveServices() {
   const items = [];
   document.querySelectorAll('.sv-item-name').forEach((el, i) => {
@@ -346,6 +383,7 @@ async function saveServices() {
       icon: document.querySelectorAll('.sv-item-icon')[i]?.value || '🔧',
       name: el.value,
       desc: document.querySelectorAll('.sv-item-desc')[i]?.value || '',
+      image_url: document.querySelectorAll('.sv-item-image')[i]?.value || '',
       budget: document.querySelectorAll('.sv-item-budget')[i]?.value || '',
       key: document.querySelectorAll('.sv-item-key')[i]?.value || ''
     });

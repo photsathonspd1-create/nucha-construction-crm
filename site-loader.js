@@ -180,13 +180,13 @@
         const grid = document.getElementById('servicesGrid');
         if (grid) {
           grid.innerHTML = services.items.map((s, i) => {
-            const safeImage = esc(s.image || '');
+            const safeImage = esc(s.image_url || s.image || '');
             const imgHtml = safeImage ? `<img src="${safeImage}" alt="${esc(s.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit" onerror="this.style.display='none'">` : '';
             const serviceKey = esc(s.key || '');
             return `
               <div class="service-card${i === services.items.length - 1 ? ' service-card-highlight' : ''}" data-animate="fade-up" data-service="${serviceKey}">
                 <div class="service-number">${String(i + 1).padStart(2, '0')}</div>
-                <div class="service-icon" style="font-size:2.5rem">${esc(s.icon || '🏗️')}</div>
+                <div class="service-icon" style="font-size:2.5rem">${imgHtml || esc(s.icon || '🏗️')}</div>
                 <h3>${esc(s.name)}</h3>
                 <p>${esc(s.desc)}</p>
                 <div class="service-budget">${esc(s.budget)}</div>

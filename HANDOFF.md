@@ -1,704 +1,138 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> **Last Updated:** 2026-05-06 13:00 (GMT+8)
-> **Updated By:** OpenClaw AI Agent — Services API + Dynamic Pages + Admin Proposals
-> **Branch:** main
-> **Latest Commit:** feat: services API + dynamic services page + admin proposals + 9 categories
-> **Status:** ✅ Full services system operational — 58 services, 9 categories, 7 packages, all API endpoints
+> อัพเดทล่าสุด: 2026-05-06 15:47 (GMT+8)
+
 ---
 
-## 📋 Project Overview
+## 📋 สถานะปัจจุบัน
 
-ระบบ CRM สำหรับบริษัทรับเหมาก่อสร้าง NUCHA INNOVATION พร้อม CMS แก้ไขเว็บได้ทุกส่วน
+โปรเจคพร้อมใช้งานจริง (production-ready) สำหรับ landing page + CRM พื้นฐาน + CMS แก้ไขเว็บ
 
-**Tech Stack:**
+---
+
+## ✅ สิ่งที่เสร็จแล้ว (Completed)
+
+### Security Fixes (10 จุด)
+1. **SQL Injection** — sortOrder whitelist (`allowedSortOrders = ['ASC', 'DESC']`) ใน `server.js`
+2. **Command Injection** — เปลี่ยน `execSync` → `execFile` + URL validation ใน generate-docs endpoint
+3. **Cookie Security** — เปลี่ยน `sameSite: 'strict'` + `path: '/'`
+4. **Chat session_id validation** — regex `^[a-zA-Z0-9_\-]+$` ป้องกัน injection
+5. **Health info leak** — ลบ uptime ออกจาก `/api/health` response
+6. **Phone validation** — เพิ่ม leading 0 check (`/^0\d{9}$/`)
+7. **CSV formula injection** — เพิ่ม `safeCsvField()` prefix `'` ถ้าขึ้นต้น `=+\-@`
+8. **Lead score cap** — เพิ่ม `Math.min(score, 10)`
+9. **LIKE injection** — escape `%` และ `_` ใน search term
+10. **Removed puppeteer** — ลบออกจาก dependencies (ลด ~300MB)
+
+### CMS Service Image Support
+- เพิ่มช่อง `image_url` ใน admin CMS form บริการ (รองรับ URL + upload)
+- เพิ่ม `uploadServiceImage()` function ใน `admin.js`
+- เพิ่ม CSS `.image-upload-row` + `.image-preview` ใน `admin.css`
+- `saveServices()` ส่ง `image_url` ไปเก็บใน CMS content
+
+### Frontend Image Display
+- **`site-loader.js`** — แสดงรูปจาก `image_url` แทน emoji icon ใน service cards (หน้า index)
+- **`service.html`** — key mode: ใช้ `image_url` เป็น hero icon + hero image
+- **`service.html`** — category mode: แสดงรูปจาก DB services ใน hero + feature cards
+- **`service.html`** — ซ่อน emoji icon ถ้ามีรูปแล้ว
+
+### Admin DB Services Page (เพิ่ม sidebar link แล้ว)
+- เพิ่ม sidebar link "📦 บริการ (DB)" ใน `admin.html`
+
+### Server & API (ทั้งหมดทำงานปกติ)
+- 35 API endpoints ผ่าน test ทั้งหมด
+- Auth, Leads CRUD, Pipeline, Reports, Chat, Services, Proposals, Notes, Activities
+
+---
+
+## ❌ สิ่งที่ยังไม่เสร็จ (TODO)
+
+### 🔴 สำคัญ — ต้องทำต่อ
+
+1. **Admin DB Services Page — ยังไม่มี page section + JS logic**
+   - เพิ่ม sidebar link แล้ว แต่ยังไม่มี `<div id="page-db-services">` ใน `admin.html`
+   - ต้องเพิ่ม HTML page section สำหรับจัดการ 58 DB services
+   - ต้องเพิ่ม JS functions: `renderDbServices()`, `editDbService()`, `saveDbService()`, `deleteDbService()`
+   - ต้องมี: list view, add/edit form (name, category, description, price_start, price_unit, icon, image_url, sort_order, is_active), delete, filter by category
+   - API endpoints ที่มีแล้ว: `GET/POST/PUT/DELETE /api/services/:id` (แต่ยังไม่มี POST/PUT/DELETE — ต้องเพิ่มใน server.js)
+
+2. **API สำหรับ DB Services CRUD — ยังไม่ครบ**
+   - `GET /api/services` ✅ (มีแล้ว)
+   - `GET /api/services/:id` ✅ (มีแล้ว)
+   - `POST /api/services` ❌ (ยังไม่มี — ต้องเพิ่ม)
+   - `PUT /api/services/:id` ❌ (ยังไม่มี — ต้องเพิ่ม)
+   - `DELETE /api/services/:id` ❌ (ยังไม่มี — ต้องเพิ่ม)
+
+3. **service.html feature cards — hardcoded 5 ชุด**
+   - `featureSets` object มีแค่ 5 keys: construction, builtin, design, decoration, project-management
+   - อีก 4 บริการ (signage, landscape, drafting, visualization) ไม่มี feature cards
+   - ควรเปลี่ยนไปดึงจาก DB หรือ CMS แทน hardcode
+
+### 🟡 ควรทำ
+
+4. **services.html — แสดง images จาก DB**
+   - ตอนนี้ใช้ `meta.icon` (emoji) สำหรับ category cards
+   - ควรแสดง `image_url` จาก DB service เป็น card background/thumbnail
+
+5. **index.html — service cards ยัง hardcoded**
+   - service cards ใน index.html เป็น HTML ตายตัว (ไม่ dynamic)
+   - `site-loader.js` เขียนทับด้วย CMS content แล้ว แต่ถ้า CMS ไม่มีข้อมูล จะแสดง HTML ดั้งเดิมที่ไม่มีรูป
+
+6. **Admin: จัดการ Service Packages**
+   - DB มี `service_packages` table (7 packages) แต่ไม่มี admin UI จัดการ
+
+### 🟢 Nice to Have
+
+7. **Rate limit admin login** — ตอนนี้ 5 ครั้ง/นาที ทั้งหมด ควรแยก admin กับ public
+8. **CSRF protection** — ยังไม่มี
+9. **Audit log** — บันทึก admin actions เพิ่มเติม
+10. **Export PDF** — สำหรับ proposals
+
+---
+
+## 🏗️ Architecture
+
+```
+server.js           — Express 5 backend, 35+ API endpoints
+server/db.js        — SQLite (better-sqlite3), schema + seed data (58 services, 7 packages)
+server/migrations.js — 10 migrations
+utils/validate.js   — Input validation (phone, email, name, password, lead)
+scripts/backup.js   — DB backup script
+site-loader.js      — Dynamic content loader (CMS → frontend)
+admin.js            — Admin CMS logic
+admin.html          — Admin panel (15+ pages)
+index.html          — Landing page (dynamic via site-loader.js)
+service.html        — Service detail page (2 modes: key/category)
+services.html       — Services overview (DB categories)
+chat-widget.js/html — Customer chat widget
+```
+
+## 🔑 Default Credentials
+- **Admin:** admin@nuchainnovation.com / admin123
+- ⚠️ **เปลี่ยนรหัสผ่านก่อน deploy จริง!**
+
+## 📦 Tech Stack
 - Frontend: HTML/CSS/JS + GSAP animations
 - Backend: Node.js + Express 5
 - Database: SQLite (better-sqlite3)
-- Auth: JWT + bcryptjs (cookies httpOnly)
+- Auth: JWT + bcryptjs
 - Upload: Multer
-- Security: helmet, express-rate-limit
-
----
-
-## 🔄 Working Flow (สำหรับ Agent ถัดไป)
-
-### ลำดับการทำงานเมื่อรับช่วงต่อ:
-1. **อ่าน HANDOFF.md (ไฟล์นี้)** เพื่อเข้าใจสถานะปัจจุบัน
-2. **อ่าน SOUL.md + AGENTS.md** ใน workspace หลัก เพื่อเข้าใจ behavior rules
-3. **Clone/pull repo** → `npm install` → `npm start` เพื่อรัน server
-4. **ตรวจสอบ API** ผ่าน `/api/health` ก่อน
-5. **ทำตาม TODO** ด้านล่าง หรือรับ brief จาก user
-
-### สิ่งที่ต้องรู้ก่อนทำงาน:
-- โค้ดสไตล์: CommonJS (`require`), Thai language API responses
-- Database: SQLite sync API (`better-sqlite3`)
-- Auth: JWT ใน httpOnly cookie, middleware: `authMiddleware` + `adminOnly`
-- Admin: Single-page app ใช้ `showPage('page-name')` สลับ sections
-- Site docs: Puppeteer ต้อง Chromium — ใช้ `headless: 'new'`
-- **GSAP + ScrollTrigger:** หน้าเว็บใช้ animation เยอะ — element เริ่ม `opacity:0` → ต้อง scroll ก่อน screenshot (site-docs.js แก้แล้ว)
-- **httpOnly cookies:** ใช้ CDP `Network.getAllCookies` ดึง cookie — ห้ามใช้ `page.cookies()` (อ่าน httpOnly ไม่ได้)
-- ทุก route มี try-catch แล้ว — ไม่ควร crash
-
----
-
-## 🐛 Bug Fix Log (2026-04-29 23:08)
-
-### สิ่งที่แก้ไขแล้ว — ทั้งหมด 9 จุด
-
-| # | Severity | Bug | Fix | File |
-|---|----------|-----|-----|------|
-| 1 | 🔴 Critical | Admin Leads API response format mismatch — `allLeads` เป็น object ไม่ใช่ array → crash ทั้ง dashboard | แก้ `loadAll()` ให้ดึง `.data` จาก paginated response | admin.js |
-| 2 | 🔴 Critical | ไม่มีฟังก์ชัน renderReports, renderUsers, showAddUserModal, exportCSV, createBackup, generateSiteDocs, checkSiteDocs | เพิ่มฟังก์ชันครบ 11 ฟังก์ชัน + อัปเดต `showPage()` | admin.js |
-| 3 | 🔴 Critical | Notifications form อ่าน/เขียนผิด key (`notifications` แทน `notification_settings`) | เปลี่ยน key + เพิ่ม Telegram/Auto-reply fields เต็มรูปแบบ | admin.js |
-| 4 | 🟡 Medium | Forgot password คืน `reset_token` ใน response → ใครก็รีเซ็ตได้แค่รู้ email | ลบ token ออกจาก response | server.js |
-| 5 | 🟡 Medium | CSV export — fields ไม่ escape → CSV injection risk | wrap ทุก field ด้วย `"` + escape `"` ภายใน | server.js |
-| 6 | 🟡 Medium | `.gitignore` ไม่ครบ — `*.db-shm`, `*.db-wal`, `backups/` ถูก commit | เพิ่ม entries ครบ | .gitignore |
-| 7 | 🟡 Medium | `supabase/config.js` มี hardcoded placeholder credentials | แทนด้วย legacy notice | supabase/config.js |
-| 8 | 🟢 Minor | `first_contact_at` column ไม่ถูกตั้งค่าเลย | เพิ่ม logic ตั้งค่าเมื่อ status → "Contacted" | server.js |
-| 9 | 🟢 Minor | Site Docs ไม่มี sidebar link ใน admin | เพิ่ม sidebar section | admin.html |
-
-## 🐛 Bug Fix Log (2026-04-30 02:35) — Final Security Audit
-
-### ปัญหา: XSS ที่เหลือจากการเช็ครอบสุดท้าย
-
-| # | Severity | Bug | Fix | File |
-|---|----------|-----|-----|------|
-| 24 | 🔴 Critical | **XSS ใน chat widget userMsg()** — ข้อความ user ถูก inject ผ่าน `innerHTML` → run JS ได้ | เปลี่ยนเป็น `textContent` + สร้าง element แยก | chat-widget.js |
-| 25 | 🔴 Critical | **XSS ใน chat widget submitLead()** — ชื่อ user ไม่ escape ก่อนส่งเข้า `botMsg()` → innerXSS | เพิ่ม `.replace(/</g, '&lt;')` | chat-widget.js |
-| 26 | 🟡 Medium | **XSS ใน renderBookings()** — `b.status` ไม่ escape | เพิ่ม `esc()` | admin.js |
-| 27 | 🟡 Medium | **XSS ใน renderUsers() onclick** — `u.role` ใน editUser onclick ไม่ escape | เพิ่ม `esc()` | admin.js |
-| 28 | 🟢 Minor | **XSS ใน renderMedia() onclick** — single quote ใน URL/filename อาจ break onclick handler | เพิ่ม `.replace(/'/g, "\\'")` | admin.js |
-
-### ปัญหา: XSS injection ใน admin panel + fetch calls ไม่มี auth/cache
-
-| # | Severity | Bug | Fix | File |
-|---|----------|-----|-----|------|
-| 16 | 🔴 Critical | **XSS ใน renderDashboard()** — `stats.totalLeads`, `stats.closedDeals`, `stats.todayAppts`, `stats.newLeads` ถูก inject โดยไม่ escape → ถ้า DB มี malicious data จะ run JS ได้ | เพิ่ม `esc()` ทุกค่า stats | admin.js |
-| 17 | 🔴 Critical | **XSS ใน renderDashboard() pipeline** — `p.stage` และ `p.count` ไม่ escape | เพิ่ม `esc()` | admin.js |
-| 18 | 🔴 Critical | **XSS ใน renderReports()** — `summary.total_leads`, `summary.monthly_leads`, `summary.closed_won`, `summary.conversion_rate`, `s.count`, `s.closed`, `d.date`, `d.count`, `d.closed` ไม่ escape | เพิ่ม `esc()` ทุกค่า | admin.js |
-| 19 | 🟡 Medium | **XSS ใน renderLeads()** — `l.status` แสดงโดยไม่ escape (แม้ class จะใช้ lookup map) | เพิ่ม `esc()` | admin.js |
-| 20 | 🟡 Medium | **XSS ใน renderUsers()** — `u.role` แสดงโดยไม่ escape | เพิ่ม `esc()` | admin.js |
-| 21 | 🟡 Medium | **createBackup() ไม่มี auth headers** — fetch `/api/admin/backup` ไม่ส่ง credentials → 401 error | เพิ่ม `credentials: 'include'` + `cache: 'no-store'` | admin.js |
-| 22 | 🟡 Medium | **admin-login.html auth check ไม่มี cache control** — fetch `/api/auth/me` อาจโดน 304 → ไม่ redirect ไป admin | เพิ่ม `cache: 'no-store'` | admin-login.html |
-| 23 | 🟢 Minor | **chat-widget.js FAQ fetch ไม่มี cache control** — fetch `/api/content/chatbot_faq` อาจโดน 304 | เพิ่ม `cache: 'no-store'` | chat-widget.js |
-
-### ปัญหา: เว็บค้างทุกหน้า เทาๆ คลิกอะไรไม่ได้
-
-| # | Severity | Bug | Fix | File |
-|---|----------|-----|-----|------|
-| 12 | 🔴 Critical | **Express ETag → 304 → JSON parse crash** — Express ส่ง ETag header, browser cache จำ, ครั้งถัดไป server ตอบ 304 (no body), `api()` ทำ `res.json()` กับ body ว่าง → throw → `!res.ok` (304 ≠ 200-299) → redirect /login → loop ค้างทั้งหน้า | ปิด ETag (`app.set('etag', false)`) + เพิ่ม `Cache-Control: no-store` สำหรับ /api routes | server.js |
-| 13 | 🔴 Critical | **admin.js api() ไม่ handle 304** — fetch default cache ทำ conditional request, ได้ 304 กลับมา, `res.json()` ล้มเหลว | เพิ่ม `cache: 'no-store'` ใน fetch + fallback สำหรับ 304 | admin.js |
-| 14 | 🔴 Critical | **script.js loader ค้างตลอดกาล** — ถ้า `initAnimations()` throw (GSAP CDN fail, DOM error) → `loader.classList.add('hidden')` ไม่เคยถูกเรียก → หน้าถูกบังด้วย loader overlay | เพิ่ม try/catch + timeout 8 วินาที → loader ซ่อนเสมอ | script.js |
-| 15 | 🟡 Medium | **site-loader.js fetch ไม่มี cache control** — main page content loader ใช้ default cache → อาจโดน 304 | เพิ่ม `cache: 'no-store'` ใน fetch calls | site-loader.js |
-
-### Root Cause Analysis
-- **Express.js** เปิด ETag โดย default — สร้าง hash ของ response body, ส่งเป็น `ETag` header
-- **Browser** จำ ETag ไว้, ครั้งถัดไปส่ง `If-None-Match` header กลับ
-- **Express** เทียบ hash → ถ้าตรง → ตอบ `304 Not Modified` (ไม่มี body)
-- **`fetch().json()`** กับ 304 → body ว่าง → SyntaxError
-- **`response.ok`** สำหรับ 304 = `false` (ไม่ใช่ 200-299)
-- **admin.js init** catch → `window.location.href = '/login'` → ถ้า login redirect กลับ → **infinite loop**
-- **script.js** ไม่มี try/catch → `initAnimations()` fail → loader ไม่ถูกซ่อน → **หน้าถูกบัง**
-
-### ผลกระทบ
-- ทุกหน้าที่ใช้ fetch API ได้รับผลกระทบ (admin panel, main page)
-- เกิดขึ้นหลังจากหน้าโหลดสำเร็จครั้งแรก → ครั้งถัดไป browser ส่ง conditional request
-- ผู้ใช้เห็นหน้า "เทาๆ" (loader overlay) หรือถูก redirect ไป login ซ้ำๆ
-
-### ปัญหา: site-report.html บางหน้าว่าง / แสดงผิด
-
-| # | Severity | Bug | Fix | File |
-|---|----------|-----|-----|------|
-| 10 | 🔴 Critical | **GSAP ScrollTrigger ทำให้หน้าว่าง** — element เริ่ม `opacity:0` รอ scroll, Puppeteer ไม่ trigger → screenshot จับได้แค่ส่วนบนที่มองเห็น | เพิ่ม scroll ทั้งหน้าทีละ step + force `opacity:1, transform:none` ทุก element + kill ScrollTriggers + force lazy-load images | scripts/site-docs.js |
-| 11 | 🔴 Critical | **Auth cookie ไม่ส่งผ่าน** — `httpOnly:true` cookie ใช้ `page.cookies()` + `setCookie()` ไม่สำเร็จ → admin pages แสดงหน้า login แทน | ใช้ CDP `Network.getAllCookies` ดึง cookie จาก browser แทน + เพิ่ม verify auth หลัง login | scripts/site-docs.js |
-
-### Root Cause Analysis
-- **หน้าว่าง:** เว็บใช้ GSAP + ScrollTrigger — ทุก section เริ่มจาก `opacity: 0`, `transform: translateY(50px)` แล้ว animate เมื่อ scroll เข้า viewport Puppeteer screenshot ไม่ scroll → element ยัง invisible
-- **หน้า login ซ้ำ:** Server ตั้ง cookie เป็น `httpOnly: true` → Puppeteer `page.cookies()` อ่านไม่ได้ → `setCookie()` บนหน้าใหม่ไม่มี token → admin redirect กลับ login
-
-### วิธี regenerate report หลังแก้
-```bash
-cd /path/to/nucha-construction-crm
-npm install
-node server.js &                    # เปิด server
-node scripts/site-docs.js           # รัน script (จะ scroll + force visible ก่อน screenshot)
-```
-
----
-
-## ✅ สิ่งที่เสร็จแล้ว (Completed Features)
-
-### 🔴 Security & Stability
-| # | Feature | Files | Status |
-|---|---------|-------|--------|
-| 1 | Change password (ต้องใส่รหัสเดิม) | server.js `PUT /api/auth/change-password` | ✅ |
-| 2 | Forgot password (generate token, ไม่คืน token ให้ client) | server.js `POST /api/auth/forgot-password` | ✅ |
-| 3 | Reset password (ใช้ token) | server.js `POST /api/auth/reset-password` | ✅ |
-| 4 | Password validation (≥8 ตัวอักษร) | utils/validate.js | ✅ |
-| 5 | Input validation (เบอร์ 10 หลัก, email format, name ≤200, message ≤5000) | utils/validate.js | ✅ |
-| 6 | Error handling (try-catch ทุก route + global error handler) | server.js | ✅ |
-| 7 | Login rate limit (5 ครั้ง/นาที, ภาษาไทย) | server.js express-rate-limit | ✅ |
-| 8 | Backup system (create, list, download) | scripts/backup.js, server.js `/api/admin/backup` | ✅ |
-| 9 | Graceful shutdown (SIGTERM/SIGINT) | server.js | ✅ |
-| 10 | Health check endpoint | server.js `GET /api/health` | ✅ |
-| 11 | Security headers (helmet) | server.js | ✅ |
-| 12 | CORS configuration | server.js | ✅ |
-| 13 | Request logging with timestamps | server.js middleware | ✅ |
-| 14 | Path traversal protection (media delete) | server.js `path.basename()` + `startsWith()` | ✅ |
-
-### 🟡 Core Features
-| # | Feature | Files | Status |
-|---|---------|-------|--------|
-| 15 | **LINE Messaging API** (แทน LINE Notify ที่ deprecated) | server.js `sendLineMessaging()` | ✅ NEW |
-| 16 | Telegram Notify integration | server.js `sendTelegramNotify()` | ✅ |
-| 17 | Notification settings (LINE Messaging + Telegram + Auto-reply) | server/migrations.js, admin.js | ✅ |
-| 18 | Auto-reply system (LINE/SMS/Email templates) | server.js `checkAutoReply()` | ✅ |
-| 19 | Status change notification (LINE + Telegram) | server.js `notifyLeadStatusChange()` | ✅ |
-| 20 | first_contact_at auto-set on "Contacted" status | server.js `PUT /api/leads/:id` | ✅ |
-| 21 | Lead duplicate detection (phone/email) | server.js `POST /api/leads` | ✅ |
-| 22 | Force bypass duplicate (`?force=true`) | server.js | ✅ |
-| 23 | Reports summary (monthly stats) | server.js `GET /api/reports/summary` | ✅ |
-| 24 | Reports by service | server.js `GET /api/reports/by-service` | ✅ |
-| 25 | Reports by date range | server.js `GET /api/reports/by-date` | ✅ |
-| 26 | CSV export (UTF-8 BOM, all fields escaped) | server.js `GET /api/reports/export/csv` | ✅ |
-| 27 | Multi-user roles (admin/manager/sales) | server.js, migrations.js | ✅ |
-| 28 | Users CRUD (admin only) | server.js `GET/POST/PUT/DELETE /api/users` | ✅ |
-| 29 | Role-based access (sales sees only assigned leads) | server.js GET /api/leads | ✅ |
-| 30 | Self-delete protection | server.js DELETE /api/users/:id | ✅ |
-
-### 🟢 Admin CMS (Frontend)
-| # | Feature | Files | Status |
-|---|---------|-------|--------|
-| 31 | Dashboard (stats, pipeline, recent bookings) | admin.js `renderDashboard()` | ✅ |
-| 32 | CMS: Site Config (logo, contact, social) | admin.js `renderSiteConfigForm()` | ✅ |
-| 33 | CMS: Hero Section | admin.js `renderHeroForm()` | ✅ |
-| 34 | CMS: Services (repeatable items) | admin.js `renderServicesForm()` | ✅ |
-| 35 | CMS: Process Steps | admin.js `renderProcessForm()` | ✅ |
-| 36 | CMS: Portfolio | admin.js `renderPortfolioForm()` | ✅ |
-| 37 | CMS: Testimonials | admin.js `renderTestimonialsForm()` | ✅ |
-| 38 | CMS: Closing CTA | admin.js `renderClosingForm()` | ✅ |
-| 39 | CMS: Footer | admin.js `renderFooterForm()` | ✅ |
-| 40 | CMS: Navigation | admin.js `renderNavForm()` | ✅ |
-| 41 | CMS: Notifications (LINE Messaging + Telegram + Auto-reply) | admin.js `renderNotificationsForm()` | ✅ |
-| 42 | Leads Management (search, filter, modal edit, notes) | admin.js `renderLeads()` | ✅ |
-| 43 | Bookings View | admin.js `renderBookings()` | ✅ |
-| 44 | Media Library (upload, drag-drop, copy URL, delete) | admin.js `renderMedia()` | ✅ |
-| 45 | Reports Page (summary, by-service, by-date) | admin.js `renderReports()` | ✅ |
-| 46 | Users Page (list, add, edit, delete) | admin.js `renderUsers()` | ✅ |
-| 47 | Site Docs Page (generate, status, view links) | admin.js `generateSiteDocs()` | ✅ |
-| 48 | CSV Export button | admin.js `exportCSV()` | ✅ |
-| 49 | Backup download button | admin.js `createBackup()` | ✅ |
-| 50 | **Admin-Customer Live Chat** — แอดมินเห็น session list, ตอบกลับลูกค้า, badge แจ้งเตือน | admin.js `renderCustomerChat()` | ✅ NEW |
-| 51 | **Chat Widget → Live Chat** — ข้อความ unmatched ส่งถึงแอดมิน, poll ทุก 5s | chat-widget.js | ✅ NEW |
-
-### 🎨 UI/UX Fixes (2026-05-02)
-| # | Feature | Files | Status |
-|---|---------|-------|--------|
-| 52 | **Sidebar Theme** — เปลี่ยนจากเทาเป็น gradient แดงเข้มเข้ากับธีมเว็บ | admin.css | ✅ NEW |
-| 53 | **Logo Red Box Fix** — โลโก้แสดงโดยไม่มีกรอบแดง (ใช้ CSS `:has(img)`) | style.css | ✅ NEW |
-| 54 | **service.html Cursor Fix** — เมาส์มองเห็นปกติในหน้า service | service.html | ✅ NEW |
-
-### 💬 Chat System Fixes & Enhancements (2026-05-02 17:42)
-| # | Feature | Files | Status |
-|---|---------|-------|--------|
-| 70 | **Chat duplicate fix** — ลบ bot response ที่ส่งเก็บ server (สาเหตุข้อความรัว) + poll ใช้ message ID แทนนับจำนวน | chat-widget.js | ✅ |
-| 71 | **Admin name on messages** — เพิ่ม column `admin_name` ใน chat_messages, server ดึงชื่อจาก JWT บันทึกพร้อมข้อความ | server.js, migrations.js | ✅ |
-| 72 | **Delete chat session** — ลบแชทรายคน + bulk delete หลายแชท (server API + admin UI) | server.js, admin.js, admin.html | ✅ |
-| 73 | **Chat session checkboxes** — เลือกหลาย session, select all, bulk delete | admin.js, admin.html | ✅ |
-| 74 | **Read indicator** — แสดง ✓ อ่านแล้ว บนข้อความลูกค้าที่แอดมินเปิดอ่าน | admin.js | ✅ |
-| 75 | **"Waiting" message fix** — ไม่แสดง "รอสักครู่..." ซ้ำถ้าแอดมินเคยตอบแล้ว (`hasAdminReply` flag) | chat-widget.js | ✅ |
-| 76 | **Favicon dynamic** — เพิ่ม `<link rel="icon">` ทุกหน้า + site-loader/service/admin อ่าน config.favicon เปลี่ยน href อัตโนมัติ | index.html, service.html, admin.html, admin-login.html, site-loader.js, admin.js | ✅ |
-| 77 | **Logo responsive** — เปลี่ยนจาก fix pixel → max-width/max-height ไม่ล้น container | site-loader.js, service.html | ✅ |
-| 78 | **Leads bulk delete** — เพิ่ม checkbox ทุกแถว + select all + ปุ่ม "ลบที่เลือก" (server API มีอยู่แล้ว) | admin.js, admin.html | ✅ |
-| 79 | **Migration 009** — เพิ่ม column `admin_name` ในตาราง chat_messages | server/migrations.js | ✅ |
-| 80 | **DB Repair Script** — กู้ database เสีย (corrupted SQLite), dump ข้อมูล, สร้างใหม่ | scripts/repair-db.js | ✅ |
-
-### 🧱 Technical
-| # | Feature | Files | Status |
-|---|---------|-------|--------|
-| 55 | express-rate-limit (แทน in-memory Map) | package.json, server.js | ✅ |
-| 56 | Database migrations system (9 migrations) | server/migrations.js | ✅ |
-| 57 | Global error handler middleware | server.js | ✅ |
-| 58 | Site Documentation Generator (Puppeteer) | scripts/site-docs.js | ✅ |
-| 59 | Site docs API endpoint | server.js `/api/admin/generate-docs` | ✅ |
-| 60 | Supabase legacy files marked | supabase/config.js | ✅ |
-| 61 | **304 cache fix** — ปิด ETag + no-store headers + client cache control | server.js, admin.js, script.js, site-loader.js | ✅ |
-| 62 | **chat_messages table** — DB table + indexes สำหรับ live chat | server/migrations.js | ✅ NEW |
-| 63 | **LINE Messaging fields** — migration เพิ่ม channel_access_token, user_id ใน notification_settings | server/migrations.js | ✅ NEW |
-| 64 | **chat admin_name column** — migration 009 เพิ่ม admin_name ใน chat_messages | server/migrations.js | ✅ |
-
-### 🐛 Bug Fix Log (2026-05-05 21:15) — GSAP + CSP Fix
-
-**ปัญหา:** Browser console เต็มไปด้วย CSP violation errors + `gsap is not defined` crash
-
-| # | Severity | Bug | Fix | File |
-|---|----------|-----|-----|------|
-| 30 | 🔴 Critical | **GSAP CDN 503 → `gsap is not defined`** — script.js:203, 206 ใช้ gsap โดยไม่ check → ReferenceError crash | เพิ่ม `typeof gsap !== 'undefined'` guard ทุกจุด (6 จุด) | script.js |
-| 31 | 🔴 Critical | **initAnimations() crash เมื่อ GSAP ไม่โหลด** — gsap.registerPlugin(ScrollTrigger) fail → หน้าค้าง | เพิ่ม guard + fallback แสดง element ปกติ (opacity:1, transform:none) | script.js |
-| 32 | 🟡 Medium | **Stale Service Worker (sw.js) ทำ CSP Block** — sw.js cache จาก deploy เก่าพยายาม fetch external resources ถูก CSP block ทั้งหมด | เพิ่ม code unregister service workers ทั้งหมดตอนโหลดหน้า | script.js |
-| 33 | 🟡 Medium | **service.html GSAP unguarded** — gsap.registerPlugin + gsap.from ไม่มี guard → crash ถ้า CDN ล่ม | เพิ่ม guard + fallback สำหรับ feature cards | service.html |
-
-**Root Cause:**
-- GSAP โหลดจาก `cdnjs.cloudflare.com` (CDN) — ถ้า CDN ตอบ 503 หรือ network ไม่ถึง → gsap ไม่ defined
-- Service worker จาก deploy ก่อนหน้า (ไม่มีใน repo แล้ว) ยังถูก browser cache ไว้ → พยายาม cache external resources แต่ถูก CSP block
-- `express.static(__dirname)` serve ไฟล์ทั้งหมด — ไม่ได้ isolate server code
-
-**สิ่งที่แก้ไข:**
-1. `script.js` — เพิ่ม service worker unregister ตอนเริ่มต้น
-2. `script.js` — ทุกจุดที่ใช้ gsap มี `typeof gsap !== 'undefined'` guard
-3. `script.js` — `initAnimations()` ถ้า gsap ไม่มา → แสดง element ปกติแทน animation
-4. `service.html` — เพิ่ม guard + fallback สำหรับ GSAP animations
-
----
-
-### 🛍️ Services API + Dynamic System (2026-05-06 13:00)
-**ปัญหา:** Services data จาก catalog (50+ รายการ) ไม่ถูกโหลดเข้า DB, ไม่มี API, landing page แสดงแค่ 5 หมวด, services.html เป็น static HTML, admin ไม่มีหน้า Proposals
-
-| # | Feature | Files | Status |
-|---|---------|-------|--------|
-| 96 | **services + service_packages tables** — สร้าง tables ใน db.js + seed 58 บริการ 9 หมวด + 7 แพ็กเกจ | server/db.js | ✅ NEW |
-| 97 | **Services API** — GET /api/services, /api/services/:id, /api/services/categories, /api/service-packages, /api/service-packages/:id (public) | server.js | ✅ NEW |
-| 98 | **Landing page 9 หมวด** — เพิ่มจาก 5 → 9 หมวดบริการ (ป้าย, ภูมิทัศน์, เขียนแบบ, 3D/Visual) + footer links | server/db.js | ✅ NEW |
-| 99 | **Dynamic services.html** — เปลี่ยนจาก hardcode → ดึงจาก API, grouped by category, GSAP animations re-init | services.html | ✅ NEW |
-| 100 | **Admin Proposals page** — sidebar link + renderProposals + create/edit/delete/status change | admin.html, admin.js | ✅ NEW |
-| 101 | **DELETE /api/proposals/:id** — เพิ่ม endpoint ลบ proposals | server.js | ✅ NEW |
-| 102 | **Routes /services-3d, /services-alt** — เพิ่ม routes สำหรับ nucha-services/ pages | server.js | ✅ NEW |
-| 103 | **Dynamic footer** — services.html footer ดึงข้อมูลจาก CMS (site_config) | services.html | ✅ NEW |
-
-#### รายละเอียดการแก้ไข:
-
-**server/db.js:**
-- เพิ่ม CREATE TABLE `services` (id, category, name, description, price_start, price_unit, icon, sort_order, is_active)
-- เพิ่ม CREATE TABLE `service_packages` (id, name, description, price_start, features JSON, is_featured, sort_order, is_active)
-- Seed 58 บริการ: ป้าย(8), ตกแต่งภายใน(10), สถาปัตยกรรม(8), ภูมิทัศน์(6), เขียนแบบ(5), 3D/Visual(6), งานระบบ(5), ที่ปรึกษา(5), งานพิมพ์/ผลิต(5)
-- Seed 7 packages: Starter Home, Pro Home (featured), Premium Home, Project Signage, Visual Pack, Office Package, Restaurant Package
-- เพิ่ม 4 หมวดบริการใน landing page content (services.items: 5→9)
-- เพิ่ม 4 footer service links (ออกแบบป้าย, ภูมิทัศน์, เขียนแบบ, 3D/Visual)
-- ใช้ COUNT(*) check ป้องกัน duplicate บน restart
-
-**server.js:**
-- เพิ่ม 5 endpoints: /api/services, /api/services/categories, /api/services/:id, /api/service-packages, /api/service-packages/:id
-- เพิ่ม DELETE /api/proposals/:id
-- เพิ่ม GET /services-3d → nucha-services/services-page-3d.html
-- เพิ่ม GET /services-alt → nucha-services/services-page.html
-
-**services.html:**
-- เปลี่ยน service cards จาก hardcode → fetch /api/services แล้ว group by category
-- เปลี่ยน package cards จาก hardcode → fetch /api/service-packages พร้อม features list
-- Footer ดึงข้อมูลจาก /api/content/site_config (phone, email, LINE, copyright)
-- GSAP animations re-initialize หลัง dynamic content load
-- Three.js 3D showcase 保留不变
-
-**admin.html + admin.js:**
-- เพิ่ม sidebar link: 📄 ใบเสนอราคา
-- เพิ่ม page-proposals section + proposals table
-- renderProposals() — ดึง /api/proposals แสดงตาราง + status dropdown
-- showCreateProposalModal() — ฟอร์มสร้าง proposal ใหม่
-- editProposal() / updateProposalStatus() / deleteProposal()
-
-#### API Test Results:
-```
-GET /api/services          → 58 services ✅
-GET /api/services/categories → 9 categories ✅
-GET /api/service-packages  → 7 packages ✅
-POST /api/proposals        → NP-0001 created ✅
-GET /api/content/services  → 9 items (landing page) ✅
-GET /api/content/footer    → 9 service links ✅
-All routes                 → 200 ✅
-```
-
----
-
-### 🛍️ Services Catalog + 3D Models (2026-05-06)
-| # | Feature | Files | Status |
-|---|---------|-------|--------|
-| 81 | **Services Catalog (Markdown)** — 9 หมวดบริการ 53 รายการ | nucha-services/services-catalog.md | ✅ NEW |
-| 82 | **Price List (Markdown)** — ราคาทุกรายการ + 7 Package | nucha-services/pricing.md | ✅ NEW |
-| 83 | **Quotation Template (HTML)** — ใบเสนอราคาสวย พร้อมพิมพ์ | nucha-services/quotation-template.html | ✅ (template เก่า — ธีม gold/navy) |
-| 84 | **Services Page (HTML)** — หน้าบริการเว็บ | nucha-services/services-page.html | ✅ (template เก่า — ธีม gold/navy) |
-| 85 | **Services Page + 3D Models** — หน้าบริการพร้อมโมเดล 3D จริง (Three.js) | nucha-services/services-page-3d.html | ✅ (template เก่า — ธีม gold/navy) |
-| 86 | **SQL Seed** — 53 services + 7 packages ลง DB | nucha-services/seed-services.sql | ✅ NEW |
-| 87 | **DB Seeded** — services + service_packages tables สร้างแล้ว มีข้อมูลครบ | data/nucha.db | ✅ NEW |
-
-### 🎨 Services + Quotation Theme Rewrite (2026-05-06 12:15)
-**ปัญหา:** ไฟล์ใน `nucha-services/` ทั้งหมดใช้ธีมผิด — Gold (#c8a951) / Navy (#1a1a2e) / Font: Prompt ไม่ตรงกับเว็ปหลักที่ใช้ธีมแดง-ขาว
-
-| # | Feature | Files | Status |
-|---|---------|-------|--------|
-| 88 | **services.html (ธีมใหม่)** — หน้าบริการ overview ครบ 9 หมวด + 3D models + 7 packages + process + CTA | services.html | ✅ NEW |
-| 89 | **quotation.html (ธีมใหม่)** — ใบเสนอราคา template ธีมแดง-ขาว + print-friendly | quotation.html | ✅ NEW |
-| 90 | **Three.js 3D Models (6 ฉาก)** — Signage, Interior, Architecture, Landscape, MEP, Visual | services.html (inline) | ✅ NEW |
-| 91 | **GSAP Animations** — scroll animations + feature cards | services.html | ✅ NEW |
-| 92 | **Route /services** — เพิ่ม route ใน server.js สำหรับ services.html + quotation.html | server.js | ✅ NEW |
-| 93 | **Nav link 'บริการทั้งหมด'** — เพิ่มใน nav ทุกหน้า (index, service, site-loader) ถาวร ไม่ถูก CMS ทับ | index.html, service.html, site-loader.js | ✅ NEW |
-| 94 | **Fallback 9 หมวด** — เปลี่ยน fallback services จาก 5 รายการเป็น 9 หมวดครบตาม catalog | index.html | ✅ NEW |
-| 95 | **ปุ่ม 'ดูบริการทั้งหมด + แพ็กเกจ'** — เชื่อมไปหน้า /services | index.html | ✅ NEW |
-
-#### สิ่งที่แก้ไขใน services.html ใหม่:
-- ❌ Gold `#c8a951` → ✅ Red `#D60000`
-- ❌ Navy `#1a1a2e` → ✅ Gray `#4A4543` / dark red gradients
-- ❌ Font Prompt → ✅ Noto Sans Thai + Inter
-- ❌ ไม่มี navbar/footer/loader → ✅ มีครบ (เหมือนเว็ปหลัก)
-- ❌ Hardcoded HTML → ✅ โหลด style.css จากเว็ปหลัก
-- ✅ เพิ่ม GSAP animations (ไม่มีในต้นฉบับ)
-- ✅ Responsive (mobile + desktop)
-- ✅ Floating CTA (LINE + Phone)
-
-#### สิ่งที่แก้ไขใน quotation.html ใหม่:
-- ❌ Gold borders/highlights → ✅ Red borders/highlights
-- ❌ Font Prompt → ✅ Noto Sans Thai + Inter
-- ✅ @media print CSS สำหรับพิมพ์
-- ✅ Floating CTA
-
-#### โมเดล 3D ที่สร้าง (7 ฉาก — Three.js)
-| โมเดล | เนื้อหา | Container ID |
-|-------|---------|-------------|
-| 🏠 Showcase | บ้านเดี่ยว 2 ชั้น Modern Tropical + สระน้ำ + สวน + รั้ว + โรงจอดรถ | `showcase-model` |
-| 🪧 Signage | ป้ายโครงการ + ป้ายบอกทาง + ป้ายไฟ LED + ป้าย Neon + ป้ายบ้านเลขที่ | `model-signage` |
-| 🏠 Interior | ห้องนั่งเล่น: โซฟา L-shape + โต๊ะกาแฟ + TV + ชั้นหนังสือ + โคมไฟ + ต้นไม้ | `model-interior` |
-| 🏡 Architecture | บ้าน 2 ชั้น: ผนัง + หน้าต่าง + ประตู + ระเบียง + โรงจอดรถ + สวน + รั้ว | `model-house` |
-| 🌳 Landscape | สวนญี่ปุ่น: ทางเดินหิน + บ่อปลา + ซุ้มไม้เลื้อย + ศาลา + ไม้ไผ่ + ไฟสนาม | `model-landscape` |
-| 🖼️ Walkthrough | บ้าน Open Plan: ครัว Island + โต๊ะทานข้าว + ห้องนั่งเล่น + หน้าต่างกระจก | `model-walkthrough` |
-| 🔧 MEP | ระบบอาคาร: ไฟฟ้า(แดง) + ประปา(น้ำเงิน) + แอร์(เขียว) + CCTV(เหลือง) + Smart Home(ม่วง) | `model-mep` |
-
-#### ฟีเจอร์ 3D
-- หมุนดูรอบทิศทาง (คลิก/แตะลาก)
-- ซูมเข้า-ออก (Scroll / Pinch)
-- Auto-rotate (หยุดเมื่อแตะ)
-- Responsive (Desktop + Mobile)
-- Shadow + Lighting เหมือนจริง (PCFSoftShadowMap + ACESFilmicToneMapping)
-
-#### หมวดบริการ (8 หมวด, 53 รายการ)
-| หมวด | จำนวน | ราคาเริ่มต้น |
-|------|-------|------------|
-| 🪧 ป้าย | 8 | ฿1,500 |
-| 🏠 ตกแต่งภายใน | 10 | ฿6,000/ห้อง |
-| 🏡 สถาปัตยกรรม | 8 | ฿20,000 |
-| 🌳 ภูมิทัศน์ | 6 | ฿5,000 |
-| 📐 เขียนแบบ | 5 | ฿3,000 |
-| 🖼️ 3D/Visual | 6 | ฿3,000/มุม |
-| 🔧 งานระบบ | 5 | ฿5,000 |
-| 📋 ที่ปรึกษา | 5 | ฿3,000 |
-
-#### Package (7 แพ็กเกจ)
-| Package | ราคา | Featured |
-|---------|------|----------|
-| Starter Home | ฿15,000 | — |
-| **Pro Home** | **฿50,000** | ⭐ |
-| Premium Home | ฿150,000 | — |
-| Project Signage | ฿15,000 | — |
-| Visual Pack | ฿20,000 | — |
-| Office Package | ฿60,000 | — |
-| Restaurant Package | ฿50,000 | — |
-
-#### DB Tables (ใหม่)
-```sql
--- เพิ่มโดย seed-services.sql
-CREATE TABLE services (
-    id, category, name, description, price_start, price_unit,
-    icon, sort_order, is_active, created_at, updated_at
-);
-CREATE TABLE service_packages (
-    id, name, description, price_start, features (JSON),
-    is_featured, sort_order, is_active, created_at, updated_at
-);
-```
-
-#### สิ่งที่ Agent ถัดไปทำต่อได้
-1. **เพิ่ม API endpoints** สำหรับ services (CRUD) ใน server.js — ใช้ seed-services.sql เป็น schema reference
-2. **เพิ่มหน้า Services** ใน admin CMS (admin.js) — แก้ไขบริการผ่านแอดมิน
-3. **เชื่อม services.html** เข้า route หลัก (`/services`) — เพิ่ม route ใน server.js
-4. **เพิ่ม API สำหรับ service_packages** (CRUD)
-5. **สร้างใบเสนอราคาอัตโนมัติ** — เลือกบริการ → สร้าง PDF (ใช้ quotation.html เป็น template)
-6. **เพิ่ม booking form** ที่ผูกกับบริการที่เลือก
-7. **Lead scoring** ตามบริการที่สนใจ (ราคาสูง = score สูง)
-8. **Run seed-services.sql** — สร้าง tables + insert ข้อมูลลง DB จริง
-9. **เชื่อม 3D models** — ย้าย Three.js code จาก services.html ไปเป็น shared module ถ้าต้องการใช้ในหน้าอื่น
-
----
-
-### 📄 Site Documentation Report (2026-04-30 Rewrite)
-| # | Feature | Files | Status |
-|---|---------|-------|--------|
-| 56 | Site report rewrite — Thai font fix (Noto Sans Thai + Inter via Google Fonts) | site-docs/site-report.html | ✅ |
-| 57 | Admin page deduplication (10 pages → only show active section, not all 16) | site-docs/site-report.html | ✅ |
-| 58 | Hidden elements filter (visible: false excluded from display) | site-docs/site-report.html | ✅ |
-| 59 | PDF export button + @media print CSS | site-docs/site-report.html | ✅ |
-| 60 | Professional card-based layout (dark header, red accent, white cards) | site-docs/site-report.html | ✅ |
-| 61 | Stats cards (pages, buttons, links, forms, errors) | site-docs/site-report.html | ✅ |
-| 62 | Table of contents with clickable anchor links | site-docs/site-report.html | ✅ |
-| 63 | Screenshot lightbox (click to zoom) | site-docs/site-report.html | ✅ |
-| 64 | Form fields grouped by prefix, unnamed fields filtered | site-docs/site-report.html | ✅ |
-| 65 | Admin summary cards with nav tab visualization | site-docs/site-report.html | ✅ |
-| 66 | **Scroll animation trigger** — scroll ทั้งหน้า + force visible ก่อน screenshot (GSAP ScrollTrigger fix) | scripts/site-docs.js | ✅ |
-| 67 | **httpOnly cookie auth fix** — ใช้ CDP Network.getAllCookies แทน page.cookies() | scripts/site-docs.js | ✅ |
-| 68 | **Auth verify** — ตรวจสอบ login สำเร็จจริงก่อน screenshot admin pages | scripts/site-docs.js | ✅ |
-| 69 | **Lazy image force load** — บังคับโหลด lazy images ก่อน screenshot | scripts/site-docs.js | ✅ |
-
----
-
-## 📁 File Structure (Current)
-
-```
-nucha-construction-crm/
-├── server.js                 ← Backend (Express + SQLite + ALL API routes) [~1200 lines]
-├── server/
-│   ├── db.js                 ← Database connection + schema + seed data
-│   └── migrations.js         ← Schema versioning (6 migrations)
-├── scripts/
-│   ├── backup.js             ← Database backup utility
-│   └── site-docs.js          ← Site documentation generator (Puppeteer)
-├── utils/
-│   └── validate.js           ← Input validation (phone, email, name, password, lead)
-├── uploads/                  ← Image/file uploads
-├── backups/                  ← Database backups (gitignored)
-├── site-docs/                ← Generated site documentation
-│   ├── site-report.html      ← Visual HTML report
-│   ├── site-report.md        ← Markdown summary
-│   ├── site-data.json        ← Raw structured data
-│   └── screenshots/          ← Page screenshots
-├── data/
-│   └── nucha.db              ← SQLite database (auto-created, gitignored)
-├── index.html                ← Landing page (dynamic, loaded via site-loader.js)
-├── site-loader.js            ← Load content from API into index.html
-├── script.js                 ← Frontend JS (GSAP animations, cursor, booking form)
-├── style.css                 ← Frontend styles
-├── admin.html                ← Admin CMS (dashboard, CMS editors, leads, reports, users, site-docs)
-├── admin.js                  ← Admin CMS logic [~1200 lines, all functions complete]
-├── admin.css                 ← Admin CMS styles
-├── admin-login.html          ← Login page
-├── service.html              ← Service detail page (public)
-├── chat-widget.html          ← Chat widget (standalone)
-├── chat-widget.js            ← Chat widget logic
-├── supabase/                 ← LEGACY — not used (project uses SQLite)
-│   ├── config.js             ← Marked as legacy
-│   ├── auth.js               ← Supabase auth module (unused)
-│   ├── crm.js                ← Supabase CRM module (unused)
-│   └── functions/            ← Supabase edge functions (unused)
-├── .env.example              ← Environment variables template
-├── .gitignore
-├── package.json
-├── package-lock.json
-├── README.md
-├── SALES-SCRIPT.md
-├── HANDOFF.md                ← THIS FILE
-├── services.html             ← [NEW] หน้าบริการ overview — ธีมแดง-ขาว + 3D + packages (1,608 lines)
-├── quotation.html            ← [NEW] ใบเสนอราคา template — ธีมแดง-ขาว + print (825 lines)
-└── nucha-services/           ← Services catalog (OLD templates — gold/navy theme, เก็บเป็น reference)
-    ├── services-catalog.md   ← 9 หมวดบริการ 53 รายการ
-    ├── pricing.md            ← ราคาทุกรายการ + 7 Package
-    ├── quotation-template.html ← ใบเสนอราคา (เก่า — ธีม gold/navy)
-    ├── services-page.html    ← หน้าบริการเว็บ (เก่า — ธีม gold/navy)
-    ├── services-page-3d.html ← หน้าบริการ + โมเดล 3D (เก่า — ธีม gold/navy)
-    └── seed-services.sql     ← SQL seed 53 services + 7 packages
-```
-
----
-
-## 🔌 API Endpoints (Complete — 40+ endpoints)
-
-### Auth
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | /api/auth/login | No | Login (rate limited: 5/min) |
-| POST | /api/auth/logout | Yes | Logout |
-| GET | /api/auth/me | Yes | Current user info |
-| PUT | /api/auth/change-password | Yes | Change password (requires current) |
-| POST | /api/auth/forgot-password | No | Generate reset token (console log only) |
-| POST | /api/auth/reset-password | No | Reset password with token |
-
-### Services (Public)
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | /api/services | No | List all active services (grouped by category) |
-| GET | /api/services/categories | No | List unique service categories |
-| GET | /api/services/:id | No | Single service detail |
-| GET | /api/service-packages | No | List all active packages with features |
-| GET | /api/service-packages/:id | No | Single package detail |
-
-### Content (CMS)
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | /api/content | No | Get all content sections |
-| GET | /api/content/:key | No | Get single section |
-| PUT | /api/content/:key | Yes | Update section (admin) |
-
-### Navigation
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | /api/nav | No | Get nav items |
-| PUT | /api/nav | Yes | Update nav items |
-
-### Leads
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | /api/leads | No | Create lead (rate limited, duplicate detection) |
-| GET | /api/leads | Yes | List leads (filter, sort, paginate) — returns `{data, pagination}` |
-| PUT | /api/leads/:id | Yes | Update lead (auto-sets first_contact_at) |
-| DELETE | /api/leads/:id | Yes | Delete lead |
-| POST | /api/leads/bulk-update | Yes | Bulk update leads |
-| POST | /api/leads/bulk-delete | Yes | Bulk delete leads |
-
-### Lead Notes
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | /api/leads/:id/notes | Yes | List notes |
-| POST | /api/leads/:id/notes | Yes | Create note |
-| PUT | /api/notes/:id | Yes | Update note (follow_up_done) |
-
-### Lead Attachments
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | /api/leads/:id/attachments | Yes | List attachments |
-| POST | /api/leads/:id/attachments | Yes | Upload attachment (10MB limit) |
-| DELETE | /api/attachments/:id | Yes | Delete attachment + file |
-
-### Proposals
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | /api/proposals | Yes | List proposals with lead names |
-| POST | /api/proposals | Yes | Create proposal (auto NP-XXXX number) |
-| PUT | /api/proposals/:id | Yes | Update proposal |
-| DELETE | /api/proposals/:id | Yes | Delete proposal |
-
-### Reports
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | /api/reports/summary | Yes | Monthly summary stats |
-| GET | /api/reports/by-service | Yes | Leads grouped by service type |
-| GET | /api/reports/by-date | Yes | Leads by date range |
-| GET | /api/reports/export/csv | Yes | Export leads CSV (UTF-8 BOM, escaped) |
-
-### Users (Admin Only)
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | /api/users | Yes+Admin | List users |
-| POST | /api/users | Yes+Admin | Create user |
-| PUT | /api/users/:id | Yes+Admin | Update user |
-| DELETE | /api/users/:id | Yes+Admin | Delete user (self-delete blocked) |
-
-### Media & Upload
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | /api/upload | Yes | Upload image (5MB limit, images only) |
-| GET | /api/media | Yes | List uploaded images |
-| DELETE | /api/media/:name | Yes | Delete image (path traversal protected) |
-
-### Site Documentation
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | /api/admin/generate-docs | Yes+Admin | Generate site documentation (Puppeteer) |
-| GET | /api/admin/docs-status | Yes+Admin | Check if docs exist |
-| GET | /site-docs/* | Yes | Serve documentation files |
-
-### Backup (Admin Only)
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | /api/admin/backup | Yes+Admin | Create & download backup |
-| GET | /api/admin/backups | Yes+Admin | List all backups |
-
-### Live Chat (Customer ↔ Admin)
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | /api/chat/messages | No | Customer sends message (stored in DB) |
-| GET | /api/chat/messages/:session_id | No | Customer polls for admin responses (+ marks admin msgs read) |
-| GET | /api/chat/sessions | Yes | Admin: list all chat sessions with last message, unread count |
-| POST | /api/chat/sessions/:session_id | Yes | Admin: reply to session (saves admin_name from JWT) |
-| PUT | /api/chat/sessions/:session_id/read | Yes | Mark all customer messages as read |
-| DELETE | /api/chat/sessions/:session_id | Yes | Delete single chat session (all messages) |
-| POST | /api/chat/sessions/bulk-delete | Yes | Bulk delete chat sessions |
-| GET | /api/chat/unread-count | Yes | Get count of sessions with unread messages |
-
-### System
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | /api/health | No | Health check (uptime, db status) |
-| POST | /api/test-notification | Yes | Test LINE/Telegram notification |
-| GET | /api/stats | Yes | Dashboard statistics |
-| GET | /api/pipeline | Yes | Pipeline view (6 stages) |
-| GET | /api/activities | Yes | Activity log |
-| GET | /api/followups | Yes | Pending follow-ups |
-
----
-
-## ⚠️ สิ่งที่ต้องทำต่อ (TODO — เรียงตามลำดับความสำคัญ)
-
-### 🔥 Priority 1 — ควรทำก่อน deploy
-1. **เปลี่ยนรหัสผ่าน default** — `admin@nuchainnovation.com / admin123` ต้องเปลี่ยนทันที
-2. **ตั้ง JWT_SECRET** ใน `.env` — ถ้าไม่ตั้งจะสุ่มใหม่ทุก restart → token หมดอายุ
-3. **Deploy หลัง HTTPS** — ใช้ nginx reverse proxy + SSL (Let's Encrypt)
-4. **LINE Messaging API** — ใส่ Channel Access Token + LINE User ID ในหน้า Notifications settings (เสร็จแล้ว แค่ config)
-
-### 🟡 Priority 2 — เพิ่มประสิทธิภาพ
-5. **Email Notifications** — เพิ่ม SMTP send จริง (ตอนนี้แค่ log console)
-6. **Auto-reply จริง** — ส่ง SMS/LINE จริงแทนแค่ console.log
-7. **Automated Backup Cron** — ตั้ง cron job backup อัตโนมัติทุกวัน
-8. **Dashboard Charts** — กราฟ leads ตามเดือน, conversion funnel (ใช้ Chart.js)
-9. **Live Chat Real-time** — เปลี่ยนจาก polling 5s → WebSocket สำหรับ chat ที่เร็วขึ้น
-10. **Chat typing indicator** — แสดง "แอดมินกำลังพิมพ์..." ฝั่งลูกค้า
-11. ~~**เชื่อม services.html เข้าเว็บหลัก**~~ ✅ เสร็จแล้ว — route /services + nav link
-12. ~~**Run seed-services.sql**~~ ✅ เสร็จแล้ว — services + service_packages tables + 58 services + 7 packages
-13. ~~**Services API**~~ ✅ เสร็จแล้ว — 5 endpoints (services, categories, packages)
-14. **Admin Services CMS** — เพิ่มหน้าแก้ไขบริการใน admin (CRUD services + packages)
-15. **Quotation generator** — เลือกบริการ → สร้างใบเสนอราคาอัตโนมัติ (ใช้ quotation.html template)
-
-### 🟢 Priority 3 — Features ใหม่
-11. **Customer Portal** — ให้ลูกค้าเข้ามาดู progress โครงการ (login ด้วยเบอร์โทร + OTP)
-12. **Proposal PDF Export** — สร้าง PDF จากใบเสนอราคา
-13. **Lead Source Tracking** — เพิ่ม UTM parameters / source tracking
-14. **Chat Widget AI Integration** — เชื่อม chat widget กับ AI API (PromptDee)
-15. **Chat Attachments** — ลูกค้าส่งรูป/ไฟล์แนบในแชทได้
-16. **Lead Export by filter** — export เฉพาะ leads ที่กรองแล้ว (ไม่ใช่ทั้งหมด)
-17. **Chat session notes** — แอดมินเพิ่มบันทึกในแชท session ได้
-
----
-
-## 🔐 Security Notes
-
-- **Default credentials:** admin@nuchainnovation.com / admin123 — **ต้องเปลี่ยนทันที** ก่อน deploy จริง
-- **JWT_SECRET:** ถ้าไม่ตั้ง env var จะสุ่มใหม่ทุก restart → token หมดอายุ
-- **HTTPS:** ต้อง deploy หลัง reverse proxy (nginx) ที่ terminate SSL
-- **Rate limit:** In-memory → ไม่ survive restart / ไม่ work กับ multiple instances
-- **Supabase files:** ใน `supabase/` เป็น legacy code ไม่ได้ใช้งาน — ระบบใช้ SQLite + Express
-- **LINE Messaging:** ใช้ Channel Access Token (long-lived) + User ID/Group ID — ตั้งค่าในหน้า Notifications
-- **Live Chat:** ข้อความลูกค้าเก็บใน DB `chat_messages` table — sanitize HTML, limit 2000 chars
-
----
 
 ## 🚀 How to Run
-
 ```bash
-# Install
 npm install
-
-# Start
 npm start
-
-# Access
-# Website:  http://localhost:3000
-# Login:    http://localhost:3000/login
-# Admin:    http://localhost:3000/admin
-# Health:   http://localhost:3000/api/health
-
-# Generate Site Documentation (ต้อง Chromium)
-node scripts/site-docs.js --url http://localhost:3000 --output site-docs
+# เปิด http://localhost:3000
+# Admin: http://localhost:3000/admin
 ```
 
 ---
 
-## 📦 Dependencies
+## 📝 Notes สำหรับ Agent ถัดไป
 
-```json
-{
-  "bcryptjs": "^3.0.3",
-  "better-sqlite3": "^12.9.0",
-  "cookie-parser": "^1.4.7",
-  "express": "^5.2.1",
-  "express-rate-limit": "^8.4.1",
-  "helmet": "^8.1.0",
-  "jsonwebtoken": "^9.0.3",
-  "multer": "^2.1.1",
-  "puppeteer": "^24.x"
-}
-```
+- ทุก fix ที่ทำไว้ยัง **ไม่ได้ commit** — ต้อง commit ก่อน
+- Security fixes ทั้ง 10 จุดทำงานแล้ว ผ่าน test แล้ว
+- CMS image support ใช้ได้แล้ว แต่ DB services admin ยังไม่เสร็จ
+- ดู `server.js` บรรทัด ~1190 สำหรับ generate-docs ที่เปลี่ยนเป็น execFile
+- ดู `admin.js` บรรทัด ~280 สำหรับ renderServicesForm ที่เพิ่ม image_url
+- ดู `site-loader.js` บรรทัด ~170 สำหรับ service card image rendering

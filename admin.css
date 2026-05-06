@@ -159,6 +159,23 @@ body { font-family: var(--font); background: var(--gray-50); color: var(--gray-6
   cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center;
 }
 
+/* Image upload row (URL + file input side by side) */
+.image-upload-row {
+  display: flex; gap: 8px; align-items: center;
+}
+.image-upload-row input[type="text"] { flex: 1; }
+.image-upload-row input[type="file"] {
+  padding: 8px; font-size: 0.85rem; background: var(--gray-100);
+  border: 1px solid var(--gray-200); border-radius: 8px; cursor: pointer;
+  max-width: 200px;
+}
+.image-upload-row input[type="file"]:hover { border-color: var(--red); }
+.image-preview { margin-top: 8px; }
+.image-preview img {
+  max-width: 200px; max-height: 120px; object-fit: cover;
+  border-radius: 8px; border: 1px solid var(--gray-200);
+}
+
 /* Repeatable Items */
 .repeatable-header {
   display: flex; align-items: center; justify-content: space-between;

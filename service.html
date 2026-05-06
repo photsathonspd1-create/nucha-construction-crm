@@ -51,6 +51,10 @@
             font-size: 2.2rem;
             margin-bottom: 24px;
             border: 2px solid rgba(214,0,0,0.08);
+            overflow: hidden;
+        }
+        .service-hero-content .service-icon-lg img {
+            width: 100%; height: 100%; object-fit: cover; border-radius: 18px;
         }
         .service-hero-content h1 {
             font-family: var(--font-display);
@@ -592,20 +596,37 @@
 
             document.title = serviceCategory + ' — NUCHA INNOVATION';
             document.getElementById('pageTitle').textContent = serviceCategory + ' — NUCHA INNOVATION';
-            document.getElementById('serviceIcon').textContent = meta.icon;
+            // Use first service's image for hero icon, fallback to emoji
+            const catIconEl = document.getElementById('serviceIcon');
+            const catImage = dbServices.find(s => s.image_url)?.image_url;
+            if (catImage) {
+                catIconEl.innerHTML = `<img src="${esc(catImage)}" alt="${esc(serviceCategory)}" onerror="this.parentElement.textContent='${esc(meta.icon)}'">`;
+            } else {
+                catIconEl.textContent = meta.icon;
+            }
             document.getElementById('serviceName').textContent = serviceCategory;
             document.getElementById('serviceDesc').textContent = meta.desc;
             document.getElementById('serviceBudget').textContent = 'เริ่มต้น ฿' + minPrice.toLocaleString('th-TH');
 
-            // Hide hero image for category view
-            const heroVisual = document.querySelector('.service-hero-visual');
-            if (heroVisual) heroVisual.style.display = 'none';
+            // Show category image in hero visual
+            if (catImage) {
+                const img = document.getElementById('serviceImg');
+                const fallback = document.getElementById('serviceImgFallback');
+                img.src = catImage;
+                img.alt = serviceCategory;
+                img.style.display = 'block';
+                img.onerror = () => { img.style.display = 'none'; fallback.style.display = 'flex'; };
+                fallback.style.display = 'none';
+            } else {
+                const heroVisual = document.querySelector('.service-hero-visual');
+                if (heroVisual) heroVisual.style.display = 'none';
+            }
 
             // Show sub-services as feature cards with images
             document.getElementById('featuresGrid').innerHTML = dbServices.map(s => `
                 <div class="feature-card" data-animate="fade-up">
                     ${s.image_url ? `<img src="${esc(s.image_url)}" alt="${esc(s.name)}" style="width:100%;height:180px;object-fit:cover;border-radius:12px;margin-bottom:16px" onerror="this.style.display='none'">` : ''}
-                    <div class="feature-icon">${esc(s.icon || '🔧')}</div>
+                    ${s.image_url ? '' : `<div class="feature-icon">${esc(s.icon || '🔧')}</div>`}
                     <h3>${esc(s.name)}</h3>
                     <p>${esc(s.description || '')}</p>
                     <div style="margin-top:12px;font-weight:700;color:var(--red);font-size:0.95rem">
@@ -656,13 +677,18 @@
         document.title = service.name + ' — NUCHA INNOVATION';
         document.getElementById('pageTitle').textContent = service.name + ' — NUCHA INNOVATION';
 
-        // Hero
-        document.getElementById('serviceIcon').textContent = service.icon || '🏗️';
+        // Hero — use image_url if available, fallback to emoji icon
+        const serviceIconEl = document.getElementById('serviceIcon');
+        if (service.image_url) {
+            serviceIconEl.innerHTML = `<img src="${esc(service.image_url)}" alt="${esc(service.name)}" onerror="this.parentElement.textContent='${esc(service.icon || '🏗️')}'">`;
+        } else {
+            serviceIconEl.textContent = service.icon || '🏗️';
+        }
         document.getElementById('serviceName').textContent = service.name;
         document.getElementById('serviceDesc').textContent = service.desc || '';
         document.getElementById('serviceBudget').textContent = service.budget || '';
 
-        // Service image — use first portfolio item for this service, or fallback
+        // Service image — use image_url from CMS, fallback to portfolio
         const portfolio = contentRes.portfolio || {};
         const allPortfolioItems = portfolio.items || [];
         const servicePortfolioItems = allPortfolioItems.filter(p => {
@@ -672,7 +698,7 @@
             return tag.includes(name) || tag.includes(key) || name.includes(tag);
         });
 
-        const heroImg = servicePortfolioItems[0]?.image;
+        const heroImg = service.image_url || servicePortfolioItems[0]?.image;
         if (heroImg) {
             const img = document.getElementById('serviceImg');
             const fallback = document.getElementById('serviceImgFallback');
