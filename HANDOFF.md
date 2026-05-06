@@ -1,10 +1,10 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> **Last Updated:** 2026-05-05 21:15 (GMT+8)
-> **Updated By:** OpenClaw AI Agent (GSAP + CSP fix)
+> **Last Updated:** 2026-05-06 11:20 (GMT+8)
+> **Updated By:** OpenClaw AI Agent (Services + 3D Models)
 > **Branch:** main
-> **Latest Commit:** `0fb8112` — fix: guard GSAP calls + unregister stale service workers
-> **Status:** ✅ All features implemented, chat system fully functional, production ready
+> **Latest Commit:** Services catalog + 3D models + seed data
+> **Status:** ✅ All features implemented, services catalog complete with interactive 3D models
 ---
 
 ## 📋 Project Overview
@@ -252,6 +252,82 @@ node scripts/site-docs.js           # รัน script (จะ scroll + force vi
 
 ---
 
+### 🛍️ Services Catalog + 3D Models (2026-05-06)
+| # | Feature | Files | Status |
+|---|---------|-------|--------|
+| 81 | **Services Catalog (Markdown)** — 9 หมวดบริการ 53 รายการ | nucha-services/services-catalog.md | ✅ NEW |
+| 82 | **Price List (Markdown)** — ราคาทุกรายการ + 7 Package | nucha-services/pricing.md | ✅ NEW |
+| 83 | **Quotation Template (HTML)** — ใบเสนอราคาสวย พร้อมพิมพ์ | nucha-services/quotation-template.html | ✅ NEW |
+| 84 | **Services Page (HTML)** — หน้าบริการเว็บ | nucha-services/services-page.html | ✅ NEW |
+| 85 | **Services Page + 3D Models** — หน้าบริการพร้อมโมเดล 3D จริง (Three.js) | nucha-services/services-page-3d.html | ✅ NEW |
+| 86 | **SQL Seed** — 53 services + 7 packages ลง DB | nucha-services/seed-services.sql | ✅ NEW |
+| 87 | **DB Seeded** — services + service_packages tables สร้างแล้ว มีข้อมูลครบ | data/nucha.db | ✅ NEW |
+
+#### โมเดล 3D ที่สร้าง (7 ฉาก — Three.js)
+| โมเดล | เนื้อหา | Container ID |
+|-------|---------|-------------|
+| 🏠 Showcase | บ้านเดี่ยว 2 ชั้น Modern Tropical + สระน้ำ + สวน + รั้ว + โรงจอดรถ | `showcase-model` |
+| 🪧 Signage | ป้ายโครงการ + ป้ายบอกทาง + ป้ายไฟ LED + ป้าย Neon + ป้ายบ้านเลขที่ | `model-signage` |
+| 🏠 Interior | ห้องนั่งเล่น: โซฟา L-shape + โต๊ะกาแฟ + TV + ชั้นหนังสือ + โคมไฟ + ต้นไม้ | `model-interior` |
+| 🏡 Architecture | บ้าน 2 ชั้น: ผนัง + หน้าต่าง + ประตู + ระเบียง + โรงจอดรถ + สวน + รั้ว | `model-house` |
+| 🌳 Landscape | สวนญี่ปุ่น: ทางเดินหิน + บ่อปลา + ซุ้มไม้เลื้อย + ศาลา + ไม้ไผ่ + ไฟสนาม | `model-landscape` |
+| 🖼️ Walkthrough | บ้าน Open Plan: ครัว Island + โต๊ะทานข้าว + ห้องนั่งเล่น + หน้าต่างกระจก | `model-walkthrough` |
+| 🔧 MEP | ระบบอาคาร: ไฟฟ้า(แดง) + ประปา(น้ำเงิน) + แอร์(เขียว) + CCTV(เหลือง) + Smart Home(ม่วง) | `model-mep` |
+
+#### ฟีเจอร์ 3D
+- หมุนดูรอบทิศทาง (คลิก/แตะลาก)
+- ซูมเข้า-ออก (Scroll / Pinch)
+- Auto-rotate (หยุดเมื่อแตะ)
+- Responsive (Desktop + Mobile)
+- Shadow + Lighting เหมือนจริง (PCFSoftShadowMap + ACESFilmicToneMapping)
+
+#### หมวดบริการ (8 หมวด, 53 รายการ)
+| หมวด | จำนวน | ราคาเริ่มต้น |
+|------|-------|------------|
+| 🪧 ป้าย | 8 | ฿1,500 |
+| 🏠 ตกแต่งภายใน | 10 | ฿6,000/ห้อง |
+| 🏡 สถาปัตยกรรม | 8 | ฿20,000 |
+| 🌳 ภูมิทัศน์ | 6 | ฿5,000 |
+| 📐 เขียนแบบ | 5 | ฿3,000 |
+| 🖼️ 3D/Visual | 6 | ฿3,000/มุม |
+| 🔧 งานระบบ | 5 | ฿5,000 |
+| 📋 ที่ปรึกษา | 5 | ฿3,000 |
+
+#### Package (7 แพ็กเกจ)
+| Package | ราคา | Featured |
+|---------|------|----------|
+| Starter Home | ฿15,000 | — |
+| **Pro Home** | **฿50,000** | ⭐ |
+| Premium Home | ฿150,000 | — |
+| Project Signage | ฿15,000 | — |
+| Visual Pack | ฿20,000 | — |
+| Office Package | ฿60,000 | — |
+| Restaurant Package | ฿50,000 | — |
+
+#### DB Tables (ใหม่)
+```sql
+-- เพิ่มโดย seed-services.sql
+CREATE TABLE services (
+    id, category, name, description, price_start, price_unit,
+    icon, sort_order, is_active, created_at, updated_at
+);
+CREATE TABLE service_packages (
+    id, name, description, price_start, features (JSON),
+    is_featured, sort_order, is_active, created_at, updated_at
+);
+```
+
+#### สิ่งที่ Agent ถัดไปทำต่อได้
+1. **เพิ่ม API endpoints** สำหรับ services (CRUD) ใน server.js
+2. **เพิ่มหน้า Services** ใน admin CMS (admin.js) — แก้ไขบริการผ่านแอดมิน
+3. **เชื่อม services-page-3d.html** เข้า route หลัก (`/services`)
+4. **เพิ่ม API สำหรับ service_packages** (CRUD)
+5. **สร้างใบเสนอราคาอัตโนมัติ** — เลือกบริการ → สร้าง PDF
+6. **เพิ่ม booking form** ที่ผูกกับบริการที่เลือก
+7. **Lead scoring** ตามบริการที่สนใจ (ราคาสูง = score สูง)
+
+---
+
 ### 📄 Site Documentation Report (2026-04-30 Rewrite)
 | # | Feature | Files | Status |
 |---|---------|-------|--------|
@@ -316,7 +392,14 @@ nucha-construction-crm/
 ├── package-lock.json
 ├── README.md
 ├── SALES-SCRIPT.md
-└── HANDOFF.md                ← THIS FILE
+├── HANDOFF.md                ← THIS FILE
+└── nucha-services/           ← Services catalog + 3D models (NEW)
+    ├── services-catalog.md   ← 9 หมวดบริการ 53 รายการ
+    ├── pricing.md            ← ราคาทุกรายการ + 7 Package
+    ├── quotation-template.html ← ใบเสนอราคา (HTML พร้อมพิมพ์)
+    ├── services-page.html    ← หน้าบริการเว็บ (ไม่มี 3D)
+    ├── services-page-3d.html ← หน้าบริการ + โมเดล 3D จริง (Three.js, 7 ฉาก)
+    └── seed-services.sql     ← SQL seed 53 services + 7 packages
 ```
 
 ---

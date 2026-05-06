@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บริการ — NUCHA INNOVATION</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap');
+
+        :root {
+            --gold: #c8a951;
+            --gold-light: #e8d48b;
+            --dark: #1a1a2e;
+            --dark2: #16213e;
+            --light: #f9f8f4;
+            --gray: #888;
+            --radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Prompt', sans-serif;
+            color: var(--dark);
+            background: #fafafa;
+            line-height: 1.6;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%);
+            color: white;
+            text-align: center;
+            padding: 100px 20px 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle at 30% 50%, rgba(200,169,81,0.08) 0%, transparent 50%);
+        }
+
+        .hero h1 { font-size: clamp(32px, 5vw, 52px); font-weight: 800; margin-bottom: 16px; position: relative; }
+        .hero h1 span { color: var(--gold); }
+        .hero p { font-size: 18px; opacity: 0.8; max-width: 600px; margin: 0 auto 30px; position: relative; }
+
+        .hero-cta {
+            display: inline-flex; align-items: center; gap: 10px;
+            background: var(--gold); color: var(--dark);
+            padding: 14px 32px; border-radius: 50px;
+            font-weight: 600; font-size: 16px; text-decoration: none;
+            transition: all 0.3s; position: relative;
+        }
+        .hero-cta:hover { background: var(--gold-light); transform: translateY(-2px); box-shadow: 0 8px 25px rgba(200,169,81,0.3); }
+
+        /* ===== SECTION ===== */
+        .section { max-width: 1200px; margin: 0 auto; padding: 80px 20px; }
+        .section-header { text-align: center; margin-bottom: 60px; }
+        .section-header .badge {
+            display: inline-block; background: rgba(200,169,81,0.1); color: var(--gold);
+            padding: 6px 16px; border-radius: 50px; font-size: 13px; font-weight: 600;
+            letter-spacing: 1px; margin-bottom: 16px;
+        }
+        .section-header h2 { font-size: clamp(28px, 4vw, 40px); font-weight: 700; margin-bottom: 12px; }
+        .section-header p { color: var(--gray); font-size: 16px; max-width: 600px; margin: 0 auto; }
+
+        /* ===== 3D SERVICE CARDS ===== */
+        .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 30px; }
+
+        .service-card {
+            background: white; border-radius: var(--radius); overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            transition: all 0.3s; border: 1px solid #f0f0f0;
+        }
+        .service-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.1); border-color: var(--gold); }
+
+        .model-container {
+            width: 100%; height: 280px; position: relative; cursor: grab;
+            background: linear-gradient(135deg, #0f0f23, #1a1a3e);
+            overflow: hidden;
+        }
+        .model-container:active { cursor: grabbing; }
+        .model-container canvas { width: 100% !important; height: 100% !important; }
+
+        .model-label {
+            position: absolute; bottom: 12px; left: 12px;
+            background: rgba(0,0,0,0.6); color: var(--gold);
+            padding: 4px 12px; border-radius: 6px;
+            font-size: 11px; font-weight: 600; letter-spacing: 1px;
+            backdrop-filter: blur(8px); pointer-events: none;
+        }
+
+        .model-hint {
+            position: absolute; top: 12px; right: 12px;
+            background: rgba(200,169,81,0.2); color: var(--gold);
+            padding: 4px 10px; border-radius: 6px;
+            font-size: 10px; pointer-events: none;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .card-body { padding: 28px; }
+        .card-body h3 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+        .card-body .desc { color: var(--gray); font-size: 14px; margin-bottom: 16px; line-height: 1.7; }
+
+        .service-items { list-style: none; margin-bottom: 16px; }
+        .service-items li { padding: 5px 0; font-size: 13px; color: #555; display: flex; align-items: center; gap: 8px; }
+        .service-items li::before { content: '✦'; color: var(--gold); font-size: 10px; }
+
+        .service-price {
+            display: inline-block; background: var(--light);
+            padding: 8px 16px; border-radius: 8px;
+            font-size: 14px; font-weight: 600; color: var(--dark);
+        }
+        .service-price span { color: var(--gold); }
+
+        /* ===== PACKAGES ===== */
+        .packages-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 40px; }
+
+        .package-card {
+            background: white; border-radius: var(--radius); padding: 40px 30px;
+            text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            border: 2px solid #f0f0f0; transition: all 0.3s; position: relative;
+        }
+        .package-card.featured { border-color: var(--gold); transform: scale(1.03); }
+        .package-card.featured::before {
+            content: 'แนะนำ'; position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+            background: var(--gold); color: var(--dark); padding: 4px 20px; border-radius: 50px;
+            font-size: 12px; font-weight: 700;
+        }
+        .package-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.1); }
+        .package-card.featured:hover { transform: scale(1.03) translateY(-4px); }
+        .package-card .emoji { font-size: 48px; margin-bottom: 16px; }
+        .package-card h3 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        .package-card .price { font-size: 32px; font-weight: 800; color: var(--gold); margin-bottom: 4px; }
+        .package-card .price-unit { font-size: 14px; color: var(--gray); margin-bottom: 24px; }
+        .package-card ul { list-style: none; text-align: left; margin-bottom: 30px; }
+        .package-card ul li { padding: 8px 0; font-size: 14px; color: #555; border-bottom: 1px solid #f5f5f5; display: flex; align-items: center; gap: 10px; }
+        .package-card ul li::before { content: '✓'; color: var(--gold); font-weight: bold; font-size: 16px; }
+
+        .package-btn {
+            display: inline-block; width: 100%; padding: 14px; border-radius: 10px;
+            font-weight: 600; font-size: 15px; text-decoration: none;
+            transition: all 0.3s; font-family: 'Prompt', sans-serif; cursor: pointer;
+        }
+        .package-btn-outline { background: transparent; border: 2px solid var(--gold); color: var(--gold); }
+        .package-btn-outline:hover { background: var(--gold); color: var(--dark); }
+        .package-btn-fill { background: var(--gold); border: 2px solid var(--gold); color: var(--dark); }
+        .package-btn-fill:hover { background: var(--gold-light); border-color: var(--gold-light); }
+
+        /* ===== PROCESS ===== */
+        .process-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 30px; margin-top: 40px; }
+        .process-step { text-align: center; }
+        .process-step .number {
+            width: 56px; height: 56px; background: var(--gold); color: var(--dark);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: 800; margin: 0 auto 16px;
+        }
+        .process-step h4 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+        .process-step p { font-size: 13px; color: var(--gray); }
+
+        /* ===== CTA ===== */
+        .cta-section {
+            background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%);
+            color: white; text-align: center; padding: 80px 20px;
+        }
+        .cta-section h2 { font-size: clamp(28px, 4vw, 40px); font-weight: 700; margin-bottom: 16px; }
+        .cta-section p { opacity: 0.8; font-size: 16px; margin-bottom: 30px; }
+        .cta-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .cta-btn {
+            padding: 14px 32px; border-radius: 50px; font-weight: 600; font-size: 15px;
+            text-decoration: none; transition: all 0.3s; font-family: 'Prompt', sans-serif; cursor: pointer;
+        }
+        .cta-btn-gold { background: var(--gold); color: var(--dark); border: none; }
+        .cta-btn-gold:hover { background: var(--gold-light); transform: translateY(-2px); }
+        .cta-btn-outline { background: transparent; color: white; border: 2px solid rgba(255,255,255,0.3); }
+        .cta-btn-outline:hover { border-color: white; }
+
+        /* ===== SHOWCASE 3D ===== */
+        .showcase-3d {
+            background: linear-gradient(135deg, #0f0f23, #1a1a3e);
+            border-radius: var(--radius); overflow: hidden; margin-bottom: 60px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+        }
+        .showcase-3d .model-container { height: 400px; }
+        .showcase-3d-info {
+            padding: 30px; color: white;
+        }
+        .showcase-3d-info h3 { font-size: 28px; font-weight: 700; color: var(--gold); margin-bottom: 8px; }
+        .showcase-3d-info p { opacity: 0.8; font-size: 15px; }
+
+        @media (max-width: 768px) {
+            .services-grid { grid-template-columns: 1fr; }
+            .packages-grid { grid-template-columns: 1fr; }
+            .package-card.featured { transform: none; }
+            .package-card.featured:hover { transform: translateY(-4px); }
+            .model-container { height: 220px; }
+            .showcase-3d .model-container { height: 280px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+    <h1>บริการ<span>ครบวงจร</span></h1>
+    <p>ออกแบบ ก่อสร้าง ตกแต่ง ทุกเรื่องบ้านจบในที่เดียว — พร้อมชมโมเดล 3D จริง</p>
+    <a href="#booking" class="hero-cta">📞 ปรึกษาฟรี ไม่มีค่าใช้จ่าย</a>
+</section>
+
+<!-- 3D SHOWCASE -->
+<section class="section">
+    <div class="section-header">
+        <div class="badge">3D MODELING</div>
+        <h2>ชมโมเดล 3D จริง</h2>
+        <p>หมุนดูรอบทิศทาง ซูมเข้า-ออก ได้อิสระ — เหมือนเห็นของจริงก่อนสร้าง</p>
+    </div>
+
+    <div class="showcase-3d">
+        <div id="showcase-model" class="model-container"></div>
+        <div class="showcase-3d-info">
+            <h3>🏠 บ้านเดี่ยว 2 ชั้น — Modern Tropical</h3>
+            <p>โมเดล 3D ตัวอย่าง: บ้านเดี่ยว 2 ชั้น พื้นที่ใช้สอย 250 ตร.ม. สไตล์ Modern Tropical พร้อมสระว่ายน้ำและสวน หมุนดูได้รอบทิศทาง</p>
+        </div>
+    </div>
+</section>
+
+<!-- MAIN SERVICES -->
+<section class="section">
+    <div class="section-header">
+        <div class="badge">OUR SERVICES</div>
+        <h2>บริการของเรา</h2>
+        <p>ครอบคลุมทุกความต้องการ ตั้งแต่ออกแบบจนถึงส่งมอบ</p>
+    </div>
+
+    <div class="services-grid">
+        <!-- 1. ป้าย -->
+        <div class="service-card">
+            <div id="model-signage" class="model-container"></div>
+            <div class="model-label">SIGNAGE 3D</div>
+            <div class="model-hint">🖱️ หมุนดู</div>
+            <div class="card-body">
+                <h3>🪧 ออกแบบป้ายทุกชนิด</h3>
+                <p class="desc">ออกแบบและผลิตป้ายครบวงจร สำหรับโครงการ อาคาร ร้านค้า และองค์กร</p>
+                <ul class="service-items">
+                    <li>ป้ายโครงการ / ป้ายหมู่บ้าน</li>
+                    <li>ป้ายบริษัท / ป้ายสำนักงาน</li>
+                    <li>ป้าย LED / กล่องไฟ / Neon sign</li>
+                    <li>ป้ายสแตนเลส / อะคริลิค / ไม้</li>
+                </ul>
+                <div class="service-price">เริ่มต้น <span>฿1,500</span></div>
+            </div>
+        </div>
+
+        <!-- 2. Interior -->
+        <div class="service-card">
+            <div id="model-interior" class="model-container"></div>
+            <div class="model-label">INTERIOR 3D</div>
+            <div class="model-hint">🖱️ หมุนดู</div>
+            <div class="card-body">
+                <h3>🏠 ออกแบบตกแต่งภายใน</h3>
+                <p class="desc">ออกแบบ Interior ครบวงจร ตั้งแต่วาง Layout เลือกวัสดุ จนถึง Built-in</p>
+                <ul class="service-items">
+                    <li>ห้องนั่งเล่น / ห้องนอน / ห้องครัว</li>
+                    <li>คอนโด / บ้านทั้งหลัง</li>
+                    <li>ร้านค้า / ร้านอาหาร / Café</li>
+                    <li>ออฟฟิศ / โรงแรม / รีสอร์ท</li>
+                </ul>
+                <div class="service-price">เริ่มต้น <span>฿6,000</span> / ห้อง</div>
+            </div>
+        </div>
+
+        <!-- 3. Architecture -->
+        <div class="service-card">
+            <div id="model-house" class="model-container"></div>
+            <div class="model-label">ARCHITECTURE 3D</div>
+            <div class="model-hint">🖱️ หมุนดู</div>
+            <div class="card-body">
+                <h3>🏡 ออกแบบสถาปัตยกรรม</h3>
+                <p class="desc">ออกแบบอาคารทุกประเภท พร้อมเขียนแบบก่อสร้างและขออนุญาต</p>
+                <ul class="service-items">
+                    <li>บ้านเดี่ยว / ทาวน์โฮม / บ้านแฝด</li>
+                    <li>อาคารพาณิชย์ / ออฟฟิศ / โกดัง</li>
+                    <li>ต่อเติม / รีโนเวท</li>
+                    <li>สระว่ายน้ำ / ศาลา / Pavilion</li>
+                </ul>
+                <div class="service-price">เริ่มต้น <span>฿20,000</span></div>
+            </div>
+        </div>
+
+        <!-- 4. Landscape -->
+        <div class="service-card">
+            <div id="model-landscape" class="model-container"></div>
+            <div class="model-label">LANDSCAPE 3D</div>
+            <div class="model-hint">🖱️ หมุนดู</div>
+            <div class="card-body">
+                <h3>🌳 ออกแบบภูมิทัศน์</h3>
+                <p class="desc">ออกแบบสวนและพื้นที่กลางแจ้ง เพิ่มคุณค่าและความสวยงามให้โครงการ</p>
+                <ul class="service-items">
+                    <li>สวนโมเดิร์น / ญี่ปุ่น / Tropical</li>
+                    <li>ระบบไฟสนาม / Garden lighting</li>
+                    <li>น้ำพุ / บ่อปลา / Water feature</li>
+                    <li>Vertical garden / ไม้ประดับ</li>
+                </ul>
+                <div class="service-price">เริ่มต้น <span>฿5,000</span></div>
+            </div>
+        </div>
+
+        <!-- 5. 3D Visual -->
+        <div class="service-card">
+            <div id="model-walkthrough" class="model-container"></div>
+            <div class="model-label">3D WALKTHROUGH</div>
+            <div class="model-hint">🖱️ หมุนดู</div>
+            <div class="card-body">
+                <h3>🖼️ 3D Visualization</h3>
+                <p class="desc">สร้างภาพและวิดีโอเสมือนจริง เห็นภาพก่อนสร้างจริง</p>
+                <ul class="service-items">
+                    <li>3D Perspective (ภายใน/ภายนอก)</li>
+                    <li>3D Walkthrough (วิดีโอ)</li>
+                    <li>360° Virtual Tour</li>
+                    <li>Floor Plan 2D / 3D</li>
+                </ul>
+                <div class="service-price">เริ่มต้น <span>฿3,000</span> / มุม</div>
+            </div>
+        </div>
+
+        <!-- 6. MEP -->
+        <div class="service-card">
+            <div id="model-mep" class="model-container"></div>
+            <div class="model-label">MEP SYSTEM 3D</div>
+            <div class="model-hint">🖱️ หมุนดู</div>
+            <div class="card-body">
+                <h3>🔧 งานระบบ (MEP)</h3>
+                <p class="desc">ออกแบบระบบไฟฟ้า ประปา ปรับอากาศ และระบบรักษาความปลอดภัย</p>
+                <ul class="service-items">
+                    <li>ระบบไฟฟ้า / Solar cell</li>
+                    <li>ระบบประปา / ปรับอากาศ</li>
+                    <li>CCTV / สัญญาณกันขโมย</li>
+                    <li>Smart Home / IoT</li>
+                </ul>
+                <div class="service-price">เริ่มต้น <span>฿5,000</span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- PACKAGES -->
+<section class="section" style="background: var(--light);">
+    <div class="section-header">
+        <div class="badge">PACKAGES</div>
+        <h2>แพ็กเกจแนะนำ</h2>
+        <p>เลือกแพ็กเกจที่เหมาะกับโครงการของคุณ</p>
+    </div>
+    <div class="packages-grid">
+        <div class="package-card">
+            <div class="emoji">🏠</div>
+            <h3>Starter Home</h3>
+            <div class="price">฿15,000</div>
+            <div class="price-unit">เริ่มต้น</div>
+            <ul>
+                <li>แปลนบ้าน 2D</li>
+                <li>3D Perspective 2 มุม</li>
+                <li>BOQ / ประมาณราคา</li>
+                <li>แก้ไขแบบ 2 ครั้ง</li>
+            </ul>
+            <button class="package-btn package-btn-outline" onclick="document.getElementById('booking').scrollIntoView({behavior:'smooth'})">เลือกแพ็กเกจ</button>
+        </div>
+        <div class="package-card featured">
+            <div class="emoji">🏡</div>
+            <h3>Pro Home</h3>
+            <div class="price">฿50,000</div>
+            <div class="price-unit">เริ่มต้น</div>
+            <ul>
+                <li>แปลนบ้านครบชุด</li>
+                <li>Interior Design 3 ห้อง</li>
+                <li>3D Walkthrough (วิดีโอ)</li>
+                <li>BOQ / ประมาณราคา</li>
+                <li>แก้ไขแบบ 3 ครั้ง</li>
+            </ul>
+            <button class="package-btn package-btn-fill" onclick="document.getElementById('booking').scrollIntoView({behavior:'smooth'})">เลือกแพ็กเกจ</button>
+        </div>
+        <div class="package-card">
+            <div class="emoji">🏗️</div>
+            <h3>Premium Home</h3>
+            <div class="price">฿150,000</div>
+            <div class="price-unit">เริ่มต้น</div>
+            <ul>
+                <li>Full Design (สถาปัตย์ + Interior)</li>
+                <li>Landscape Design</li>
+                <li>MEP Design ครบ</li>
+                <li>3D Walkthrough + Virtual Tour</li>
+                <li>ขออนุญาตก่อสร้าง</li>
+                <li>คุมงานก่อสร้าง</li>
+            </ul>
+            <button class="package-btn package-btn-outline" onclick="document.getElementById('booking').scrollIntoView({behavior:'smooth'})">เลือกแพ็กเกจ</button>
+        </div>
+    </div>
+</section>
+
+<!-- PROCESS -->
+<section class="section">
+    <div class="section-header">
+        <div class="badge">HOW WE WORK</div>
+        <h2>ขั้นตอนการทำงาน</h2>
+        <p>เราดูแลคุณทุกขั้นตอน ตั้งแต่ปรึกษาจนส่งมอบ</p>
+    </div>
+    <div class="process-grid">
+        <div class="process-step"><div class="number">1</div><h4>ปรึกษาฟรี</h4><p>พูดคุยความต้องการ<br>สำรวจพื้นที่เบื้องต้น</p></div>
+        <div class="process-step"><div class="number">2</div><h4>เสนอราคา</h4><p>ประเมินราคา<br>ส่งใบเสนอราคา</p></div>
+        <div class="process-step"><div class="number">3</div><h4>ออกแบบ 3D</h4><p>จัดทำโมเดล 3D<br>ปรับแก้ตามต้องการ</p></div>
+        <div class="process-step"><div class="number">4</div><h4>ส่งมอบ</h4><p>ส่งไฟล์ครบชุด<br>พร้อมดำเนินการ</p></div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="booking">
+    <h2>พร้อมเริ่มโครงการ?</h2>
+    <p>ปรึกษาฟรี ไม่มีค่าใช้จ่าย — ทักมาเลย!</p>
+    <div class="cta-buttons">
+        <a href="tel:021234567" class="cta-btn cta-btn-gold">📞 02-123-4567</a>
+        <a href="https://line.me/ti/p/@nuchainnovation" class="cta-btn cta-btn-outline">💬 LINE: @nuchainnovation</a>
+    </div>
+</section>
+
+<!-- ===== 3D ENGINE ===== -->
+<script>
+// ===== Utility: Mouse-drag rotation =====
+function addDragRotation(camera, container, target) {
+    let isDragging = false, prevX = 0, prevY = 0;
+    let rotY = 0.3, rotX = 0.3;
+    const dist = camera.position.length();
+
+    container.addEventListener('pointerdown', e => { isDragging = true; prevX = e.clientX; prevY = e.clientY; container.setPointerCapture(e.pointerId); });
+    container.addEventListener('pointerup', () => isDragging = false);
+    container.addEventListener('pointermove', e => {
+        if (!isDragging) return;
+        rotY += (e.clientX - prevX) * 0.008;
+        rotX += (e.clientY - prevY) * 0.008;
+        rotX = Math.max(-1.2, Math.min(1.2, rotX));
+        prevX = e.clientX; prevY = e.clientY;
+        camera.position.x = dist * Math.sin(rotY) * Math.cos(rotX);
+        camera.position.y = dist * Math.sin(rotX);
+        camera.position.z = dist * Math.cos(rotY) * Math.cos(rotX);
+        camera.lookAt(target);
+    });
+
+    // Touch support
+    let lastTouch = null;
+    container.addEventListener('touchstart', e => { if(e.touches.length===1) { lastTouch = {x:e.touches[0].clientX, y:e.touches[0].clientY}; }}, {passive:true});
+    container.addEventListener('touchmove', e => {
+        if(!lastTouch || e.touches.length!==1) return;
+        rotY += (e.touches[0].clientX - lastTouch.x) * 0.008;
+        rotX += (e.touches[0].clientY - lastTouch.y) * 0.008;
+        rotX = Math.max(-1.2, Math.min(1.2, rotX));
+        lastTouch = {x:e.touches[0].clientX, y:e.touches[0].clientY};
+        camera.position.x = dist * Math.sin(rotY) * Math.cos(rotX);
+        camera.position.y = dist * Math.sin(rotX);
+        camera.position.z = dist * Math.cos(rotY) * Math.cos(rotX);
+        camera.lookAt(target);
+    }, {passive:true});
+    container.addEventListener('touchend', () => lastTouch = null);
+
+    // Scroll zoom
+    container.addEventListener('wheel', e => {
+        e.preventDefault();
+        const factor = e.deltaY > 0 ? 1.1 : 0.9;
+        camera.position.multiplyScalar(factor);
+        const d = camera.position.length();
+        if(d < 3) camera.position.setLength(3);
+        if(d > 30) camera.position.setLength(30);
+    }, {passive:false});
+}
+
+function createScene(containerId, buildFn) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const w = container.clientWidth, h = container.clientHeight;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, w/h, 0.1, 100);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    container.appendChild(renderer.domElement);
+
+    // Lights
+    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambient);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+    dir.position.set(8, 12, 6);
+    dir.castShadow = true;
+    dir.shadow.mapSize.set(1024, 1024);
+    scene.add(dir);
+    const fill = new THREE.DirectionalLight(0xc8a951, 0.3);
+    fill.position.set(-5, 3, -5);
+    scene.add(fill);
+
+    const lookAt = new THREE.Vector3(0, 1.5, 0);
+    camera.position.set(8, 6, 8);
+    camera.lookAt(lookAt);
+
+    buildFn(scene);
+
+    addDragRotation(camera, container, lookAt);
+
+    // Auto-rotate
+    let autoRotate = true;
+    container.addEventListener('pointerdown', () => autoRotate = false);
+
+    function animate() {
+        requestAnimationFrame(animate);
+        if (autoRotate) {
+            const t = Date.now() * 0.0002;
+            const d = camera.position.length();
+            camera.position.x = d * Math.sin(t);
+            camera.position.z = d * Math.cos(t);
+            camera.lookAt(lookAt);
+        }
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+        const w2 = container.clientWidth, h2 = container.clientHeight;
+        camera.aspect = w2/h2;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w2, h2);
+    });
+}
+
+// ===== Materials =====
+const mat = {
+    wall: new THREE.MeshStandardMaterial({ color: 0xf5f0e8, roughness: 0.8 }),
+    wallDark: new THREE.MeshStandardMaterial({ color: 0x2c2c3e, roughness: 0.6 }),
+    floor: new THREE.MeshStandardMaterial({ color: 0xd4c4a8, roughness: 0.9 }),
+    wood: new THREE.MeshStandardMaterial({ color: 0x8b6914, roughness: 0.7 }),
+    woodDark: new THREE.MeshStandardMaterial({ color: 0x4a3520, roughness: 0.6 }),
+    glass: new THREE.MeshStandardMaterial({ color: 0x88ccff, roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.4 }),
+    metal: new THREE.MeshStandardMaterial({ color: 0x888899, roughness: 0.3, metalness: 0.8 }),
+    gold: new THREE.MeshStandardMaterial({ color: 0xc8a951, roughness: 0.3, metalness: 0.6 }),
+    roof: new THREE.MeshStandardMaterial({ color: 0x3a3a4a, roughness: 0.5 }),
+    grass: new THREE.MeshStandardMaterial({ color: 0x4a8c3f, roughness: 1 }),
+    water: new THREE.MeshStandardMaterial({ color: 0x2288cc, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.7 }),
+    concrete: new THREE.MeshStandardMaterial({ color: 0xbbbbbb, roughness: 0.9 }),
+    neon: new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0xff6600, emissiveIntensity: 0.8 }),
+    led: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.5 }),
+    plant: new THREE.MeshStandardMaterial({ color: 0x2d7a2d, roughness: 1 }),
+    pipe: new THREE.MeshStandardMaterial({ color: 0x4488aa, roughness: 0.4, metalness: 0.5 }),
+    wire: new THREE.MeshStandardMaterial({ color: 0xcc3333, roughness: 0.5 }),
+    carpet: new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 1 }),
+};
+
+function box(w,h,d,m) { const g = new THREE.BoxGeometry(w,h,d); return new THREE.Mesh(g,m); }
+function cyl(rT,rB,h,m,s) { const g = new THREE.CylinderGeometry(rT,rB,h,s||16); return new THREE.Mesh(g,m); }
+
+// =====================================================================
+// 1. SHOWCASE — บ้านเดี่ยว 2 ชั้น Modern Tropical
+// =====================================================================
+createScene('showcase-model', scene => {
+    // Ground
+    const ground = box(20, 0.1, 20, mat.grass);
+    ground.position.y = -0.05; ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Pool
+    const pool = box(5, 0.4, 3, mat.water);
+    pool.position.set(5, 0.2, 3); scene.add(pool);
+    const poolEdge = box(5.4, 0.5, 3.4, mat.concrete);
+    poolEdge.position.set(5, 0.15, 3); scene.add(poolEdge);
+
+    // Deck
+    const deck = box(5.4, 0.1, 2, mat.wood);
+    deck.position.set(5, 0.05, 0.8); scene.add(deck);
+
+    // Main house — 1st floor
+    const f1 = box(8, 3, 6, mat.wall);
+    f1.position.set(0, 1.5, 0); f1.castShadow = true; scene.add(f1);
+
+    // 2nd floor
+    const f2 = box(7, 2.8, 5.5, mat.wall);
+    f2.position.set(0.3, 4.4, 0); f2.castShadow = true; scene.add(f2);
+
+    // Roof
+    const roofShape = new THREE.Shape();
+    roofShape.moveTo(-4.5, 0); roofShape.lineTo(0, 2.2); roofShape.lineTo(4.5, 0); roofShape.lineTo(-4.5, 0);
+    const roofGeo = new THREE.ExtrudeGeometry(roofShape, { depth: 7, bevelEnabled: false });
+    const roofMesh = new THREE.Mesh(roofGeo, mat.roof);
+    roofMesh.position.set(0.3, 5.8, -3.5); roofMesh.castShadow = true; scene.add(roofMesh);
+
+    // Windows — 1st floor
+    for (let i = -2; i <= 2; i += 2) {
+        const win = box(1.2, 1.8, 0.1, mat.glass);
+        win.position.set(i, 1.8, 3.05); scene.add(win);
+        const frame = box(1.3, 1.9, 0.05, mat.woodDark);
+        frame.position.set(i, 1.8, 3.08); scene.add(frame);
+    }
+
+    // Windows — 2nd floor
+    for (let i = -1.5; i <= 2; i += 2) {
+        const win = box(1, 1.5, 0.1, mat.glass);
+        win.position.set(i + 0.3, 4.6, 2.8); scene.add(win);
+    }
+
+    // Door
+    const door = box(1.4, 2.4, 0.15, mat.wood);
+    door.position.set(0, 1.2, 3.05); scene.add(door);
+    const doorHandle = box(0.08, 0.3, 0.1, mat.gold);
+    doorHandle.position.set(0.4, 1.2, 3.15); scene.add(doorHandle);
+
+    // Balcony
+    const balcony = box(3, 0.1, 1.2, mat.wood);
+    balcony.position.set(2, 3, 3.3); scene.add(balcony);
+    const railing1 = box(3, 0.8, 0.05, mat.metal);
+    railing1.position.set(2, 3.4, 3.9); scene.add(railing1);
+    const railing2 = box(0.05, 0.8, 1.2, mat.metal);
+    railing2.position.set(3.5, 3.4, 3.3); scene.add(railing2);
+    const railing3 = box(0.05, 0.8, 1.2, mat.metal);
+    railing3.position.set(0.5, 3.4, 3.3); scene.add(railing3);
+
+    // Carport posts
+    for (let x of [-3, 3]) {
+        const post = cyl(0.1, 0.1, 3, mat.concrete);
+        post.position.set(x, 1.5, -4.5); scene.add(post);
+    }
+    const carportRoof = box(7, 0.1, 3.5, mat.roof);
+    carportRoof.position.set(0, 3, -4.5); scene.add(carportRoof);
+
+    // Garden elements
+    for (let pos of [[-6,0,2],[6,0,-2],[7,0,4],[-5,0,-4]]) {
+        const trunk = cyl(0.15, 0.15, 1.5, mat.woodDark);
+        trunk.position.set(pos[0], 0.75, pos[2]); scene.add(trunk);
+        const crown = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 12), mat.plant);
+        crown.position.set(pos[0], 2.2, pos[2]); scene.add(crown);
+    }
+
+    // Walkway
+    for (let i = 0; i < 5; i++) {
+        const step = box(1.2, 0.08, 0.6, mat.concrete);
+        step.position.set(0, 0.04, 5 + i * 0.8); scene.add(step);
+    }
+
+    // Fence
+    for (let x = -9; x <= 9; x += 1.5) {
+        const post = box(0.1, 1.2, 0.1, mat.metal);
+        post.position.set(x, 0.6, -8); scene.add(post);
+    }
+    const fenceRail = box(18, 0.08, 0.08, mat.metal);
+    fenceRail.position.set(0, 0.8, -8); scene.add(fenceRail);
+    const fenceRail2 = box(18, 0.08, 0.08, mat.metal);
+    fenceRail2.position.set(0, 0.4, -8); scene.add(fenceRail2);
+});
+
+// =====================================================================
+// 2. SIGNAGE 3D
+// =====================================================================
+createScene('model-signage', scene => {
+    // Ground
+    const ground = box(20, 0.1, 20, mat.concrete);
+    ground.position.y = -0.05; ground.receiveShadow = true; scene.add(ground);
+
+    // Main sign post
+    const post1 = box(0.3, 4, 0.3, mat.metal);
+    post1.position.set(-2, 2, 0); scene.add(post1);
+    const post2 = box(0.3, 4, 0.3, mat.metal);
+    post2.position.set(2, 2, 0); scene.add(post2);
+
+    // Sign board
+    const signBoard = box(5, 2.5, 0.2, mat.wallDark);
+    signBoard.position.set(0, 3.5, 0); signBoard.castShadow = true; scene.add(signBoard);
+
+    // Sign face
+    const signFace = box(4.6, 2.1, 0.05, mat.wall);
+    signFace.position.set(0, 3.5, 0.13); scene.add(signFace);
+
+    // Gold accent bar
+    const accentBar = box(4.6, 0.15, 0.06, mat.gold);
+    accentBar.position.set(0, 4.2, 0.17); scene.add(accentBar);
+    const accentBar2 = box(4.6, 0.15, 0.06, mat.gold);
+    accentBar2.position.set(0, 2.8, 0.17); scene.add(accentBar2);
+
+    // LED strip under sign
+    const ledStrip = box(5, 0.1, 0.15, mat.led);
+    ledStrip.position.set(0, 2.2, 0.2); scene.add(ledStrip);
+
+    // Side sign (blade sign)
+    const bladePost = box(0.15, 2.5, 0.15, mat.metal);
+    bladePost.position.set(-5, 1.25, 3); scene.add(bladePost);
+    const blade = box(1.5, 1, 0.1, mat.gold);
+    blade.position.set(-5, 2.8, 3); blade.rotation.y = Math.PI / 4; scene.add(blade);
+
+    // Directional arrow sign
+    const arrowPost = box(0.12, 1.8, 0.12, mat.metal);
+    arrowPost.position.set(5, 0.9, 3); scene.add(arrowPost);
+    const arrowBoard = box(1.8, 0.6, 0.08, mat.wallDark);
+    arrowBoard.position.set(5, 2, 3); scene.add(arrowBoard);
+    // Arrow shape
+    const arrowShape = new THREE.Shape();
+    arrowShape.moveTo(0, 0); arrowShape.lineTo(0.8, 0.2); arrowShape.lineTo(0.6, 0.2);
+    arrowShape.lineTo(0.6, 0.4); arrowShape.lineTo(0.8, 0.4); arrowShape.lineTo(0, 0.6);
+    arrowShape.lineTo(-0.2, 0.3); arrowShape.lineTo(0, 0);
+    const arrowGeo = new THREE.ShapeGeometry(arrowShape);
+    const arrowMesh = new THREE.Mesh(arrowGeo, mat.gold);
+    arrowMesh.position.set(4.3, 1.75, 3.05); scene.add(arrowMesh);
+
+    // House number sign
+    const numBoard = box(0.6, 0.4, 0.08, mat.woodDark);
+    numBoard.position.set(0, 1.5, 5); scene.add(numBoard);
+    const numFace = box(0.5, 0.3, 0.02, mat.gold);
+    numFace.position.set(0, 1.5, 5.05); scene.add(numFace);
+
+    // Neon sign element
+    const neonBar = box(2, 0.08, 0.08, mat.neon);
+    neonBar.position.set(0, 4.8, 0.2); scene.add(neonBar);
+
+    // Wall-mounted sign
+    const wallSign = box(2, 0.8, 0.1, mat.wallDark);
+    wallSign.position.set(6, 2, -5); scene.add(wallSign);
+    const wallSignFace = box(1.8, 0.6, 0.05, mat.gold);
+    wallSignFace.position.set(6, 2, -4.93); scene.add(wallSignFace);
+});
+
+// =====================================================================
+// 3. INTERIOR 3D — Living Room
+// =====================================================================
+createScene('model-interior', scene => {
+    // Floor
+    const floor = box(10, 0.1, 8, mat.wood);
+    floor.position.y = -0.05; floor.receiveShadow = true; scene.add(floor);
+
+    // Walls
+    const backWall = box(10, 4, 0.2, mat.wall);
+    backWall.position.set(0, 2, -4); scene.add(backWall);
+    const leftWall = box(0.2, 4, 8, mat.wall);
+    leftWall.position.set(-5, 2, 0); scene.add(leftWall);
+
+    // Ceiling
+    const ceiling = box(10, 0.1, 8, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 }));
+    ceiling.position.y = 4; scene.add(ceiling);
+
+    // Sofa (L-shape)
+    const sofaBase = box(3.5, 0.5, 1.2, mat.carpet);
+    sofaBase.position.set(-1.5, 0.35, -2); scene.add(sofaBase);
+    const sofaBack = box(3.5, 0.8, 0.3, mat.carpet);
+    sofaBack.position.set(-1.5, 0.9, -2.5); scene.add(sofaBack);
+    const sofaSide = box(0.3, 0.8, 1.2, mat.carpet);
+    sofaSide.position.set(-3.1, 0.9, -2); scene.add(sofaSide);
+    // Cushions
+    for (let i = 0; i < 3; i++) {
+        const cushion = box(0.9, 0.3, 0.8, new THREE.MeshStandardMaterial({ color: 0xc8a951, roughness: 0.8 }));
+        cushion.position.set(-2.5 + i * 1, 0.75, -1.8); scene.add(cushion);
+    }
+
+    // Coffee table
+    const tableTop = box(1.8, 0.08, 0.8, mat.woodDark);
+    tableTop.position.set(-1, 0.5, -0.5); scene.add(tableTop);
+    for (let x of [-1.7, -0.3]) {
+        for (let z of [-0.8, -0.2]) {
+            const leg = cyl(0.04, 0.04, 0.5, mat.metal);
+            leg.position.set(x, 0.25, z); scene.add(leg);
+        }
+    }
+
+    // TV unit
+    const tvUnit = box(3, 0.6, 0.5, mat.woodDark);
+    tvUnit.position.set(2, 0.3, -3.5); scene.add(tvUnit);
+    const tv = box(2.5, 1.5, 0.08, mat.wallDark);
+    tv.position.set(2, 1.5, -3.7); scene.add(tv);
+    const tvScreen = box(2.3, 1.3, 0.02, new THREE.MeshStandardMaterial({ color: 0x111122, emissive: 0x112244, emissiveIntensity: 0.3 }));
+    tvScreen.position.set(2, 1.5, -3.66); scene.add(tvScreen);
+
+    // Rug
+    const rug = box(3, 0.03, 2, new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 1 }));
+    rug.position.set(-1, 0.06, -1); scene.add(rug);
+
+    // Standing lamp
+    const lampBase = cyl(0.2, 0.2, 0.05, mat.metal);
+    lampBase.position.set(-4, 0.025, -2); scene.add(lampBase);
+    const lampPole = cyl(0.03, 0.03, 2, mat.metal);
+    lampPole.position.set(-4, 1, -2); scene.add(lampPole);
+    const lampShade = cyl(0.15, 0.3, 0.4, new THREE.MeshStandardMaterial({ color: 0xfff8e7, roughness: 1, emissive: 0xfff8e7, emissiveIntensity: 0.2 }));
+    lampShade.position.set(-4, 2.2, -2); scene.add(lampShade);
+
+    // Plant
+    const pot = cyl(0.25, 0.2, 0.4, new THREE.MeshStandardMaterial({ color: 0xcc6644, roughness: 0.8 }));
+    pot.position.set(-4.2, 0.2, 2); scene.add(pot);
+    const plantBody = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 12), mat.plant);
+    plantBody.position.set(-4.2, 0.9, 2); scene.add(plantBody);
+
+    // Window on back wall
+    const windowFrame = box(2.5, 2, 0.1, mat.woodDark);
+    windowFrame.position.set(0, 2.5, -3.88); scene.add(windowFrame);
+    const windowGlass = box(2.3, 1.8, 0.05, mat.glass);
+    windowGlass.position.set(0, 2.5, -3.85); scene.add(windowGlass);
+
+    // Bookshelf
+    const shelf = box(1.5, 2.5, 0.4, mat.woodDark);
+    shelf.position.set(4, 1.25, -3.5); scene.add(shelf);
+    for (let i = 0; i < 4; i++) {
+        const shelfBoard = box(1.4, 0.05, 0.35, mat.wood);
+        shelfBoard.position.set(4, 0.4 + i * 0.6, -3.5); scene.add(shelfBoard);
+    }
+
+    // Ceiling light
+    const lightFixture = cyl(0.5, 0.5, 0.1, mat.metal);
+    lightFixture.position.set(0, 3.9, 0); scene.add(lightFixture);
+    const lightGlow = cyl(0.4, 0.4, 0.05, new THREE.MeshStandardMaterial({ color: 0xffffcc, emissive: 0xffffcc, emissiveIntensity: 0.5 }));
+    lightGlow.position.set(0, 3.85, 0); scene.add(lightGlow);
+});
+
+// =====================================================================
+// 4. HOUSE (Architecture) 3D
+// =====================================================================
+createScene('model-house', scene => {
+    const ground = box(20, 0.1, 20, mat.grass);
+    ground.position.y = -0.05; ground.receiveShadow = true; scene.add(ground);
+
+    // Foundation
+    const foundation = box(10, 0.3, 8, mat.concrete);
+    foundation.position.set(0, 0.15, 0); scene.add(foundation);
+
+    // 1st floor walls
+    const f1Front = box(10, 3, 0.25, mat.wall);
+    f1Front.position.set(0, 1.8, 4); scene.add(f1Front);
+    const f1Back = box(10, 3, 0.25, mat.wall);
+    f1Back.position.set(0, 1.8, -4); scene.add(f1Back);
+    const f1Left = box(0.25, 3, 8, mat.wall);
+    f1Left.position.set(-5, 1.8, 0); scene.add(f1Left);
+    const f1Right = box(0.25, 3, 8, mat.wall);
+    f1Right.position.set(5, 1.8, 0); scene.add(f1Right);
+
+    // 1st floor slab
+    const slab1 = box(10.5, 0.2, 8.5, mat.concrete);
+    slab1.position.set(0, 3.3, 0); scene.add(slab1);
+
+    // 2nd floor walls
+    const f2Front = box(9, 2.8, 0.25, mat.wall);
+    f2Front.position.set(0.3, 4.7, 3.5); scene.add(f2Front);
+    const f2Back = box(9, 2.8, 0.25, mat.wall);
+    f2Back.position.set(0.3, 4.7, -3.5); scene.add(f2Back);
+    const f2Left = box(0.25, 2.8, 7, mat.wall);
+    f2Left.position.set(-4, 4.7, 0); scene.add(f2Left);
+    const f2Right = box(0.25, 2.8, 7, mat.wall);
+    f2Right.position.set(4.5, 4.7, 0); scene.add(f2Right);
+
+    // Roof
+    const roofGeo2 = new THREE.ExtrudeGeometry(
+        new THREE.Shape().moveTo(-5.5, 0).lineTo(0, 2.5).lineTo(5.5, 0).lineTo(-5.5, 0),
+        { depth: 9, bevelEnabled: false }
+    );
+    const roofMesh2 = new THREE.Mesh(roofGeo2, mat.roof);
+    roofMesh2.position.set(0.3, 6.1, -4.5); roofMesh2.castShadow = true; scene.add(roofMesh2);
+
+    // Windows 1st floor
+    for (let x of [-3, 0, 3]) {
+        const win = box(1.3, 1.8, 0.1, mat.glass);
+        win.position.set(x, 2, 4.15); scene.add(win);
+        const wf = box(1.4, 1.9, 0.05, mat.woodDark);
+        wf.position.set(x, 2, 4.18); scene.add(wf);
+    }
+
+    // Door
+    const door2 = box(1.6, 2.6, 0.15, mat.wood);
+    door2.position.set(-2, 1.3, 4.15); scene.add(door2);
+
+    // Balcony 2nd floor
+    const balcFloor = box(4, 0.12, 1.5, mat.concrete);
+    balcFloor.position.set(2, 3.3, 4.5); scene.add(balcFloor);
+    const balcRail = box(4, 0.9, 0.06, mat.metal);
+    balcRail.position.set(2, 3.8, 5.2); scene.add(balcRail);
+
+    // Garage
+    const garageRoof = box(4, 0.12, 3.5, mat.roof);
+    garageRoof.position.set(-6.5, 2.8, 2); scene.add(garageRoof);
+    for (let x of [-8.2, -4.8]) {
+        const gPost = cyl(0.12, 0.12, 2.8, mat.concrete);
+        gPost.position.set(x, 1.4, 3.5); scene.add(gPost);
+    }
+
+    // Steps
+    for (let i = 0; i < 3; i++) {
+        const step = box(2, 0.15, 0.4, mat.concrete);
+        step.position.set(-2, 0.07 + i * 0.15, 4.5 + i * 0.4); scene.add(step);
+    }
+
+    // Trees
+    for (let pos of [[-8,0,-5],[8,0,-4],[8,0,5]]) {
+        const trunk = cyl(0.2, 0.2, 2, mat.woodDark);
+        trunk.position.set(pos[0], 1, pos[2]); scene.add(trunk);
+        const crown = new THREE.Mesh(new THREE.SphereGeometry(1.2, 12, 12), mat.plant);
+        crown.position.set(pos[0], 2.8, pos[2]); scene.add(crown);
+    }
+
+    // Fence
+    for (let x = -9; x <= 9; x += 2) {
+        const fp = box(0.12, 1.5, 0.12, mat.metal);
+        fp.position.set(x, 0.75, -8); scene.add(fp);
+    }
+    const fr = box(18, 0.08, 0.08, mat.metal);
+    fr.position.set(0, 1.2, -8); scene.add(fr);
+});
+
+// =====================================================================
+// 5. LANDSCAPE 3D — Garden
+// =====================================================================
+createScene('model-landscape', scene => {
+    // Ground layers
+    const ground = box(16, 0.1, 12, mat.grass);
+    ground.position.y = -0.05; ground.receiveShadow = true; scene.add(ground);
+
+    // Stone path
+    for (let i = 0; i < 8; i++) {
+        const stone = box(0.8 + Math.random() * 0.3, 0.06, 0.5 + Math.random() * 0.2, mat.concrete);
+        stone.position.set(-2 + i * 0.9, 0.03, 2 + Math.sin(i) * 0.5);
+        stone.rotation.y = Math.random() * 0.3;
+        scene.add(stone);
+    }
+
+    // Pond
+    const pond = cyl(2, 2, 0.3, mat.water, 24);
+    pond.position.set(4, 0.15, -2); scene.add(pond);
+    const pondEdge = cyl(2.2, 2.2, 0.15, new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.9 }), 24);
+    pondEdge.position.set(4, 0.07, -2); scene.add(pondEdge);
+
+    // Bamboo grove
+    for (let i = 0; i < 6; i++) {
+        const bamboo = cyl(0.06, 0.06, 3 + Math.random(), new THREE.MeshStandardMaterial({ color: 0x5a8a3a, roughness: 0.6 }));
+        bamboo.position.set(-6 + Math.random() * 1.5, 1.5 + Math.random() * 0.5, -3 + Math.random() * 2);
+        scene.add(bamboo);
+        // Leaves
+        for (let j = 0; j < 3; j++) {
+            const leaf = box(0.6, 0.02, 0.15, mat.plant);
+            leaf.position.set(bamboo.position.x + (Math.random()-0.5)*0.5, 2 + j * 0.5, bamboo.position.z);
+            leaf.rotation.z = (Math.random() - 0.5) * 0.8;
+            scene.add(leaf);
+        }
+    }
+
+    // Flower beds
+    for (let pos of [[-3,0,4],[1,0,-4],[6,0,4]]) {
+        const bed = box(1.5, 0.2, 1, new THREE.MeshStandardMaterial({ color: 0x4a3520, roughness: 0.9 }));
+        bed.position.set(pos[0], 0.1, pos[2]); scene.add(bed);
+        for (let f = 0; f < 5; f++) {
+            const flower = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8),
+                new THREE.MeshStandardMaterial({ color: [0xff6688, 0xffaa33, 0xff44aa, 0xaa44ff, 0xff8844][f], roughness: 0.7 }));
+            flower.position.set(pos[0] - 0.5 + f * 0.25, 0.35, pos[2] + (Math.random()-0.5)*0.3);
+            scene.add(flower);
+        }
+    }
+
+    // Pergola
+    for (let x of [-1, 1]) {
+        for (let z of [-1, 1]) {
+            const post = box(0.15, 2.5, 0.15, mat.wood);
+            post.position.set(x * 2, 1.25, z * 1.5); scene.add(post);
+        }
+    }
+    const pergolaBeam1 = box(4.5, 0.1, 0.15, mat.wood);
+    pergolaBeam1.position.set(0, 2.5, -1.5); scene.add(pergolaBeam1);
+    const pergolaBeam2 = box(4.5, 0.1, 0.15, mat.wood);
+    pergolaBeam2.position.set(0, 2.5, 1.5); scene.add(pergolaBeam2);
+    for (let i = 0; i < 6; i++) {
+        const slat = box(0.1, 0.08, 3.2, mat.wood);
+        slat.position.set(-2 + i * 0.8, 2.6, 0); scene.add(slat);
+    }
+
+    // Bench under pergola
+    const benchSeat = box(1.8, 0.1, 0.5, mat.woodDark);
+    benchSeat.position.set(0, 0.6, 0); scene.add(benchSeat);
+    for (let x of [-0.7, 0.7]) {
+        const bLeg = box(0.08, 0.6, 0.08, mat.metal);
+        bLeg.position.set(x, 0.3, 0); scene.add(bLeg);
+    }
+
+    // Garden lights
+    for (let pos of [[-4,0,0],[0,0,5],[5,0,1],[-2,0,-3]]) {
+        const lightPost = cyl(0.04, 0.04, 0.8, mat.metal);
+        lightPost.position.set(pos[0], 0.4, pos[2]); scene.add(lightPost);
+        const lightHead = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8),
+            new THREE.MeshStandardMaterial({ color: 0xffffaa, emissive: 0xffffaa, emissiveIntensity: 0.5 }));
+        lightHead.position.set(pos[0], 0.9, pos[2]); scene.add(lightHead);
+    }
+
+    // Big tree
+    const bigTrunk = cyl(0.35, 0.35, 3, mat.woodDark);
+    bigTrunk.position.set(-5, 1.5, 3); scene.add(bigTrunk);
+    for (let i = 0; i < 3; i++) {
+        const crown = new THREE.Mesh(new THREE.SphereGeometry(1.5 - i * 0.3, 12, 12), mat.plant);
+        crown.position.set(-5 + (Math.random()-0.5)*0.5, 3.5 + i * 0.6, 3 + (Math.random()-0.5)*0.5);
+        scene.add(crown);
+    }
+});
+
+// =====================================================================
+// 6. WALKTHROUGH — Multi-room
+// =====================================================================
+createScene('model-walkthrough', scene => {
+    // Floor plan: L-shaped open space
+    const floor = box(12, 0.1, 10, mat.wood);
+    floor.position.y = -0.05; floor.receiveShadow = true; scene.add(floor);
+
+    // Walls
+    const walls = [
+        [0, 2, -5, 12, 4, 0.2],    // back
+        [-6, 2, 0, 0.2, 4, 10],    // left
+        [6, 2, 2.5, 0.2, 4, 5],    // right partial
+        [3, 2, 5, 6, 4, 0.2],      // front partial
+        [0, 2, 2, 0.2, 4, 6],      // divider
+    ];
+    walls.forEach(w => {
+        const wall = box(w[3], w[4], w[5], mat.wall);
+        wall.position.set(w[0], w[1], w[2]); scene.add(wall);
+    });
+
+    // Kitchen area (left side)
+    const counter = box(4, 0.9, 0.6, mat.woodDark);
+    counter.position.set(-4, 0.45, -4.3); scene.add(counter);
+    const counterTop = box(4, 0.05, 0.65, new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.3 }));
+    counterTop.position.set(-4, 0.92, -4.3); scene.add(counterTop);
+
+    // Kitchen island
+    const island = box(2, 0.9, 1, mat.woodDark);
+    island.position.set(-3, 0.45, -2); scene.add(island);
+    const islandTop = box(2.1, 0.05, 1.1, counterTop.material);
+    islandTop.position.set(-3, 0.92, -2); scene.add(islandTop);
+
+    // Bar stools
+    for (let x of [-3.7, -3, -2.3]) {
+        const stoolSeat = cyl(0.2, 0.2, 0.05, mat.wood);
+        stoolSeat.position.set(x, 0.75, -1); scene.add(stoolSeat);
+        const stoolLeg = cyl(0.03, 0.03, 0.75, mat.metal);
+        stoolLeg.position.set(x, 0.375, -1); scene.add(stoolLeg);
+    }
+
+    // Dining table
+    const diningTable = box(2.5, 0.08, 1.2, mat.woodDark);
+    diningTable.position.set(2, 0.75, -2); scene.add(diningTable);
+    for (let x of [0.9, 3.1]) {
+        for (let z of [-2.5, -1.5]) {
+            const dLeg = cyl(0.04, 0.04, 0.75, mat.metal);
+            dLeg.position.set(x, 0.375, z); scene.add(dLeg);
+        }
+    }
+
+    // Dining chairs
+    for (let i = 0; i < 4; i++) {
+        const chairSeat = box(0.45, 0.05, 0.45, mat.wood);
+        const x = 1.2 + (i % 2) * 1.6;
+        const z = i < 2 ? -2.9 : -1.1;
+        chairSeat.position.set(x, 0.5, z); scene.add(chairSeat);
+        const chairBack = box(0.45, 0.5, 0.05, mat.wood);
+        chairBack.position.set(x, 0.75, i < 2 ? z - 0.2 : z + 0.2); scene.add(chairBack);
+    }
+
+    // Living area (right side)
+    const sofa2 = box(3, 0.7, 1, mat.carpet);
+    sofa2.position.set(3, 0.45, 3); scene.add(sofa2);
+    const sofaBack2 = box(3, 0.6, 0.25, mat.carpet);
+    sofaBack2.position.set(3, 0.8, 3.5); scene.add(sofaBack2);
+
+    // Pendant lights over island
+    for (let x of [-3.5, -2.5]) {
+        const cord = cyl(0.01, 0.01, 1.5, mat.metal);
+        cord.position.set(x, 3.25, -2); scene.add(cord);
+        const shade = cyl(0.15, 0.25, 0.3, new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 }));
+        shade.position.set(x, 2.35, -2); scene.add(shade);
+    }
+
+    // Ceiling
+    const ceiling2 = box(12, 0.1, 10, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 }));
+    ceiling2.position.y = 4; scene.add(ceiling2);
+
+    // Window wall (back)
+    for (let x = -4; x <= 4; x += 2) {
+        const win = box(1.5, 2.5, 0.1, mat.glass);
+        win.position.set(x, 2.5, -4.88); scene.add(win);
+    }
+});
+
+// =====================================================================
+// 7. MEP SYSTEM 3D
+// =====================================================================
+createScene('model-mep', scene => {
+    // Transparent house outline
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xf5f0e8, roughness: 0.8, transparent: true, opacity: 0.3 });
+
+    // Floor
+    const floor = box(10, 0.15, 8, mat.concrete);
+    floor.position.y = 0.075; floor.receiveShadow = true; scene.add(floor);
+
+    // Walls (transparent)
+    const w1 = box(10, 3.5, 0.15, wallMat);
+    w1.position.set(0, 1.75, 4); scene.add(w1);
+    const w2 = box(10, 3.5, 0.15, wallMat);
+    w2.position.set(0, 1.75, -4); scene.add(w2);
+    const w3 = box(0.15, 3.5, 8, wallMat);
+    w3.position.set(-5, 1.75, 0); scene.add(w3);
+    const w4 = box(0.15, 3.5, 8, wallMat);
+    w4.position.set(5, 1.75, 0); scene.add(w4);
+
+    // === ELECTRICAL (Red wires) ===
+    const wireMat = new THREE.MeshStandardMaterial({ color: 0xff3333, roughness: 0.5 });
+    // Main cable trunk
+    const mainWire = box(0.08, 0.08, 8, wireMat);
+    mainWire.position.set(-4.5, 3, 0); scene.add(mainWire);
+    // Branch wires
+    for (let z of [-3, 0, 3]) {
+        const branch = box(4, 0.06, 0.06, wireMat);
+        branch.position.set(-2.5, 3, z); scene.add(branch);
+    }
+    // Outlets
+    for (let pos of [[-4,1,-3],[-4,1,0],[-4,1,3],[0,1,-3],[0,1,3]]) {
+        const outlet = box(0.15, 0.2, 0.08, new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.5 }));
+        outlet.position.set(pos[0], pos[1], pos[2]); scene.add(outlet);
+    }
+    // Electrical panel
+    const panel = box(0.4, 0.6, 0.15, mat.metal);
+    panel.position.set(-4.8, 2, -3.8); scene.add(panel);
+
+    // === PLUMBING (Blue pipes) ===
+    const pipeMat = new THREE.MeshStandardMaterial({ color: 0x2288cc, roughness: 0.4, metalness: 0.5 });
+    // Main supply line
+    const mainPipe = cyl(0.08, 0.08, 8, pipeMat);
+    mainPipe.position.set(4.5, 0.5, 0);
+    mainPipe.rotation.x = Math.PI / 2; scene.add(mainPipe);
+    // Vertical risers
+    for (let z of [-3, 0, 3]) {
+        const riser = cyl(0.06, 0.06, 3, pipeMat);
+        riser.position.set(4.5, 1.5, z); scene.add(riser);
+        // Branch
+        const pBranch = cyl(0.05, 0.05, 3, pipeMat);
+        pBranch.position.set(3, 0.5, z);
+        pBranch.rotation.x = Math.PI / 2; scene.add(pBranch);
+    }
+    // Drain pipe (larger, darker)
+    const drainMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.6 });
+    const drainPipe = cyl(0.12, 0.12, 6, drainMat);
+    drainPipe.position.set(3.5, 0.3, -3);
+    drainPipe.rotation.x = Math.PI / 2; scene.add(drainPipe);
+
+    // === HVAC (Green ducts) ===
+    const ductMat = new THREE.MeshStandardMaterial({ color: 0x88aa88, roughness: 0.5, metalness: 0.3 });
+    // Main duct
+    const mainDuct = box(0.5, 0.3, 7, ductMat);
+    mainDuct.position.set(0, 3.2, 0); scene.add(mainDuct);
+    // Branch ducts
+    for (let x of [-3, 0, 3]) {
+        const branchDuct = box(0.3, 0.25, 2, ductMat);
+        branchDuct.position.set(x, 3.2, -2.5); scene.add(branchDuct);
+        // Vent
+        const vent = box(0.35, 0.05, 0.35, mat.metal);
+        vent.position.set(x, 3, -3.5); scene.add(vent);
+    }
+    // AC unit (outdoor)
+    const acUnit = box(1, 0.8, 0.5, mat.metal);
+    acUnit.position.set(4.5, 1.5, -3.8); scene.add(acUnit);
+    const acFan = cyl(0.3, 0.3, 0.05, new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.5 }));
+    acFan.position.set(4.5, 1.5, -3.53); scene.add(acFan);
+
+    // === CCTV (Yellow) ===
+    const cctvMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.5, metalness: 0.3 });
+    // Cameras
+    for (let pos of [[-4.5,3.2,3.5],[4.5,3.2,3.5],[4.5,3.2,-3.5]]) {
+        const camBody = box(0.15, 0.15, 0.25, cctvMat);
+        camBody.position.set(pos[0], pos[1], pos[2]); scene.add(camBody);
+        const camLens = cyl(0.06, 0.06, 0.08, mat.wallDark);
+        camLens.position.set(pos[0], pos[1], pos[2] + 0.15); scene.add(camLens);
+        // Cable
+        const camCable = cyl(0.02, 0.02, 0.5, cctvMat);
+        camCable.position.set(pos[0], pos[1] + 0.25, pos[2]); scene.add(camCable);
+    }
+    // DVR
+    const dvr = box(0.4, 0.1, 0.3, mat.wallDark);
+    dvr.position.set(-4.5, 1.5, 3.5); scene.add(dvr);
+
+    // === SMART HOME (Purple) ===
+    const smartMat = new THREE.MeshStandardMaterial({ color: 0x9944cc, roughness: 0.5, emissive: 0x9944cc, emissiveIntensity: 0.2 });
+    // Smart hub
+    const hub = cyl(0.2, 0.2, 0.1, smartMat);
+    hub.position.set(0, 1.5, 0); scene.add(hub);
+    const hubRing = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.02, 8, 24), smartMat);
+    hubRing.position.set(0, 1.5, 0); scene.add(hubRing);
+    // Smart lights (on ceiling)
+    for (let pos of [[-2,3.4,-1],[2,3.4,-1],[0,3.4,2]]) {
+        const smartLight = cyl(0.15, 0.15, 0.05, new THREE.MeshStandardMaterial({ color: 0x9944cc, emissive: 0x9944cc, emissiveIntensity: 0.4 }));
+        smartLight.position.set(pos[0], pos[1], pos[2]); scene.add(smartLight);
+    }
+
+    // Legend labels (small colored cubes)
+    const legendY = -0.5;
+    const legends = [
+        { color: 0xff3333, label: 'ไฟฟ้า', x: -4 },
+        { color: 0x2288cc, label: 'ประปา', x: -2 },
+        { color: 0x88aa88, label: 'แอร์', x: 0 },
+        { color: 0xffcc00, label: 'CCTV', x: 2 },
+        { color: 0x9944cc, label: 'Smart', x: 4 },
+    ];
+    legends.forEach(l => {
+        const cube = box(0.3, 0.3, 0.3, new THREE.MeshStandardMaterial({ color: l.color, emissive: l.color, emissiveIntensity: 0.3 }));
+        cube.position.set(l.x, legendY, 5); scene.add(cube);
+    });
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บริการ — NUCHA INNOVATION</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap');
+
+        :root {
+            --gold: #c8a951;
+            --gold-light: #e8d48b;
+            --dark: #1a1a2e;
+            --dark2: #16213e;
+            --light: #f9f8f4;
+            --gray: #888;
+            --radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Prompt', sans-serif;
+            color: var(--dark);
+            background: #fafafa;
+            line-height: 1.6;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%);
+            color: white;
+            text-align: center;
+            padding: 100px 20px 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 50%, rgba(200,169,81,0.08) 0%, transparent 50%);
+        }
+
+        .hero h1 {
+            font-size: clamp(32px, 5vw, 52px);
+            font-weight: 800;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .hero h1 span { color: var(--gold); }
+
+        .hero p {
+            font-size: 18px;
+            opacity: 0.8;
+            max-width: 600px;
+            margin: 0 auto 30px;
+            position: relative;
+        }
+
+        .hero-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--gold);
+            color: var(--dark);
+            padding: 14px 32px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            text-decoration: none;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .hero-cta:hover {
+            background: var(--gold-light);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(200,169,81,0.3);
+        }
+
+        /* ===== SECTION ===== */
+        .section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 20px;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-header .badge {
+            display: inline-block;
+            background: rgba(200,169,81,0.1);
+            color: var(--gold);
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .section-header h2 {
+            font-size: clamp(28px, 4vw, 40px);
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .section-header p {
+            color: var(--gray);
+            font-size: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* ===== SERVICE CARDS ===== */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+        }
+
+        .service-card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 36px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #f0f0f0;
+        }
+
+        .service-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+            border-color: var(--gold);
+        }
+
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--gold), var(--gold-light));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .service-card:hover::before { opacity: 1; }
+
+        .service-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, rgba(200,169,81,0.15), rgba(200,169,81,0.05));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .service-card h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .service-card .desc {
+            color: var(--gray);
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.7;
+        }
+
+        .service-items {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+
+        .service-items li {
+            padding: 6px 0;
+            font-size: 13px;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .service-items li::before {
+            content: '✦';
+            color: var(--gold);
+            font-size: 10px;
+        }
+
+        .service-price {
+            display: inline-block;
+            background: var(--light);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .service-price span {
+            color: var(--gold);
+        }
+
+        /* ===== PACKAGES ===== */
+        .packages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .package-card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            border: 2px solid #f0f0f0;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .package-card.featured {
+            border-color: var(--gold);
+            transform: scale(1.03);
+        }
+
+        .package-card.featured::before {
+            content: 'แนะนำ';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gold);
+            color: var(--dark);
+            padding: 4px 20px;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .package-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+        }
+
+        .package-card.featured:hover {
+            transform: scale(1.03) translateY(-4px);
+        }
+
+        .package-card .emoji { font-size: 48px; margin-bottom: 16px; }
+
+        .package-card h3 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .package-card .price {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--gold);
+            margin-bottom: 4px;
+        }
+
+        .package-card .price-unit {
+            font-size: 14px;
+            color: var(--gray);
+            margin-bottom: 24px;
+        }
+
+        .package-card ul {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 30px;
+        }
+
+        .package-card ul li {
+            padding: 8px 0;
+            font-size: 14px;
+            color: #555;
+            border-bottom: 1px solid #f5f5f5;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .package-card ul li::before {
+            content: '✓';
+            color: var(--gold);
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .package-btn {
+            display: inline-block;
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-family: 'Prompt', sans-serif;
+            cursor: pointer;
+        }
+
+        .package-btn-outline {
+            background: transparent;
+            border: 2px solid var(--gold);
+            color: var(--gold);
+        }
+
+        .package-btn-outline:hover {
+            background: var(--gold);
+            color: var(--dark);
+        }
+
+        .package-btn-fill {
+            background: var(--gold);
+            border: 2px solid var(--gold);
+            color: var(--dark);
+        }
+
+        .package-btn-fill:hover {
+            background: var(--gold-light);
+            border-color: var(--gold-light);
+        }
+
+        /* ===== PROCESS ===== */
+        .process-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .process-step {
+            text-align: center;
+            position: relative;
+        }
+
+        .process-step .number {
+            width: 56px;
+            height: 56px;
+            background: var(--gold);
+            color: var(--dark);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 800;
+            margin: 0 auto 16px;
+        }
+
+        .process-step h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .process-step p {
+            font-size: 13px;
+            color: var(--gray);
+        }
+
+        /* ===== CTA ===== */
+        .cta-section {
+            background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%);
+            color: white;
+            text-align: center;
+            padding: 80px 20px;
+        }
+
+        .cta-section h2 {
+            font-size: clamp(28px, 4vw, 40px);
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .cta-section p {
+            opacity: 0.8;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .cta-btn {
+            padding: 14px 32px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 15px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-family: 'Prompt', sans-serif;
+            cursor: pointer;
+        }
+
+        .cta-btn-gold {
+            background: var(--gold);
+            color: var(--dark);
+            border: none;
+        }
+
+        .cta-btn-gold:hover {
+            background: var(--gold-light);
+            transform: translateY(-2px);
+        }
+
+        .cta-btn-outline {
+            background: transparent;
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .cta-btn-outline:hover {
+            border-color: white;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .services-grid { grid-template-columns: 1fr; }
+            .packages-grid { grid-template-columns: 1fr; }
+            .package-card.featured { transform: none; }
+            .package-card.featured:hover { transform: translateY(-4px); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+    <h1>บริการ<span>ครบวงจร</span></h1>
+    <p>ออกแบบ ก่อสร้าง ตกแต่ง ทุกเรื่องบ้านจบในที่เดียว</p>
+    <a href="#booking" class="hero-cta">📞 ปรึกษาฟรี ไม่มีค่าใช้จ่าย</a>
+</section>
+
+<!-- MAIN SERVICES -->
+<section class="section">
+    <div class="section-header">
+        <div class="badge">OUR SERVICES</div>
+        <h2>บริการของเรา</h2>
+        <p>ครอบคลุมทุกความต้องการ ตั้งแต่ออกแบบจนถึงส่งมอบ</p>
+    </div>
+
+    <div class="services-grid">
+        <!-- 1. ป้าย -->
+        <div class="service-card">
+            <div class="service-icon">🪧</div>
+            <h3>ออกแบบป้ายทุกชนิด</h3>
+            <p class="desc">ออกแบบและผลิตป้ายครบวงจร สำหรับโครงการ อาคาร ร้านค้า และองค์กร</p>
+            <ul class="service-items">
+                <li>ป้ายโครงการ / ป้ายหมู่บ้าน</li>
+                <li>ป้ายบริษัท / ป้ายสำนักงาน</li>
+                <li>ป้ายโฆษณา / Billboard / Banner</li>
+                <li>ป้าย LED / ป้ายกล่องไฟ / Neon sign</li>
+                <li>ป้ายสแตนเลส / อะคริลิค / ไม้</li>
+                <li>ป้ายอสังหา / ป้ายขาย-เช่า</li>
+            </ul>
+            <div class="service-price">เริ่มต้น <span>฿1,500</span></div>
+        </div>
+
+        <!-- 2. Interior -->
+        <div class="service-card">
+            <div class="service-icon">🏠</div>
+            <h3>ออกแบบตกแต่งภายใน</h3>
+            <p class="desc">ออกแบบ Interior ครบวงจร ตั้งแต่วาง Layout เลือกวัสดุ จนถึง Built-in</p>
+            <ul class="service-items">
+                <li>ห้องนั่งเล่น / ห้องนอน / ห้องครัว</li>
+                <li>ห้องน้ำ / Walk-in closet</li>
+                <li>คอนโด / บ้านทั้งหลัง</li>
+                <li>ร้านค้า / ร้านอาหาร / Café</li>
+                <li>ออฟฟิศ / Meeting room</li>
+                <li>โรงแรม / รีสอร์ท</li>
+            </ul>
+            <div class="service-price">เริ่มต้น <span>฿6,000</span> / ห้อง</div>
+        </div>
+
+        <!-- 3. Architecture -->
+        <div class="service-card">
+            <div class="service-icon">🏡</div>
+            <h3>ออกแบบสถาปัตยกรรม</h3>
+            <p class="desc">ออกแบบอาคารทุกประเภท พร้อมเขียนแบบก่อสร้างและขออนุญาต</p>
+            <ul class="service-items">
+                <li>บ้านเดี่ยว / ทาวน์โฮม / บ้านแฝด</li>
+                <li>อาคารพาณิชย์ / ออฟฟิศ / โกดัง</li>
+                <li>ต่อเติม / รีโนเวท</li>
+                <li>สระว่ายน้ำ / ศาลา / Pavilion</li>
+                <li>รั้ว / ประตู / กำแพง</li>
+                <li>แบบขออนุญาตก่อสร้าง (อก.)</li>
+            </ul>
+            <div class="service-price">เริ่มต้น <span>฿20,000</span></div>
+        </div>
+
+        <!-- 4. Landscape -->
+        <div class="service-card">
+            <div class="service-icon">🌳</div>
+            <h3>ออกแบบภูมิทัศน์</h3>
+            <p class="desc">ออกแบบสวนและพื้นที่กลางแจ้ง เพิ่มคุณค่าและความสวยงามให้โครงการ</p>
+            <ul class="service-items">
+                <li>สวนโมเดิร์น / ญี่ปุ่น / Tropical</li>
+                <li>สนามหญ้า / Walkway</li>
+                <li>ระบบไฟสนาม / Garden lighting</li>
+                <li>น้ำพุ / บ่อปลา / Water feature</li>
+                <li>พื้นที่นั่งเล่นกลางแจ้ง</li>
+                <li>Vertical garden / ไม้ประดับ</li>
+            </ul>
+            <div class="service-price">เริ่มต้น <span>฿5,000</span></div>
+        </div>
+
+        <!-- 5. 3D Visual -->
+        <div class="service-card">
+            <div class="service-icon">🖼️</div>
+            <h3>3D Visualization</h3>
+            <p class="desc">สร้างภาพและวิดีโอเสมือนจริง เห็นภาพก่อนสร้างจริง</p>
+            <ul class="service-items">
+                <li>3D Perspective (ภายใน/ภายนอก)</li>
+                <li>3D Walkthrough (วิดีโอ)</li>
+                <li>360° Virtual Tour</li>
+                <li>Floor Plan 2D / 3D</li>
+                <li>Moodboard / Concept Board</li>
+                <li>Material Board</li>
+            </ul>
+            <div class="service-price">เริ่มต้น <span>฿3,000</span> / มุม</div>
+        </div>
+
+        <!-- 6. MEP -->
+        <div class="service-card">
+            <div class="service-icon">🔧</div>
+            <h3>งานระบบ (MEP)</h3>
+            <p class="desc">ออกแบบระบบไฟฟ้า ประปา ปรับอากาศ และระบบรักษาความปลอดภัย</p>
+            <ul class="service-items">
+                <li>ระบบไฟฟ้า / Solar cell</li>
+                <li>ระบบประปา / ปั๊ม / ถังเก็บน้ำ</li>
+                <li>ระบบปรับอากาศ / VRV</li>
+                <li>CCTV / สัญญาณกันขโมย</li>
+                <li>Smart Home / IoT</li>
+                <li>Access control</li>
+            </ul>
+            <div class="service-price">เริ่มต้น <span>฿5,000</span></div>
+        </div>
+    </div>
+</section>
+
+<!-- PACKAGES -->
+<section class="section" style="background: var(--light);">
+    <div class="section-header">
+        <div class="badge">PACKAGES</div>
+        <h2>แพ็กเกจแนะนำ</h2>
+        <p>เลือกแพ็กเกจที่เหมาะกับโครงการของคุณ</p>
+    </div>
+
+    <div class="packages-grid">
+        <!-- Starter -->
+        <div class="package-card">
+            <div class="emoji">🏠</div>
+            <h3>Starter Home</h3>
+            <div class="price">฿15,000</div>
+            <div class="price-unit">เริ่มต้น</div>
+            <ul>
+                <li>แปลนบ้าน 2D</li>
+                <li>3D Perspective 2 มุม</li>
+                <li>BOQ / ประมาณราคา</li>
+                <li>แก้ไขแบบ 2 ครั้ง</li>
+            </ul>
+            <button class="package-btn package-btn-outline" onclick="document.getElementById('booking').scrollIntoView({behavior:'smooth'})">เลือกแพ็กเกจ</button>
+        </div>
+
+        <!-- Pro (Featured) -->
+        <div class="package-card featured">
+            <div class="emoji">🏡</div>
+            <h3>Pro Home</h3>
+            <div class="price">฿50,000</div>
+            <div class="price-unit">เริ่มต้น</div>
+            <ul>
+                <li>แปลนบ้านครบชุด</li>
+                <li>Interior Design 3 ห้อง</li>
+                <li>3D Walkthrough (วิดีโอ)</li>
+                <li>BOQ / ประมาณราคา</li>
+                <li>แก้ไขแบบ 3 ครั้ง</li>
+            </ul>
+            <button class="package-btn package-btn-fill" onclick="document.getElementById('booking').scrollIntoView({behavior:'smooth'})">เลือกแพ็กเกจ</button>
+        </div>
+
+        <!-- Premium -->
+        <div class="package-card">
+            <div class="emoji">🏗️</div>
+            <h3>Premium Home</h3>
+            <div class="price">฿150,000</div>
+            <div class="price-unit">เริ่มต้น</div>
+            <ul>
+                <li>Full Design (สถาปัตย์ + Interior)</li>
+                <li>Landscape Design</li>
+                <li>MEP Design ครบ</li>
+                <li>3D Walkthrough + Virtual Tour</li>
+                <li>ขออนุญาตก่อสร้าง</li>
+                <li>คุมงานก่อสร้าง</li>
+            </ul>
+            <button class="package-btn package-btn-outline" onclick="document.getElementById('booking').scrollIntoView({behavior:'smooth'})">เลือกแพ็กเกจ</button>
+        </div>
+    </div>
+</section>
+
+<!-- PROCESS -->
+<section class="section">
+    <div class="section-header">
+        <div class="badge">HOW WE WORK</div>
+        <h2>ขั้นตอนการทำงาน</h2>
+        <p>เราดูแลคุณทุกขั้นตอน ตั้งแต่ปรึกษาจนส่งมอบ</p>
+    </div>
+
+    <div class="process-grid">
+        <div class="process-step">
+            <div class="number">1</div>
+            <h4>ปรึกษาฟรี</h4>
+            <p>พูดคุยความต้องการ<br>สำรวจพื้นที่เบื้องต้น</p>
+        </div>
+        <div class="process-step">
+            <div class="number">2</div>
+            <h4>เสนอราคา</h4>
+            <p>ประเมินราคา<br>ส่งใบเสนอราคา</p>
+        </div>
+        <div class="process-step">
+            <div class="number">3</div>
+            <h4>ออกแบบ</h4>
+            <p>จัดทำแบบ 3D<br>ปรับแก้ตามต้องการ</p>
+        </div>
+        <div class="process-step">
+            <div class="number">4</div>
+            <h4>ส่งมอบ</h4>
+            <p>ส่งไฟล์ครบชุด<br>พร้อมดำเนินการ</p>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="booking">
+    <h2>พร้อมเริ่มโครงการ?</h2>
+    <p>ปรึกษาฟรี ไม่มีค่าใช้จ่าย — ทักมาเลย!</p>
+    <div class="cta-buttons">
+        <a href="tel:021234567" class="cta-btn cta-btn-gold">📞 02-123-4567</a>
+        <a href="https://line.me/ti/p/@nuchainnovation" class="cta-btn cta-btn-outline">💬 LINE: @nuchainnovation</a>
+    </div>
+</section>
+
+</body>
+</html>
