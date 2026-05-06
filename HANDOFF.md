@@ -3,7 +3,7 @@
 > **Last Updated:** 2026-05-06 12:15 (GMT+8)
 > **Updated By:** OpenClaw AI Agent (Theme-consistent services + quotation pages)
 > **Branch:** main
-> **Latest Commit:** Merge nucha-services into main site with correct red/white theme
+> **Latest Commit:** เชื่อม services เข้าเว็บหลักครบ — route + nav + fallback 9 หมวด
 > **Status:** ✅ Services overview + quotation template rewritten with site theme + Three.js 3D models
 ---
 
@@ -272,6 +272,10 @@ node scripts/site-docs.js           # รัน script (จะ scroll + force vi
 | 89 | **quotation.html (ธีมใหม่)** — ใบเสนอราคา template ธีมแดง-ขาว + print-friendly | quotation.html | ✅ NEW |
 | 90 | **Three.js 3D Models (6 ฉาก)** — Signage, Interior, Architecture, Landscape, MEP, Visual | services.html (inline) | ✅ NEW |
 | 91 | **GSAP Animations** — scroll animations + feature cards | services.html | ✅ NEW |
+| 92 | **Route /services** — เพิ่ม route ใน server.js สำหรับ services.html + quotation.html | server.js | ✅ NEW |
+| 93 | **Nav link 'บริการทั้งหมด'** — เพิ่มใน nav ทุกหน้า (index, service, site-loader) ถาวร ไม่ถูก CMS ทับ | index.html, service.html, site-loader.js | ✅ NEW |
+| 94 | **Fallback 9 หมวด** — เปลี่ยน fallback services จาก 5 รายการเป็น 9 หมวดครบตาม catalog | index.html | ✅ NEW |
+| 95 | **ปุ่ม 'ดูบริการทั้งหมด + แพ็กเกจ'** — เชื่อมไปหน้า /services | index.html | ✅ NEW |
 
 #### สิ่งที่แก้ไขใน services.html ใหม่:
 - ❌ Gold `#c8a951` → ✅ Red `#D60000`
