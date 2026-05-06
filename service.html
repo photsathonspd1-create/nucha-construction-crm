@@ -462,13 +462,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
     <script>
     (async function() {
-        const serviceKey = new URLSearchParams(window.location.search).get('key');
-        if (!serviceKey) { window.location.href = '/#services'; return; }
+        const params = new URLSearchParams(window.location.search);
+        const serviceKey = params.get('key');
+        const serviceCategory = params.get('category');
+
+        if (!serviceKey && !serviceCategory) { window.location.href = '/services'; return; }
 
         // Fetch content + nav in parallel
         const [contentRes, navRes] = await Promise.all([
-            fetch('/api/content').then(r => r.json()).catch(() => ({})),
-            fetch('/api/nav').then(r => r.json()).catch(() => [])
+            fetch('/api/content', { cache: 'no-store' }).then(r => r.json()).catch(() => ({})),
+            fetch('/api/nav', { cache: 'no-store' }).then(r => r.json()).catch(() => [])
         ]);
 
         // Apply site config
@@ -551,9 +554,84 @@
                 .join('') + '<li><a href="/services">บริการทั้งหมด</a></li><li class="nav-menu-login"><a href="/login">🔑 เข้าสู่ระบบ</a></li>';
         }
 
-        // Find service data
+        // Find service data — try category from DB API first, then CMS content
         const services = contentRes.services || {};
         const items = services.items || [];
+
+        // ===== CATEGORY MODE: Load from /api/services =====
+        if (serviceCategory) {
+            let dbServices = [];
+            try {
+                const allServices = await fetch('/api/services', { cache: 'no-store' }).then(r => r.json());
+                dbServices = allServices.filter(s => s.category === serviceCategory);
+            } catch (e) { console.error('Load services error:', e); }
+
+            if (dbServices.length === 0) {
+                document.getElementById('serviceName').textContent = 'ไม่พบบริการ';
+                document.getElementById('serviceDesc').textContent = 'ไม่มีบริการในหมวดนี้';
+                document.getElementById('featuresGrid').innerHTML = '';
+                document.getElementById('servicePortfolio').style.display = 'none';
+                document.getElementById('serviceProcess').style.display = 'none';
+                hideLoader();
+                return;
+            }
+
+            const catMeta = {
+                'ป้าย': { icon: '🪧', en: 'Signage Design', desc: 'ออกแบบและผลิตป้ายทุกประเภท' },
+                'ตกแต่งภายใน': { icon: '🏠', en: 'Interior Design', desc: 'ออกแบบภายในทุกสไตล์' },
+                'สถาปัตยกรรม': { icon: '🏡', en: 'Architectural Design', desc: 'ออกแบบอาคารทุกประเภท' },
+                'ภูมิทัศน์': { icon: '🌳', en: 'Landscape Design', desc: 'ออกแบบสวนและภูมิทัศน์' },
+                'เขียนแบบ': { icon: '📐', en: 'Drafting & Documentation', desc: 'เขียนแบบก่อสร้างและเอกสาร' },
+                '3D/Visual': { icon: '🖼️', en: 'Visualization', desc: 'ภาพ 3D Walkthrough Virtual Tour' },
+                'งานระบบ': { icon: '🔧', en: 'MEP Design', desc: 'ระบบไฟฟ้า ประปา แอร์ CCTV' },
+                'ที่ปรึกษา': { icon: '📋', en: 'Consulting', desc: 'ที่ปรึกษาโครงการครบวงจร' },
+                'งานพิมพ์/ผลิต': { icon: '📦', en: 'Print & Production', desc: 'ผลิตป้าย สติกเกอร์ Wallpaper' }
+            };
+            const meta = catMeta[serviceCategory] || { icon: '🔧', en: serviceCategory, desc: '' };
+            const minPrice = Math.min(...dbServices.map(s => s.price_start));
+
+            document.title = serviceCategory + ' — NUCHA INNOVATION';
+            document.getElementById('pageTitle').textContent = serviceCategory + ' — NUCHA INNOVATION';
+            document.getElementById('serviceIcon').textContent = meta.icon;
+            document.getElementById('serviceName').textContent = serviceCategory;
+            document.getElementById('serviceDesc').textContent = meta.desc;
+            document.getElementById('serviceBudget').textContent = 'เริ่มต้น ฿' + minPrice.toLocaleString('th-TH');
+
+            // Hide hero image for category view
+            const heroVisual = document.querySelector('.service-hero-visual');
+            if (heroVisual) heroVisual.style.display = 'none';
+
+            // Show sub-services as feature cards
+            document.getElementById('featuresGrid').innerHTML = dbServices.map(s => `
+                <div class="feature-card" data-animate="fade-up">
+                    <div class="feature-icon">${esc(s.icon || '🔧')}</div>
+                    <h3>${esc(s.name)}</h3>
+                    <p>${esc(s.description || '')}</p>
+                    <div style="margin-top:12px;font-weight:700;color:var(--red);font-size:0.95rem">
+                        เริ่มต้น ฿${s.price_start.toLocaleString('th-TH')} / ${esc(s.price_unit || 'รายการ')}
+                    </div>
+                </div>
+            `).join('');
+
+            // Hide portfolio + process for category view
+            document.getElementById('servicePortfolio').style.display = 'none';
+            document.getElementById('serviceProcess').style.display = 'none';
+
+            // Animate feature cards
+            if (typeof gsap !== 'undefined') {
+                gsap.utils.toArray('.feature-card').forEach((card, i) => {
+                    gsap.from(card, {
+                        scrollTrigger: { trigger: card, start: 'top 85%', toggleActions: 'play none none none' },
+                        y: 30, opacity: 0, duration: 0.6, delay: i * 0.08, ease: 'power3.out'
+                    });
+                });
+            }
+
+            hideLoader();
+            return;
+        }
+
+        // ===== KEY MODE: Load from CMS content (existing behavior) =====
         const service = items.find(s => s.key === serviceKey);
 
         if (!service) {

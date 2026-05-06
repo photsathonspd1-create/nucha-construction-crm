@@ -1170,7 +1170,7 @@
                 const minPrice = Math.min(...items.map(i => i.price_start));
                 const priceDisplay = minPrice >= 1000 ? '฿' + minPrice.toLocaleString('th-TH') : '฿' + minPrice;
                 return `
-                    <div class="service-card">
+                    <a href="/service?category=${encodeURIComponent(cat)}" class="service-card" style="text-decoration:none;color:inherit">
                         <span class="service-card-icon">${meta.icon}</span>
                         <h3>${esc(cat)}</h3>
                         <div class="service-en">${esc(meta.en)}</div>
@@ -1179,7 +1179,7 @@
                         <ul class="sub-services">
                             ${items.map(item => '<li>' + esc(item.name) + '</li>').join('')}
                         </ul>
-                    </div>
+                    </a>
                 `;
             }).join('');
 
