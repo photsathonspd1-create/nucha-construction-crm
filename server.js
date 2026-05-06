@@ -1412,6 +1412,22 @@ app.get('/service.html', (req, res) => {
   res.sendFile('service.html', { root: __dirname });
 });
 
+// Services overview page (public)
+app.get('/services', (req, res) => {
+  res.sendFile('services.html', { root: __dirname });
+});
+app.get('/services.html', (req, res) => {
+  res.sendFile('services.html', { root: __dirname });
+});
+
+// Quotation template (public)
+app.get('/quotation', (req, res) => {
+  res.sendFile('quotation.html', { root: __dirname });
+});
+app.get('/quotation.html', (req, res) => {
+  res.sendFile('quotation.html', { root: __dirname });
+});
+
 // Legal pages (public)
 app.get('/privacy', (req, res) => {
   res.sendFile('privacy.html', { root: __dirname });

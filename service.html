@@ -548,7 +548,7 @@
             });
             navMenu.innerHTML = uniqueNav
                 .map(n => `<li><a href="${esc(n.href)}">${esc(n.label)}</a></li>`)
-                .join('') + '<li class="nav-menu-login"><a href="/login">🔑 เข้าสู่ระบบ</a></li>';
+                .join('') + '<li><a href="/services">บริการทั้งหมด</a></li><li class="nav-menu-login"><a href="/login">🔑 เข้าสู่ระบบ</a></li>';
         }
 
         // Find service data

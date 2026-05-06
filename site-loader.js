@@ -34,6 +34,7 @@
             return `<li><a href="${safeHref}" class="${safeHref === '#home' ? 'active' : ''}">${safeLabel}</a></li>`;
           })
           .join('') +
+          '<li><a href="/services">บริการทั้งหมด</a></li>' +
           '<li class="nav-menu-login"><a href="/login">🔑 เข้าสู่ระบบ</a></li>';
       }
 
