@@ -11,6 +11,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
+        /* Override custom cursor — show normal mouse */
+        body { cursor: auto !important; }
+        .cursor, .cursor-follower { display: none !important; }
+        a, button { cursor: pointer; }
+
         .legal-page { max-width: 800px; margin: 0 auto; padding: 120px 24px 80px; }
         .legal-page h1 { font-size: 2rem; margin-bottom: 8px; color: var(--gray-800); }
         .legal-page .legal-date { color: var(--gray-400); font-size: 0.85rem; margin-bottom: 40px; }
