@@ -181,23 +181,26 @@
         if (grid) {
           grid.innerHTML = services.items.map((s, i) => {
             const safeImage = esc(s.image_url || s.image || '');
-            const imgHtml = safeImage ? `<img src="${safeImage}" alt="${esc(s.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit" onerror="this.style.display='none'">` : '';
+            const imgHtml = safeImage ? `<img src="${safeImage}" alt="${esc(s.name)}" loading="lazy" onload="this.classList.add('loaded')" onerror="this.style.display='none'">` : '';
             const serviceKey = esc(s.key || '');
+            const emojiFallback = `<span class="emoji-fallback">${esc(s.icon || '🏗️')}</span>`;
             return `
               <div class="service-card${i === services.items.length - 1 ? ' service-card-highlight' : ''}" data-animate="fade-up" data-service="${serviceKey}">
-                <div class="service-number">${String(i + 1).padStart(2, '0')}</div>
-                <div class="service-icon" style="font-size:2.5rem">${imgHtml || esc(s.icon || '🏗️')}</div>
-                <h3>${esc(s.name)}</h3>
-                <p>${esc(s.desc)}</p>
-                <div class="service-budget">${esc(s.budget)}</div>
-                <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-                  <a href="/service.html?key=${serviceKey}" class="service-link magnetic-btn">
-                    <span>ดูรายละเอียด</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  </a>
-                  <a href="#booking" class="service-link magnetic-btn" data-booking-service="${serviceKey}" style="color:var(--gray-400)">
-                    <span>จองคิว</span>
-                  </a>
+                <div class="service-icon">${imgHtml || emojiFallback}</div>
+                <div class="service-card-body">
+                  <div class="service-number">${String(i + 1).padStart(2, '0')}</div>
+                  <h3>${esc(s.name)}</h3>
+                  <p>${esc(s.desc)}</p>
+                  <div class="service-budget">${esc(s.budget)}</div>
+                  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:auto;padding-top:16px">
+                    <a href="/service.html?key=${serviceKey}" class="service-link magnetic-btn">
+                      <span>ดูรายละเอียด</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </a>
+                    <a href="#booking" class="service-link magnetic-btn" data-booking-service="${serviceKey}" style="color:var(--gray-400)">
+                      <span>จองคิว</span>
+                    </a>
+                </div>
                 </div>
               </div>
             `;

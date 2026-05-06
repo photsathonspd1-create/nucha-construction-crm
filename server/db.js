@@ -184,15 +184,15 @@ const defaultContent = {
     section_title: 'บริการของเรา',
     section_desc: 'เลือกบริการที่ตรงกับความต้องการของคุณ — ปรึกษาฟรี ไม่มีค่าใช้จ่าย',
     items: [
-      { icon: '🏗️', name: 'รับเหมาก่อสร้าง', desc: 'รับเหมาก่อสร้างครบวงจร บ้าน อาคาร สำนักงาน โรงงาน ด้วยทีมวิศวกรมืออาชีพ', budget: 'งบประมาณเริ่มต้น 500,000 บาท', key: 'construction' },
-      { icon: '🪑', name: 'บิ้วอิน', desc: 'ออกแบบและติดตั้งเฟอร์นิเจอร์บิ้วอิน ครัว ตู้เสื้อผ้า ชั้นวาง วัสดุคุณภาพสูง', budget: 'งบประมาณเริ่มต้น 200,000 บาท', key: 'builtin' },
-      { icon: '✏️', name: 'ออกแบบ', desc: 'ออกแบบสถาปัตยกรรม ตกแต่งภายใน 3D Rendering ครบวงจร โดยทีมดีไซเนอร์มืออาชีพ', budget: 'งบประมาณเริ่มต้น 100,000 บาท', key: 'design' },
-      { icon: '🎨', name: 'ตกแต่ง', desc: 'ตกแต่งภายในและภายนอก ปรับปรุง รีโนเวท เปลี่ยนพื้นที่เดิมให้สวยงามทันสมัย', budget: 'งบประมาณเริ่มต้น 150,000 บาท', key: 'decoration' },
-      { icon: '📋', name: 'บริหารงานขายโครงการ', desc: 'บริหารจัดการโครงการก่อสร้างครบวงจร วางแผน ควบคุมงาน ตรวจสอบคุณภาพ ดูแลงบประมาณ', budget: 'งบประมาณตามขนาดโครงการ', key: 'project-management' },
-      { icon: '🪧', name: 'ออกแบบป้าย', desc: 'ออกแบบและผลิตป้ายทุกประเภท ป้ายโครงการ ป้ายบริษัท ป้ายโฆษณา ป้ายไฟ LED', budget: 'งบประมาณเริ่มต้น 2,000 บาท', key: 'signage' },
-      { icon: '🌳', name: 'ออกแบบภูมิทัศน์', desc: 'ออกแบบสวนและพื้นที่กลางแจ้ง สวนโมเดิร์น ญี่ปุ่น Tropical ระบบไฟสนาม', budget: 'งบประมาณเริ่มต้น 5,000 บาท', key: 'landscape' },
-      { icon: '📐', name: 'เขียนแบบและเอกสาร', desc: 'เขียนแบบก่อสร้าง แบบขออนุญาต BOQ ประมาณราคา TOR ครบถ้วน', budget: 'งบประมาณเริ่มต้น 3,000 บาท', key: 'drafting' },
-      { icon: '🖼️', name: 'งาน Visual / 3D', desc: '3D Perspective Walkthrough Virtual Tour 360° Floor Plan Moodboard', budget: 'งบประมาณเริ่มต้น 2,000 บาท', key: 'visualization' }
+      { icon: '🏗️', name: 'รับเหมาก่อสร้าง', desc: 'รับเหมาก่อสร้างครบวงจร บ้าน อาคาร สำนักงาน โรงงาน ด้วยทีมวิศวกรมืออาชีพ', budget: 'งบประมาณเริ่มต้น 500,000 บาท', key: 'construction', image_url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&q=80' },
+      { icon: '🪑', name: 'บิ้วอิน', desc: 'ออกแบบและติดตั้งเฟอร์นิเจอร์บิ้วอิน ครัว ตู้เสื้อผ้า ชั้นวาง วัสดุคุณภาพสูง', budget: 'งบประมาณเริ่มต้น 200,000 บาท', key: 'builtin', image_url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&q=80' },
+      { icon: '✏️', name: 'ออกแบบ', desc: 'ออกแบบสถาปัตยกรรม ตกแต่งภายใน 3D Rendering ครบวงจร โดยทีมดีไซเนอร์มืออาชีพ', budget: 'งบประมาณเริ่มต้น 100,000 บาท', key: 'design', image_url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&q=80' },
+      { icon: '🎨', name: 'ตกแต่ง', desc: 'ตกแต่งภายในและภายนอก ปรับปรุง รีโนเวท เปลี่ยนพื้นที่เดิมให้สวยงามทันสมัย', budget: 'งบประมาณเริ่มต้น 150,000 บาท', key: 'decoration', image_url: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=600&q=80' },
+      { icon: '📋', name: 'บริหารงานขายโครงการ', desc: 'บริหารจัดการโครงการก่อสร้างครบวงจร วางแผน ควบคุมงาน ตรวจสอบคุณภาพ ดูแลงบประมาณ', budget: 'งบประมาณตามขนาดโครงการ', key: 'project-management', image_url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&q=80' },
+      { icon: '🪧', name: 'ออกแบบป้าย', desc: 'ออกแบบและผลิตป้ายทุกประเภท ป้ายโครงการ ป้ายบริษัท ป้ายโฆษณา ป้ายไฟ LED', budget: 'งบประมาณเริ่มต้น 2,000 บาท', key: 'signage', image_url: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&q=80' },
+      { icon: '🌳', name: 'ออกแบบภูมิทัศน์', desc: 'ออกแบบสวนและพื้นที่กลางแจ้ง สวนโมเดิร์น ญี่ปุ่น Tropical ระบบไฟสนาม', budget: 'งบประมาณเริ่มต้น 5,000 บาท', key: 'landscape', image_url: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=600&q=80' },
+      { icon: '📐', name: 'เขียนแบบและเอกสาร', desc: 'เขียนแบบก่อสร้าง แบบขออนุญาต BOQ ประมาณราคา TOR ครบถ้วน', budget: 'งบประมาณเริ่มต้น 3,000 บาท', key: 'drafting', image_url: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=600&q=80' },
+      { icon: '🖼️', name: 'งาน Visual / 3D', desc: '3D Perspective Walkthrough Virtual Tour 360° Floor Plan Moodboard', budget: 'งบประมาณเริ่มต้น 2,000 บาท', key: 'visualization', image_url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&q=80' }
     ]
   },
   process: {

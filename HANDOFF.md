@@ -1,6 +1,6 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> อัพเดทล่าสุด: 2026-05-06 15:47 (GMT+8)
+> อัพเดทล่าสุด: 2026-05-06 16:44 (GMT+8)
 
 ---
 
@@ -30,11 +30,18 @@
 - เพิ่ม CSS `.image-upload-row` + `.image-preview` ใน `admin.css`
 - `saveServices()` ส่ง `image_url` ไปเก็บใน CMS content
 
-### Frontend Image Display
-- **`site-loader.js`** — แสดงรูปจาก `image_url` แทน emoji icon ใน service cards (หน้า index)
+### Frontend Image Display (Service Cards แสดงรูปภาพจริง)
+- **`site-loader.js`** — แสดงรูปจาก `image_url` แทน emoji icon ใน service cards
+  - `<img>` พร้อม `onload` → เพิ่ม class `loaded` → ซ่อน emoji fallback
+  - `onerror` → ซ่อนรูป แสดง emoji fallback แทน
+- **`server/db.js`** — เพิ่ม `image_url` ใน seed data ทั้ง 9 service items (site_content)
+- **`index.html`** — fallback cards 9 ใบใส่รูป Unsplash ทุกใบ (ไม่ใช่ emoji ล้วน)
+- **`style.css`** — ปรับ `.service-card` เป็น flex column:
+  - `.service-icon` → 200px สูง, cover image, zoom on hover
+  - `.service-card-body` → padding, flex-grow
+  - `.emoji-fallback` → แสดงเมื่อรูปโหลดไม่ได้
 - **`service.html`** — key mode: ใช้ `image_url` เป็น hero icon + hero image
 - **`service.html`** — category mode: แสดงรูปจาก DB services ใน hero + feature cards
-- **`service.html`** — ซ่อน emoji icon ถ้ามีรูปแล้ว
 
 ### Admin DB Services Page (เพิ่ม sidebar link แล้ว)
 - เพิ่ม sidebar link "📦 บริการ (DB)" ใน `admin.html`
@@ -54,7 +61,7 @@
    - ต้องเพิ่ม HTML page section สำหรับจัดการ 58 DB services
    - ต้องเพิ่ม JS functions: `renderDbServices()`, `editDbService()`, `saveDbService()`, `deleteDbService()`
    - ต้องมี: list view, add/edit form (name, category, description, price_start, price_unit, icon, image_url, sort_order, is_active), delete, filter by category
-   - API endpoints ที่มีแล้ว: `GET/POST/PUT/DELETE /api/services/:id` (แต่ยังไม่มี POST/PUT/DELETE — ต้องเพิ่มใน server.js)
+   - API endpoints ที่มีแล้ว: `GET /api/services` + `GET /api/services/:id` (แต่ยังไม่มี POST/PUT/DELETE — ต้องเพิ่มใน server.js)
 
 2. **API สำหรับ DB Services CRUD — ยังไม่ครบ**
    - `GET /api/services` ✅ (มีแล้ว)
@@ -74,19 +81,15 @@
    - ตอนนี้ใช้ `meta.icon` (emoji) สำหรับ category cards
    - ควรแสดง `image_url` จาก DB service เป็น card background/thumbnail
 
-5. **index.html — service cards ยัง hardcoded**
-   - service cards ใน index.html เป็น HTML ตายตัว (ไม่ dynamic)
-   - `site-loader.js` เขียนทับด้วย CMS content แล้ว แต่ถ้า CMS ไม่มีข้อมูล จะแสดง HTML ดั้งเดิมที่ไม่มีรูป
-
-6. **Admin: จัดการ Service Packages**
+5. **Admin: จัดการ Service Packages**
    - DB มี `service_packages` table (7 packages) แต่ไม่มี admin UI จัดการ
 
 ### 🟢 Nice to Have
 
-7. **Rate limit admin login** — ตอนนี้ 5 ครั้ง/นาที ทั้งหมด ควรแยก admin กับ public
-8. **CSRF protection** — ยังไม่มี
-9. **Audit log** — บันทึก admin actions เพิ่มเติม
-10. **Export PDF** — สำหรับ proposals
+6. **Rate limit admin login** — ตอนนี้ 5 ครั้ง/นาที ทั้งหมด ควรแยก admin กับ public
+7. **CSRF protection** — ยังไม่มี
+8. **Audit log** — บันทึก admin actions เพิ่มเติม
+9. **Export PDF** — สำหรับ proposals
 
 ---
 
@@ -105,6 +108,7 @@ index.html          — Landing page (dynamic via site-loader.js)
 service.html        — Service detail page (2 modes: key/category)
 services.html       — Services overview (DB categories)
 chat-widget.js/html — Customer chat widget
+nucha-services/     — Service catalog docs, seed SQL, quotation templates
 ```
 
 ## 🔑 Default Credentials
@@ -115,7 +119,7 @@ chat-widget.js/html — Customer chat widget
 - Frontend: HTML/CSS/JS + GSAP animations
 - Backend: Node.js + Express 5
 - Database: SQLite (better-sqlite3)
-- Auth: JWT + bcryptjs
+- Auth: JWT + bcryptjs (cookie-based, HttpOnly, SameSite=Strict)
 - Upload: Multer
 
 ## 🚀 How to Run
@@ -128,11 +132,52 @@ npm start
 
 ---
 
+## 🔄 Flow การทำงาน
+
+### 1. Landing Page Flow
+```
+index.html (static fallback) → site-loader.js fetches /api/content → แทนที่ dynamic sections
+  - Hero, Services, Process, Portfolio, Testimonials, Closing, Footer
+  - Service cards: image_url จาก API → <img> → fallback emoji ถ้ารูปพัง
+```
+
+### 2. Admin CMS Flow
+```
+admin-login.html → POST /api/auth/login → JWT cookie → redirect /admin
+admin.html → admin.js โหลด content จาก /api/content → แก้ไข → PUT /api/content/:key
+  - แก้ได้: Hero, Services, Portfolio, Footer, Navbar, ฯลฯ
+  - อัปโหลดรูป: POST /api/upload → ได้ URL → ใส่ใน content
+```
+
+### 3. Lead Flow
+```
+Landing page booking form → POST /api/leads → SQLite
+Admin: GET /api/leads → list/filter/search → update status → pipeline view
+```
+
+### 4. Chat Flow
+```
+chat-widget.html → customer ส่งข้อความ → POST /api/chat
+Admin: GET /api/chat → reply → real-time polling
+```
+
+---
+
 ## 📝 Notes สำหรับ Agent ถัดไป
 
-- ทุก fix ที่ทำไว้ยัง **ไม่ได้ commit** — ต้อง commit ก่อน
-- Security fixes ทั้ง 10 จุดทำงานแล้ว ผ่าน test แล้ว
-- CMS image support ใช้ได้แล้ว แต่ DB services admin ยังไม่เสร็จ
-- ดู `server.js` บรรทัด ~1190 สำหรับ generate-docs ที่เปลี่ยนเป็น execFile
-- ดู `admin.js` บรรทัด ~280 สำหรับ renderServicesForm ที่เพิ่ม image_url
-- ดู `site-loader.js` บรรทัด ~170 สำหรับ service card image rendering
+- **สิ่งที่ทำวันนี้ (2026-05-06):**
+  - แก้ service cards แสดงรูปภาพแทน emoji (4 ไฟล์: style.css, site-loader.js, index.html, server/db.js)
+  - ปรับ CSS `.service-card` เป็น card layout แบบมี cover image
+  - เพิ่ม `image_url` ใน seed data ของ site_content services
+  - fallback HTML ใน index.html ใส่รูป Unsplash ทั้ง 9 ใบ
+
+- **สิ่งที่ยังค้าง (TODO ข้อ 1-3 สำคัญสุด):**
+  1. Admin DB Services Page — ต้องทำ HTML + JS สำหรับจัดการ 58 services
+  2. API CRUD สำหรับ services — เพิ่ม POST/PUT/DELETE ใน server.js
+  3. service.html feature cards — hardcoded 5 ชุด ต้องเพิ่มอีก 4 หรือดึงจาก DB
+
+- **ข้อมูลอ้างอิง:**
+  - ดู `server/db.js` บรรทัด ~185 สำหรับ seed data services (มี image_url แล้ว)
+  - ดู `site-loader.js` บรรทัด ~183 สำหรับ service card image rendering
+  - ดู `style.css` บรรทัด ~262 สำหรับ `.service-card` layout ใหม่
+  - ดู `admin.js` บรรทัด ~280 สำหรับ renderServicesForm ที่เพิ่ม image_url
