@@ -44,6 +44,7 @@
                     <div class="sidebar-section-title">📋 จัดการลูกค้า</div>
                     <div class="sidebar-link" data-page="leads" onclick="showPage('leads')"><span>👥 Leads</span><span class="badge" id="leadsCount">0</span></div>
                     <div class="sidebar-link" data-page="bookings" onclick="showPage('bookings')"><span>📅 จองคิว</span><span class="badge" id="bookingsCount">0</span></div>
+                    <div class="sidebar-link" data-page="proposals" onclick="showPage('proposals')"><span>📄 ใบเสนอราคา</span></div>
                 </div>
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">📊 รายงาน</div>
@@ -231,6 +232,23 @@
             <div class="page-section" id="page-bookings">
                 <div class="page-header"><h1>📅 จองคิว</h1><p>รายการนัดหมาย</p></div>
                 <div id="bookingsList"></div>
+            </div>
+
+            <!-- Proposals -->
+            <div class="page-section" id="page-proposals">
+                <div class="page-header">
+                    <h1>📄 ใบเสนอราคา</h1>
+                    <p>จัดการใบเสนอราคา (Proposals)</p>
+                </div>
+                <div style="margin-bottom:1rem">
+                    <button class="btn btn-primary" onclick="showCreateProposalModal()">➕ สร้างใบเสนอราคา</button>
+                </div>
+                <div class="leads-table-wrap">
+                    <table class="leads-table" id="proposalsTable">
+                        <thead><tr><th>เลขที่</th><th>หัวข้อ</th><th>ลูกค้า</th><th>ยอดรวม</th><th>สถานะ</th><th>วันที่</th><th>จัดการ</th></tr></thead>
+                        <tbody id="proposalsBody"></tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Media Library -->

@@ -1,10 +1,10 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> **Last Updated:** 2026-05-06 12:15 (GMT+8)
-> **Updated By:** OpenClaw AI Agent (Theme-consistent services + quotation pages)
+> **Last Updated:** 2026-05-06 13:00 (GMT+8)
+> **Updated By:** OpenClaw AI Agent — Services API + Dynamic Pages + Admin Proposals
 > **Branch:** main
-> **Latest Commit:** เชื่อม services เข้าเว็บหลักครบ — route + nav + fallback 9 หมวด
-> **Status:** ✅ Services overview + quotation template rewritten with site theme + Three.js 3D models
+> **Latest Commit:** feat: services API + dynamic services page + admin proposals + 9 categories
+> **Status:** ✅ Full services system operational — 58 services, 9 categories, 7 packages, all API endpoints
 ---
 
 ## 📋 Project Overview
@@ -252,6 +252,64 @@ node scripts/site-docs.js           # รัน script (จะ scroll + force vi
 
 ---
 
+### 🛍️ Services API + Dynamic System (2026-05-06 13:00)
+**ปัญหา:** Services data จาก catalog (50+ รายการ) ไม่ถูกโหลดเข้า DB, ไม่มี API, landing page แสดงแค่ 5 หมวด, services.html เป็น static HTML, admin ไม่มีหน้า Proposals
+
+| # | Feature | Files | Status |
+|---|---------|-------|--------|
+| 96 | **services + service_packages tables** — สร้าง tables ใน db.js + seed 58 บริการ 9 หมวด + 7 แพ็กเกจ | server/db.js | ✅ NEW |
+| 97 | **Services API** — GET /api/services, /api/services/:id, /api/services/categories, /api/service-packages, /api/service-packages/:id (public) | server.js | ✅ NEW |
+| 98 | **Landing page 9 หมวด** — เพิ่มจาก 5 → 9 หมวดบริการ (ป้าย, ภูมิทัศน์, เขียนแบบ, 3D/Visual) + footer links | server/db.js | ✅ NEW |
+| 99 | **Dynamic services.html** — เปลี่ยนจาก hardcode → ดึงจาก API, grouped by category, GSAP animations re-init | services.html | ✅ NEW |
+| 100 | **Admin Proposals page** — sidebar link + renderProposals + create/edit/delete/status change | admin.html, admin.js | ✅ NEW |
+| 101 | **DELETE /api/proposals/:id** — เพิ่ม endpoint ลบ proposals | server.js | ✅ NEW |
+| 102 | **Routes /services-3d, /services-alt** — เพิ่ม routes สำหรับ nucha-services/ pages | server.js | ✅ NEW |
+| 103 | **Dynamic footer** — services.html footer ดึงข้อมูลจาก CMS (site_config) | services.html | ✅ NEW |
+
+#### รายละเอียดการแก้ไข:
+
+**server/db.js:**
+- เพิ่ม CREATE TABLE `services` (id, category, name, description, price_start, price_unit, icon, sort_order, is_active)
+- เพิ่ม CREATE TABLE `service_packages` (id, name, description, price_start, features JSON, is_featured, sort_order, is_active)
+- Seed 58 บริการ: ป้าย(8), ตกแต่งภายใน(10), สถาปัตยกรรม(8), ภูมิทัศน์(6), เขียนแบบ(5), 3D/Visual(6), งานระบบ(5), ที่ปรึกษา(5), งานพิมพ์/ผลิต(5)
+- Seed 7 packages: Starter Home, Pro Home (featured), Premium Home, Project Signage, Visual Pack, Office Package, Restaurant Package
+- เพิ่ม 4 หมวดบริการใน landing page content (services.items: 5→9)
+- เพิ่ม 4 footer service links (ออกแบบป้าย, ภูมิทัศน์, เขียนแบบ, 3D/Visual)
+- ใช้ COUNT(*) check ป้องกัน duplicate บน restart
+
+**server.js:**
+- เพิ่ม 5 endpoints: /api/services, /api/services/categories, /api/services/:id, /api/service-packages, /api/service-packages/:id
+- เพิ่ม DELETE /api/proposals/:id
+- เพิ่ม GET /services-3d → nucha-services/services-page-3d.html
+- เพิ่ม GET /services-alt → nucha-services/services-page.html
+
+**services.html:**
+- เปลี่ยน service cards จาก hardcode → fetch /api/services แล้ว group by category
+- เปลี่ยน package cards จาก hardcode → fetch /api/service-packages พร้อม features list
+- Footer ดึงข้อมูลจาก /api/content/site_config (phone, email, LINE, copyright)
+- GSAP animations re-initialize หลัง dynamic content load
+- Three.js 3D showcase 保留不变
+
+**admin.html + admin.js:**
+- เพิ่ม sidebar link: 📄 ใบเสนอราคา
+- เพิ่ม page-proposals section + proposals table
+- renderProposals() — ดึง /api/proposals แสดงตาราง + status dropdown
+- showCreateProposalModal() — ฟอร์มสร้าง proposal ใหม่
+- editProposal() / updateProposalStatus() / deleteProposal()
+
+#### API Test Results:
+```
+GET /api/services          → 58 services ✅
+GET /api/services/categories → 9 categories ✅
+GET /api/service-packages  → 7 packages ✅
+POST /api/proposals        → NP-0001 created ✅
+GET /api/content/services  → 9 items (landing page) ✅
+GET /api/content/footer    → 9 service links ✅
+All routes                 → 200 ✅
+```
+
+---
+
 ### 🛍️ Services Catalog + 3D Models (2026-05-06)
 | # | Feature | Files | Status |
 |---|---------|-------|--------|
@@ -450,6 +508,15 @@ nucha-construction-crm/
 | POST | /api/auth/forgot-password | No | Generate reset token (console log only) |
 | POST | /api/auth/reset-password | No | Reset password with token |
 
+### Services (Public)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | /api/services | No | List all active services (grouped by category) |
+| GET | /api/services/categories | No | List unique service categories |
+| GET | /api/services/:id | No | Single service detail |
+| GET | /api/service-packages | No | List all active packages with features |
+| GET | /api/service-packages/:id | No | Single package detail |
+
 ### Content (CMS)
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -493,6 +560,7 @@ nucha-construction-crm/
 | GET | /api/proposals | Yes | List proposals with lead names |
 | POST | /api/proposals | Yes | Create proposal (auto NP-XXXX number) |
 | PUT | /api/proposals/:id | Yes | Update proposal |
+| DELETE | /api/proposals/:id | Yes | Delete proposal |
 
 ### Reports
 | Method | Endpoint | Auth | Description |
@@ -569,9 +637,11 @@ nucha-construction-crm/
 8. **Dashboard Charts** — กราฟ leads ตามเดือน, conversion funnel (ใช้ Chart.js)
 9. **Live Chat Real-time** — เปลี่ยนจาก polling 5s → WebSocket สำหรับ chat ที่เร็วขึ้น
 10. **Chat typing indicator** — แสดง "แอดมินกำลังพิมพ์..." ฝั่งลูกค้า
-11. **🔗 เชื่อม services.html เข้าเว็บหลัก** — เพิ่ม route `/services` ใน server.js + เพิ่ม nav link
-12. **🗄️ Run seed-services.sql** — สร้าง services + service_packages tables ใน DB
-13. **🔌 Services API** — CRUD endpoints สำหรับ services ใน server.js
+11. ~~**เชื่อม services.html เข้าเว็บหลัก**~~ ✅ เสร็จแล้ว — route /services + nav link
+12. ~~**Run seed-services.sql**~~ ✅ เสร็จแล้ว — services + service_packages tables + 58 services + 7 packages
+13. ~~**Services API**~~ ✅ เสร็จแล้ว — 5 endpoints (services, categories, packages)
+14. **Admin Services CMS** — เพิ่มหน้าแก้ไขบริการใน admin (CRUD services + packages)
+15. **Quotation generator** — เลือกบริการ → สร้างใบเสนอราคาอัตโนมัติ (ใช้ quotation.html template)
 
 ### 🟢 Priority 3 — Features ใหม่
 11. **Customer Portal** — ให้ลูกค้าเข้ามาดู progress โครงการ (login ด้วยเบอร์โทร + OTP)

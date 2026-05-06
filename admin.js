@@ -86,6 +86,7 @@ function showPage(pageId) {
   if (pageId === 'site-docs') checkSiteDocs();
   if (pageId === 'chatbot') renderChatbotForm();
   if (pageId === 'customer-chat') renderCustomerChat();
+  if (pageId === 'proposals') renderProposals();
 }
 
 // ===== LOGOUT =====
@@ -1730,6 +1731,160 @@ document.getElementById('adminChatInput')?.addEventListener('keypress', e => {
 // Poll for unread chat count
 setInterval(updateChatBadge, 15000);
 updateChatBadge();
+
+// ===== PROPOSALS =====
+async function renderProposals() {
+  try {
+    const proposals = await api('/api/proposals');
+    document.getElementById('proposalsBody').innerHTML = proposals.length ? proposals.map(p => {
+      const statusClass = { draft: 'new', sent: 'contacted', accepted: 'won', rejected: 'lost' }[p.status] || 'new';
+      const statusLabel = { draft: 'ฉบับร่าง', sent: 'ส่งแล้ว', accepted: 'ยอมรับ', rejected: 'ปฏิเสธ' }[p.status] || p.status;
+      const total = Number(p.total || 0).toLocaleString('th-TH');
+      const date = p.created_at ? new Date(p.created_at).toLocaleDateString('th-TH') : '-';
+      return `<tr>
+        <td><strong>${esc(p.proposal_number)}</strong></td>
+        <td>${esc(p.title)}</td>
+        <td>${esc(p.lead_name || '-')}</td>
+        <td>฿${total}</td>
+        <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+        <td>${date}</td>
+        <td>
+          <select class="filter-select" style="width:auto;padding:4px 8px;font-size:0.8rem" onchange="updateProposalStatus(${p.id}, this.value)">
+            <option value="draft" ${p.status === 'draft' ? 'selected' : ''}>ฉบับร่าง</option>
+            <option value="sent" ${p.status === 'sent' ? 'selected' : ''}>ส่งแล้ว</option>
+            <option value="accepted" ${p.status === 'accepted' ? 'selected' : ''}>ยอมรับ</option>
+            <option value="rejected" ${p.status === 'rejected' ? 'selected' : ''}>ปฏิเสธ</option>
+          </select>
+          <button class="btn btn-sm btn-outline" onclick="editProposal(${p.id})" style="margin-left:4px">✏️</button>
+        </td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:40px">ยังไม่มีใบเสนอราคา</td></tr>';
+  } catch (err) {
+    console.error('Proposals error:', err);
+  }
+}
+
+async function updateProposalStatus(id, status) {
+  try {
+    await api(`/api/proposals/${id}`, { method: 'PUT', body: JSON.stringify({ status }) });
+    toast('✅ อัพเดทสถานะสำเร็จ');
+    renderProposals();
+  } catch (err) {
+    toast('❌ อัพเดทไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+function showCreateProposalModal() {
+  const leads = allLeads.map(l => `<option value="${l.id}">${esc(l.name)} (${esc(l.phone)})</option>`).join('');
+  document.getElementById('modalTitle').textContent = '➕ สร้างใบเสนอราคา';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group"><label>ลูกค้า</label><select id="pp_lead_id"><option value="">-- เลือกลูกค้า --</option>${leads}</select></div>
+    <div class="form-group"><label>หัวข้อ</label><input type="text" id="pp_title" placeholder="เช่น ใบเสนอราคาออกแบบบ้าน"></div>
+    <div class="form-group"><label>รายการ (JSON Array)</label><textarea id="pp_items" rows="4" placeholder='[{"name":"ออกแบบสถาปัตย์","qty":1,"price":30000},{"name":"3D Perspective","qty":3,"price":4000}]'>[]</textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>Subtotal</label><input type="number" id="pp_subtotal" value="0"></div>
+      <div class="form-group"><label>VAT 7%</label><input type="number" id="pp_tax" value="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>ยอดรวม</label><input type="number" id="pp_total" value="0"></div>
+      <div class="form-group"><label>Valid Until</label><input type="date" id="pp_valid_until"></div>
+    </div>
+    <div class="form-group"><label>หมายเหตุ</label><textarea id="pp_notes" rows="2"></textarea></div>
+    <button class="btn btn-primary" onclick="createProposal()">💾 สร้างใบเสนอราคา</button>
+  `;
+  document.getElementById('leadModal').classList.add('show');
+}
+
+async function createProposal() {
+  try {
+    let items = [];
+    try { items = JSON.parse(document.getElementById('pp_items').value || '[]'); } catch { items = []; }
+    const data = {
+      lead_id: gv('pp_lead_id') || null,
+      title: gv('pp_title'),
+      items,
+      subtotal: parseFloat(gv('pp_subtotal')) || 0,
+      tax: parseFloat(gv('pp_tax')) || 0,
+      total: parseFloat(gv('pp_total')) || 0,
+      valid_until: gv('pp_valid_until') || null,
+      notes: gv('pp_notes')
+    };
+    await api('/api/proposals', { method: 'POST', body: JSON.stringify(data) });
+    closeModal();
+    renderProposals();
+    toast('✅ สร้างใบเสนอราคาสำเร็จ');
+  } catch (err) {
+    toast('❌ สร้างไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function editProposal(id) {
+  try {
+    const proposals = await api('/api/proposals');
+    const p = proposals.find(x => x.id === id);
+    if (!p) return toast('❌ ไม่พบใบเสนอราคา', 'error');
+    const leads = allLeads.map(l => `<option value="${l.id}" ${p.lead_id === l.id ? 'selected' : ''}>${esc(l.name)} (${esc(l.phone)})</option>`).join('');
+    let itemsStr = '[]';
+    try { itemsStr = JSON.stringify(typeof p.items === 'string' ? JSON.parse(p.items) : p.items, null, 2); } catch { itemsStr = p.items || '[]'; }
+    document.getElementById('modalTitle').textContent = '✏️ แก้ไขใบเสนอราคา ' + esc(p.proposal_number);
+    document.getElementById('modalBody').innerHTML = `
+      <div class="form-group"><label>ลูกค้า</label><select id="ep_lead_id"><option value="">-- เลือกลูกค้า --</option>${leads}</select></div>
+      <div class="form-group"><label>หัวข้อ</label><input type="text" id="ep_title" value="${esc(p.title)}"></div>
+      <div class="form-group"><label>รายการ (JSON Array)</label><textarea id="ep_items" rows="4">${esc(itemsStr)}</textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Subtotal</label><input type="number" id="ep_subtotal" value="${p.subtotal || 0}"></div>
+        <div class="form-group"><label>VAT 7%</label><input type="number" id="ep_tax" value="${p.tax || 0}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>ยอดรวม</label><input type="number" id="ep_total" value="${p.total || 0}"></div>
+        <div class="form-group"><label>Valid Until</label><input type="date" id="ep_valid_until" value="${p.valid_until || ''}"></div>
+      </div>
+      <div class="form-group"><label>หมายเหตุ</label><textarea id="ep_notes" rows="2">${esc(p.notes || '')}</textarea></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-primary" onclick="saveProposalEdit(${id})">💾 บันทึก</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteProposal(${id})">🗑️ ลบ</button>
+      </div>
+    `;
+    document.getElementById('leadModal').classList.add('show');
+  } catch (err) {
+    toast('❌ โหลดไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function saveProposalEdit(id) {
+  try {
+    let items = null;
+    try { items = JSON.stringify(JSON.parse(document.getElementById('ep_items').value || '[]')); } catch { items = document.getElementById('ep_items').value; }
+    const data = {
+      lead_id: gv('ep_lead_id') || null,
+      title: gv('ep_title'),
+      items,
+      subtotal: parseFloat(gv('ep_subtotal')) || 0,
+      tax: parseFloat(gv('ep_tax')) || 0,
+      total: parseFloat(gv('ep_total')) || 0,
+      valid_until: gv('ep_valid_until') || null,
+      notes: gv('ep_notes')
+    };
+    await api(`/api/proposals/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    closeModal();
+    renderProposals();
+    toast('✅ บันทึกสำเร็จ');
+  } catch (err) {
+    toast('❌ บันทึกไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function deleteProposal(id) {
+  if (!confirm('ลบใบเสนอนี้?')) return;
+  try {
+    await api(`/api/proposals/${id}`, { method: 'DELETE' });
+    closeModal();
+    renderProposals();
+    toast('🗑️ ลบสำเร็จ');
+  } catch (err) {
+    toast('❌ ลบไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
 
 // ===== MOBILE SIDEBAR =====
 document.getElementById('sidebarToggle')?.addEventListener('click', () => {

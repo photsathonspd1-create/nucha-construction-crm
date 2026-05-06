@@ -923,6 +923,15 @@ app.put('/api/proposals/:id', authMiddleware, (req, res) => {
   }
 });
 
+app.delete('/api/proposals/:id', authMiddleware, (req, res) => {
+  try {
+    db.prepare('DELETE FROM proposals WHERE id = ?').run(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
 // ===== FOLLOW-UPS =====
 app.get('/api/followups', authMiddleware, (req, res) => {
   try {
@@ -1401,6 +1410,54 @@ app.delete('/api/media/:name', authMiddleware, (req, res) => {
   }
 });
 
+// ===== SERVICES API (Public) =====
+app.get('/api/services/categories', (req, res) => {
+  try {
+    const rows = db.prepare('SELECT DISTINCT category FROM services WHERE is_active = 1 ORDER BY category').all();
+    res.json(rows.map(r => r.category));
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.get('/api/services', (req, res) => {
+  try {
+    const services = db.prepare('SELECT * FROM services WHERE is_active = 1 ORDER BY category, sort_order').all();
+    res.json(services);
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.get('/api/services/:id', (req, res) => {
+  try {
+    const service = db.prepare('SELECT * FROM services WHERE id = ? AND is_active = 1').get(req.params.id);
+    if (!service) return res.status(404).json({ error: 'ไม่พบบริการ' });
+    res.json(service);
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.get('/api/service-packages', (req, res) => {
+  try {
+    const packages = db.prepare('SELECT * FROM service_packages WHERE is_active = 1 ORDER BY sort_order').all();
+    res.json(packages);
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.get('/api/service-packages/:id', (req, res) => {
+  try {
+    const pkg = db.prepare('SELECT * FROM service_packages WHERE id = ? AND is_active = 1').get(req.params.id);
+    if (!pkg) return res.status(404).json({ error: 'ไม่พบแพ็กเกจ' });
+    res.json(pkg);
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
 // ===== SERVE STATIC FILES =====
 app.use(express.static(__dirname));
 
@@ -1418,6 +1475,14 @@ app.get('/services', (req, res) => {
 });
 app.get('/services.html', (req, res) => {
   res.sendFile('services.html', { root: __dirname });
+});
+
+// Nucha-services alternate pages (public)
+app.get('/services-3d', (req, res) => {
+  res.sendFile('nucha-services/services-page-3d.html', { root: __dirname });
+});
+app.get('/services-alt', (req, res) => {
+  res.sendFile('nucha-services/services-page.html', { root: __dirname });
 });
 
 // Quotation template (public)
