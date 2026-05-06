@@ -145,6 +145,15 @@ function runMigrations() {
           db.exec("ALTER TABLE chat_messages ADD COLUMN admin_name TEXT");
         }
       }
+    },
+    {
+      name: '010_add_services_image_url',
+      sql: () => {
+        const cols = db.prepare("PRAGMA table_info(services)").all();
+        if (!cols.find(c => c.name === 'image_url')) {
+          db.exec("ALTER TABLE services ADD COLUMN image_url TEXT DEFAULT ''");
+        }
+      }
     }
   ];
 
