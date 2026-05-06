@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ใบเสนอราคา | Nucha Construction</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Thai:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* ============================================
+           QUOTATION TEMPLATE - RED/WHITE THEME
+           ============================================ */
+
+        :root {
+            --red: #D60000;
+            --red-dark: #B00000;
+            --red-light: #FF1A1A;
+            --red-soft: #FFF0F0;
+            --red-glow: rgba(214, 0, 0, 0.15);
+            --white: #FFFFFF;
+            --off-white: #FAFAFA;
+            --gray-50: #F7F5F4;
+            --gray-100: #F0EDEB;
+            --gray-200: #E4E0DE;
+            --gray-300: #C8C2BF;
+            --gray-400: #9B9593;
+            --gray-500: #6E6866;
+            --gray-600: #4A4543;
+            --font-thai: 'Noto Sans Thai', sans-serif;
+            --font-display: 'Inter', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-thai);
+            background: var(--gray-50);
+            color: var(--gray-600);
+            line-height: 1.6;
+        }
+
+        /* Page Controls (no-print) */
+        .page-controls {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .page-controls button {
+            font-family: var(--font-thai);
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 10px 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-print {
+            background: var(--red);
+            color: var(--white);
+            border: none;
+        }
+
+        .btn-print:hover {
+            background: var(--red-dark);
+        }
+
+        .btn-back {
+            background: var(--white);
+            color: var(--gray-600);
+            border: 1px solid var(--gray-200);
+        }
+
+        .btn-back:hover {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        /* Quotation Container */
+        .quotation {
+            max-width: 900px;
+            margin: 0 auto 40px;
+            background: var(--white);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.06);
+        }
+
+        /* Header */
+        .quotation-header {
+            background: linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%);
+            color: var(--white);
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quotation-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .company-info h1 {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .company-info p {
+            font-size: 0.9rem;
+            opacity: 0.85;
+            line-height: 1.6;
+        }
+
+        .quotation-badge {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            padding: 12px 24px;
+            border-radius: 12px;
+            text-align: right;
+        }
+
+        .quotation-badge .badge-label {
+            font-family: var(--font-display);
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        .quotation-badge .badge-number {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 800;
+        }
+
+        .quotation-badge .badge-date {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        /* Body */
+        .quotation-body {
+            padding: 40px;
+        }
+
+        /* Client Info */
+        .client-info {
+            background: var(--red-soft);
+            border-radius: 12px;
+            padding: 24px 28px;
+            margin-bottom: 32px;
+            border-left: 4px solid var(--red);
+        }
+
+        .client-info h3 {
+            font-family: var(--font-display);
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--red);
+            margin-bottom: 12px;
+        }
+
+        .client-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .client-details .detail-item {
+            font-size: 0.95rem;
+        }
+
+        .client-details .detail-label {
+            font-weight: 600;
+            color: var(--gray-500);
+            font-size: 0.82rem;
+            margin-bottom: 2px;
+        }
+
+        .client-details .detail-value {
+            color: var(--gray-600);
+            font-weight: 500;
+        }
+
+        /* Services Table */
+        .services-table-section {
+            margin-bottom: 32px;
+        }
+
+        .services-table-section h3 {
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--gray-600);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .services-table-section h3::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: var(--red);
+            border-radius: 2px;
+        }
+
+        .services-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.92rem;
+        }
+
+        .services-table thead th {
+            background: var(--gray-50);
+            font-family: var(--font-display);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--gray-500);
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .services-table thead th:last-child,
+        .services-table thead th:nth-child(3),
+        .services-table thead th:nth-child(4) {
+            text-align: right;
+        }
+
+        .services-table tbody td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        .services-table tbody td:last-child,
+        .services-table tbody td:nth-child(3),
+        .services-table tbody td:nth-child(4) {
+            text-align: right;
+            font-family: var(--font-display);
+            font-weight: 600;
+        }
+
+        .services-table tbody tr:hover {
+            background: var(--red-soft);
+        }
+
+        .service-name-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .service-name-cell .service-main {
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .service-name-cell .service-detail {
+            font-size: 0.82rem;
+            color: var(--gray-400);
+        }
+
+        /* Summary */
+        .summary-section {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 32px;
+        }
+
+        .summary-box {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 24px 28px;
+            min-width: 320px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            font-size: 0.95rem;
+        }
+
+        .summary-row .label {
+            color: var(--gray-500);
+        }
+
+        .summary-row .value {
+            font-family: var(--font-display);
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .summary-row.discount .value {
+            color: var(--red);
+        }
+
+        .summary-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0 0;
+            margin-top: 8px;
+            border-top: 2px solid var(--red);
+        }
+
+        .summary-total .label {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--gray-600);
+        }
+
+        .summary-total .value {
+            font-family: var(--font-display);
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--red);
+        }
+
+        .summary-total .value .currency {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--gray-400);
+        }
+
+        /* Terms */
+        .terms-section {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 24px 28px;
+            margin-bottom: 32px;
+        }
+
+        .terms-section h3 {
+            font-family: var(--font-display);
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--red);
+            margin-bottom: 14px;
+        }
+
+        .terms-section ol {
+            padding-left: 20px;
+            margin: 0;
+        }
+
+        .terms-section li {
+            font-size: 0.88rem;
+            color: var(--gray-500);
+            line-height: 1.7;
+            margin-bottom: 6px;
+        }
+
+        .terms-section li strong {
+            color: var(--gray-600);
+        }
+
+        /* Signature */
+        .signature-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .signature-block {
+            text-align: center;
+        }
+
+        .signature-block h4 {
+            font-family: var(--font-display);
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--gray-500);
+            margin-bottom: 16px;
+        }
+
+        .signature-line {
+            width: 100%;
+            height: 1px;
+            background: var(--gray-300);
+            margin-bottom: 12px;
+        }
+
+        .signature-block p {
+            font-size: 0.88rem;
+            color: var(--gray-500);
+        }
+
+        .signature-block .signature-date {
+            margin-top: 8px;
+            font-size: 0.82rem;
+            color: var(--gray-400);
+        }
+
+        /* Footer */
+        .quotation-footer {
+            background: var(--gray-600);
+            color: var(--gray-300);
+            padding: 24px 40px;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+
+        .quotation-footer a {
+            color: var(--red-light);
+            text-decoration: none;
+        }
+
+        .quotation-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Watermark */
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-35deg);
+            font-family: var(--font-display);
+            font-size: 6rem;
+            font-weight: 900;
+            color: rgba(214, 0, 0, 0.03);
+            pointer-events: none;
+            z-index: 0;
+            white-space: nowrap;
+            letter-spacing: 10px;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: var(--white);
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .page-controls {
+                display: none !important;
+            }
+
+            .watermark {
+                display: none;
+            }
+
+            .quotation {
+                box-shadow: none;
+                border-radius: 0;
+                margin: 0;
+                max-width: 100%;
+            }
+
+            .quotation-header {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .client-info {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .services-table thead th {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .terms-section {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .summary-box {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .quotation-footer {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .floating-cta {
+                display: none !important;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .quotation-header {
+                padding: 28px 24px;
+            }
+
+            .header-top {
+                flex-direction: column;
+            }
+
+            .quotation-badge {
+                text-align: left;
+            }
+
+            .quotation-body {
+                padding: 28px 24px;
+            }
+
+            .client-details {
+                grid-template-columns: 1fr;
+            }
+
+            .services-table {
+                font-size: 0.82rem;
+            }
+
+            .services-table thead th,
+            .services-table tbody td {
+                padding: 10px 12px;
+            }
+
+            .summary-section {
+                justify-content: stretch;
+            }
+
+            .summary-box {
+                min-width: 100%;
+            }
+
+            .signature-section {
+                grid-template-columns: 1fr;
+                gap: 28px;
+            }
+
+            .quotation-footer {
+                padding: 20px 24px;
+            }
+        }
+
+        /* Floating CTA */
+        .floating-cta {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .floating-cta a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            text-decoration: none;
+            font-size: 1.5rem;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+        }
+
+        .floating-cta a:hover {
+            transform: scale(1.1);
+        }
+
+        .floating-cta .line-btn {
+            background: #06C755;
+            color: var(--white);
+        }
+
+        .floating-cta .phone-btn {
+            background: var(--red);
+            color: var(--white);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Watermark -->
+    <div class="watermark">QUOTATION</div>
+
+    <!-- Page Controls -->
+    <div class="page-controls">
+        <button class="btn-back" onclick="window.history.back()">← กลับ</button>
+        <button class="btn-print" onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button>
+    </div>
+
+    <!-- Quotation -->
+    <div class="quotation">
+
+        <!-- Header -->
+        <div class="quotation-header">
+            <div class="header-top">
+                <div class="company-info">
+                    <h1>Nucha Construction</h1>
+                    <p>บริการออกแบบ 3D ก่อสร้าง ตกแต่ง ครบวงจร</p>
+                    <p>123 ถ.สุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110</p>
+                    <p>โทร: 09X-XXX-XXXX | LINE: @nucha | อีเมล: info@nucha.co.th</p>
+                </div>
+                <div class="quotation-badge">
+                    <div class="badge-label">ใบเสนอราคา</div>
+                    <div class="badge-number">QT-2026-0001</div>
+                    <div class="badge-date">วันที่: 6 พฤษภาคม 2569</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="quotation-body">
+
+            <!-- Client Info -->
+            <div class="client-info">
+                <h3>ข้อมูลลูกค้า</h3>
+                <div class="client-details">
+                    <div class="detail-item">
+                        <div class="detail-label">ชื่อลูกค้า</div>
+                        <div class="detail-value">คุณสมชาย ใจดี</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">บริษัท</div>
+                        <div class="detail-value">—</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">ที่อยู่</div>
+                        <div class="detail-value">123 ถ.สุขุมวิท กรุงเทพฯ</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">โทรศัพท์</div>
+                        <div class="detail-value">08X-XXX-XXXX</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">อีเมล</div>
+                        <div class="detail-value">somchai@email.com</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">โครงการ</div>
+                        <div class="detail-value">บ้านเดี่ยว 2 ชั้น</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Services Table -->
+            <div class="services-table-section">
+                <h3>รายการบริการ</h3>
+                <table class="services-table">
+                    <thead>
+                        <tr>
+                            <th style="width:40px">#</th>
+                            <th>รายการ</th>
+                            <th style="width:80px">จำนวน</th>
+                            <th style="width:120px">ราคา/หน่วย</th>
+                            <th style="width:120px">รวม</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>
+                                <div class="service-name-cell">
+                                    <span class="service-main">ออกแบบสถาปัตยกรรม</span>
+                                    <span class="service-detail">บ้านเดี่ยว 2 ชั้น ขนาด 200 ตร.ม.</span>
+                                </div>
+                            </td>
+                            <td>1</td>
+                            <td>฿35,000</td>
+                            <td>฿35,000</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>
+                                <div class="service-name-cell">
+                                    <span class="service-main">3D Perspective</span>
+                                    <span class="service-detail">ภาพ 3D ภายนอก 4 มุม + ภายใน 6 มุม</span>
+                                </div>
+                            </td>
+                            <td>10</td>
+                            <td>฿2,500</td>
+                            <td>฿25,000</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>
+                                <div class="service-name-cell">
+                                    <span class="service-main">ออกแบบตกแต่งภายใน</span>
+                                    <span class="service-detail">ห้องนั่งเล่น + ห้องนอน + ห้องครัว</span>
+                                </div>
+                            </td>
+                            <td>3</td>
+                            <td>฿6,000</td>
+                            <td>฿18,000</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>
+                                <div class="service-name-cell">
+                                    <span class="service-main">เขียนแบบก่อสร้าง</span>
+                                    <span class="service-detail">Architectural + Structural + MEP</span>
+                                </div>
+                            </td>
+                            <td>1</td>
+                            <td>฿15,000</td>
+                            <td>฿15,000</td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td>
+                                <div class="service-name-cell">
+                                    <span class="service-main">ออกแบบภูมิทัศน์</span>
+                                    <span class="service-detail">สวนหน้าบ้าน + สนามหญ้า</span>
+                                </div>
+                            </td>
+                            <td>1</td>
+                            <td>฿8,000</td>
+                            <td>฿8,000</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Summary -->
+            <div class="summary-section">
+                <div class="summary-box">
+                    <div class="summary-row">
+                        <span class="label">ราคารวม</span>
+                        <span class="value">฿101,000</span>
+                    </div>
+                    <div class="summary-row discount">
+                        <span class="label">ส่วนลด (แพ็กเกจ)</span>
+                        <span class="value">-฿1,000</span>
+                    </div>
+                    <div class="summary-total">
+                        <span class="label">ยอดรวมทั้งสิ้น</span>
+                        <span class="value">฿100,000 <span class="currency">บาท</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terms -->
+            <div class="terms-section">
+                <h3>เงื่อนไขและข้อกำหนด</h3>
+                <ol>
+                    <li><strong>อายุใบเสนอราคา:</strong> ใบเสนอนี้มีอายุ 30 วัน นับจากวันที่ออกใบเสนอราคา</li>
+                    <li><strong>การชำระเงิน:</strong> มัดจำ 50% เมื่อตกลงจ้าง / ชำระส่วนที่เหลือเมื่อส่งมอบงาน</li>
+                    <li><strong>ระยะเวลาดำเนินงาน:</strong> ประมาณ 15-20 วันทำการ หลังจากได้รับมัดจำ</li>
+                    <li><strong>การแก้ไข:</strong> แก้ไขได้ไม่เกิน 3 ครั้ง โดยไม่คิดค่าใช้จ่ายเพิ่มเติม</li>
+                    <li><strong>ลิขสิทธิ์:</strong> ลิขสิทธิ์ของผลงานจะโอนให้ลูกค้าเมื่อชำระเงินครบถ้วน</li>
+                    <li><strong>การรับประกัน:</strong> รับประกันผลงาน 1 ปี สำหรับงานก่อสร้าง</li>
+                </ol>
+            </div>
+
+            <!-- Signature -->
+            <div class="signature-section">
+                <div class="signature-block">
+                    <h4>ผู้เสนอราคา</h4>
+                    <div class="signature-line"></div>
+                    <p>Nucha Construction</p>
+                    <p class="signature-date">วันที่: 6 พฤษภาคม 2569</p>
+                </div>
+                <div class="signature-block">
+                    <h4>ผู้อนุมัติ</h4>
+                    <div class="signature-line"></div>
+                    <p>( ลงชื่อ )</p>
+                    <p class="signature-date">วันที่: _______________</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="quotation-footer">
+            <p>Nucha Construction — บริการออกแบบ 3D ก่อสร้าง ตกแต่ง ครบวงจร</p>
+            <p>โทร: 09X-XXX-XXXX | LINE: <a href="https://line.me/R/ti/p/@nucha">@nucha</a> | เว็บ: <a href="/">nucha.co.th</a></p>
+        </div>
+
+    </div>
+
+    <!-- Floating CTA -->
+    <div class="floating-cta">
+        <a href="https://line.me/R/ti/p/@nucha" class="line-btn" target="_blank" aria-label="LINE">💬</a>
+        <a href="tel:09XXXXXXXX" class="phone-btn" aria-label="Phone">📞</a>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บริการของเรา | Nucha Construction</title>
+    <meta name="description" content="บริการออกแบบ 3D ก่อสร้าง ตกแต่ง ป้าย ภูมิทัศน์ ครบวงจร พร้อมแพ็กเกจราคาพิเศษ">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Thai:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        /* ============================================
+           SERVICES PAGE - RED/WHITE THEME
+           ============================================ */
+
+        /* Hero Section */
+        .services-hero {
+            position: relative;
+            min-height: 50vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 140px 20px 80px;
+            background: linear-gradient(135deg, var(--red-soft) 0%, var(--white) 50%, var(--red-soft) 100%);
+            overflow: hidden;
+        }
+
+        .services-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--red-glow) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .services-hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+        }
+
+        .services-hero .section-tag {
+            display: inline-block;
+            font-family: var(--font-display);
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--red);
+            background: var(--red-soft);
+            padding: 8px 20px;
+            border-radius: 50px;
+            margin-bottom: 24px;
+        }
+
+        .services-hero h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 5vw, 3.8rem);
+            font-weight: 800;
+            color: var(--gray-600);
+            line-height: 1.15;
+            margin-bottom: 20px;
+        }
+
+        .services-hero h1 span {
+            color: var(--red);
+        }
+
+        .services-hero p {
+            font-family: var(--font-thai);
+            font-size: 1.15rem;
+            color: var(--gray-500);
+            line-height: 1.7;
+            max-width: 600px;
+            margin: 0 auto 32px;
+        }
+
+        /* Service Categories Section */
+        .services-section {
+            padding: 100px 20px;
+            background: var(--white);
+        }
+
+        .services-section .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .services-section .section-tag {
+            display: inline-block;
+            font-family: var(--font-display);
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--red);
+            background: var(--red-soft);
+            padding: 6px 18px;
+            border-radius: 50px;
+            margin-bottom: 16px;
+        }
+
+        .services-section .section-header h2 {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-weight: 800;
+            color: var(--gray-600);
+            margin-bottom: 12px;
+        }
+
+        .services-section .section-desc {
+            font-family: var(--font-thai);
+            font-size: 1.05rem;
+            color: var(--gray-400);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Service Cards Grid */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 28px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .service-card {
+            background: var(--white);
+            border: 1px solid var(--gray-100);
+            border-radius: var(--radius-lg);
+            padding: 36px 32px;
+            transition: all 0.4s var(--ease);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--red), var(--red-light));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s var(--ease);
+        }
+
+        .service-card:hover {
+            border-color: var(--red-soft);
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-6px);
+        }
+
+        .service-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .service-card-icon {
+            font-size: 2.8rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .service-card h3 {
+            font-family: var(--font-thai);
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--gray-600);
+            margin-bottom: 6px;
+        }
+
+        .service-card .service-en {
+            font-family: var(--font-display);
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--gray-400);
+            margin-bottom: 14px;
+        }
+
+        .service-card .service-price {
+            display: inline-block;
+            font-family: var(--font-thai);
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--red);
+            background: var(--red-soft);
+            padding: 5px 14px;
+            border-radius: 50px;
+            margin-bottom: 18px;
+        }
+
+        .service-card p {
+            font-family: var(--font-thai);
+            font-size: 0.95rem;
+            color: var(--gray-500);
+            line-height: 1.65;
+            margin-bottom: 18px;
+        }
+
+        .service-card .sub-services {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .service-card .sub-services li {
+            font-family: var(--font-thai);
+            font-size: 0.88rem;
+            color: var(--gray-500);
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .service-card .sub-services li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 12px;
+            width: 8px;
+            height: 8px;
+            background: var(--red);
+            border-radius: 50%;
+            opacity: 0.5;
+        }
+
+        /* 3D Showcase Section */
+        .showcase-section {
+            padding: 100px 20px;
+            background: linear-gradient(180deg, var(--gray-50) 0%, var(--white) 100%);
+        }
+
+        .showcase-section .section-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .showcase-section .section-tag {
+            display: inline-block;
+            font-family: var(--font-display);
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--red);
+            background: var(--red-soft);
+            padding: 6px 18px;
+            border-radius: 50px;
+            margin-bottom: 16px;
+        }
+
+        .showcase-section .section-header h2 {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-weight: 800;
+            color: var(--gray-600);
+            margin-bottom: 12px;
+        }
+
+        .showcase-section .section-desc {
+            font-family: var(--font-thai);
+            font-size: 1.05rem;
+            color: var(--gray-400);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .showcase-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .showcase-card {
+            background: var(--white);
+            border: 1px solid var(--gray-100);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transition: all 0.4s var(--ease);
+        }
+
+        .showcase-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-4px);
+        }
+
+        .showcase-canvas {
+            width: 100%;
+            height: 220px;
+            background: linear-gradient(135deg, #1a0a0a 0%, #2d0808 50%, #1a0505 100%);
+            cursor: grab;
+        }
+
+        .showcase-canvas:active {
+            cursor: grabbing;
+        }
+
+        .showcase-card-body {
+            padding: 20px 24px;
+        }
+
+        .showcase-card-body h4 {
+            font-family: var(--font-thai);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--gray-600);
+            margin-bottom: 6px;
+        }
+
+        .showcase-card-body p {
+            font-family: var(--font-thai);
+            font-size: 0.88rem;
+            color: var(--gray-400);
+            line-height: 1.5;
+        }
+
+        /* Packages Section */
+        .packages-section {
+            padding: 100px 20px;
+            background: var(--white);
+        }
+
+        .packages-section .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .packages-section .section-tag {
+            display: inline-block;
+            font-family: var(--font-display);
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--red);
+            background: var(--red-soft);
+            padding: 6px 18px;
+            border-radius: 50px;
+            margin-bottom: 16px;
+        }
+
+        .packages-section .section-header h2 {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-weight: 800;
+            color: var(--gray-600);
+            margin-bottom: 12px;
+        }
+
+        .packages-section .section-desc {
+            font-family: var(--font-thai);
+            font-size: 1.05rem;
+            color: var(--gray-400);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .packages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 28px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .package-card {
+            background: var(--white);
+            border: 1px solid var(--gray-100);
+            border-radius: var(--radius-lg);
+            padding: 36px 32px;
+            text-align: center;
+            transition: all 0.4s var(--ease);
+            position: relative;
+        }
+
+        .package-card.featured {
+            border-color: var(--red);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .package-card.featured::before {
+            content: 'แนะนำ';
+            position: absolute;
+            top: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--red);
+            color: var(--white);
+            font-family: var(--font-thai);
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 6px 24px;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .package-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .package-card h4 {
+            font-family: var(--font-thai);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-600);
+            margin-bottom: 12px;
+            margin-top: 12px;
+        }
+
+        .package-card .package-price {
+            font-family: var(--font-display);
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--red);
+            margin-bottom: 6px;
+        }
+
+        .package-card .package-price span {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--gray-400);
+        }
+
+        .package-card p {
+            font-family: var(--font-thai);
+            font-size: 0.95rem;
+            color: var(--gray-500);
+            line-height: 1.65;
+            margin-bottom: 24px;
+        }
+
+        .package-card .btn-outline {
+            display: inline-block;
+            font-family: var(--font-thai);
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--red);
+            border: 2px solid var(--red);
+            background: transparent;
+            padding: 12px 32px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s var(--ease);
+            text-decoration: none;
+        }
+
+        .package-card .btn-outline:hover {
+            background: var(--red);
+            color: var(--white);
+        }
+
+        .package-card.featured .btn-primary {
+            display: inline-block;
+            font-family: var(--font-thai);
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--white);
+            background: var(--red);
+            padding: 12px 32px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s var(--ease);
+            text-decoration: none;
+            border: none;
+        }
+
+        .package-card.featured .btn-primary:hover {
+            background: var(--red-dark);
+        }
+
+        /* Process Section */
+        .process-section {
+            padding: 100px 20px;
+            background: linear-gradient(135deg, var(--red-soft) 0%, var(--white) 50%, var(--red-soft) 100%);
+        }
+
+        .process-section .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .process-section .section-tag {
+            display: inline-block;
+            font-family: var(--font-display);
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--red);
+            background: var(--red-soft);
+            padding: 6px 18px;
+            border-radius: 50px;
+            margin-bottom: 16px;
+        }
+
+        .process-section .section-header h2 {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-weight: 800;
+            color: var(--gray-600);
+            margin-bottom: 12px;
+        }
+
+        .process-section .section-desc {
+            font-family: var(--font-thai);
+            font-size: 1.05rem;
+            color: var(--gray-400);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .process-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 32px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .process-step {
+            text-align: center;
+            position: relative;
+        }
+
+        .process-step .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            background: var(--red);
+            color: var(--white);
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 800;
+            border-radius: 50%;
+            margin-bottom: 20px;
+        }
+
+        .process-step h4 {
+            font-family: var(--font-thai);
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--gray-600);
+            margin-bottom: 10px;
+        }
+
+        .process-step p {
+            font-family: var(--font-thai);
+            font-size: 0.92rem;
+            color: var(--gray-400);
+            line-height: 1.6;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            padding: 100px 20px;
+            background: linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: -30%;
+            left: -20%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .cta-section::after {
+            content: '';
+            position: absolute;
+            bottom: -20%;
+            right: -15%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .cta-content {
+            position: relative;
+            z-index: 2;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .cta-content h2 {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-weight: 800;
+            color: var(--white);
+            margin-bottom: 16px;
+        }
+
+        .cta-content p {
+            font-family: var(--font-thai);
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.85);
+            line-height: 1.7;
+            margin-bottom: 36px;
+        }
+
+        .cta-content .btn-white {
+            display: inline-block;
+            font-family: var(--font-thai);
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--red);
+            background: var(--white);
+            padding: 16px 40px;
+            border-radius: 50px;
+            text-decoration: none;
+            transition: all 0.3s var(--ease);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        }
+
+        .cta-content .btn-white:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+        }
+
+        /* Floating CTA */
+        .floating-cta {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .floating-cta a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            text-decoration: none;
+            font-size: 1.5rem;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s var(--ease);
+        }
+
+        .floating-cta a:hover {
+            transform: scale(1.1);
+        }
+
+        .floating-cta .line-btn {
+            background: #06C755;
+            color: var(--white);
+        }
+
+        .floating-cta .phone-btn {
+            background: var(--red);
+            color: var(--white);
+        }
+
+        /* Loader */
+        .loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s var(--ease), visibility 0.5s var(--ease);
+        }
+
+        .loader.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loader-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--gray-100);
+            border-top: 4px solid var(--red);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--gray-100);
+            transition: all 0.3s var(--ease);
+        }
+
+        .navbar-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 72px;
+        }
+
+        .navbar-logo {
+            font-family: var(--font-display);
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--gray-600);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .navbar-logo .logo-accent {
+            color: var(--red);
+        }
+
+        .navbar-links {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .navbar-links a {
+            font-family: var(--font-thai);
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--gray-500);
+            text-decoration: none;
+            transition: color 0.3s var(--ease);
+        }
+
+        .navbar-links a:hover,
+        .navbar-links a.active {
+            color: var(--red);
+        }
+
+        .navbar-cta {
+            font-family: var(--font-thai);
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--white);
+            background: var(--red);
+            padding: 10px 24px;
+            border-radius: 50px;
+            text-decoration: none;
+            transition: all 0.3s var(--ease);
+        }
+
+        .navbar-cta:hover {
+            background: var(--red-dark);
+        }
+
+        .navbar-toggle {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .navbar-toggle span {
+            display: block;
+            width: 24px;
+            height: 2px;
+            background: var(--gray-600);
+            margin: 6px 0;
+            transition: all 0.3s var(--ease);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--gray-600);
+            color: var(--gray-300);
+            padding: 60px 20px 30px;
+        }
+
+        .footer-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .footer h4 {
+            font-family: var(--font-thai);
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--white);
+            margin-bottom: 16px;
+        }
+
+        .footer p,
+        .footer a {
+            font-family: var(--font-thai);
+            font-size: 0.9rem;
+            color: var(--gray-300);
+            line-height: 1.8;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            color: var(--red-light);
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-top: 24px;
+            text-align: center;
+            font-family: var(--font-thai);
+            font-size: 0.85rem;
+            color: var(--gray-400);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar-links {
+                display: none;
+                position: absolute;
+                top: 72px;
+                left: 0;
+                right: 0;
+                background: var(--white);
+                flex-direction: column;
+                padding: 24px;
+                gap: 16px;
+                border-bottom: 1px solid var(--gray-100);
+                box-shadow: var(--shadow-md);
+            }
+
+            .navbar-links.active {
+                display: flex;
+            }
+
+            .navbar-toggle {
+                display: block;
+            }
+
+            .navbar-cta {
+                display: none;
+            }
+
+            .services-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .packages-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .process-steps {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .floating-cta {
+                bottom: 20px;
+                right: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .process-steps {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loader -->
+    <div class="loader" id="loader">
+        <div class="loader-spinner"></div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar" id="navbar">
+        <div class="navbar-inner">
+            <a href="/" class="navbar-logo">
+                Nucha<span class="logo-accent">.</span>
+            </a>
+            <ul class="navbar-links" id="navLinks">
+                <li><a href="/">หน้าแรก</a></li>
+                <li><a href="services.html" class="active">บริการ</a></li>
+                <li><a href="service.html">ผลงาน</a></li>
+                <li><a href="#contact">ติดต่อ</a></li>
+            </ul>
+            <a href="#contact" class="navbar-cta">ปรึกษาฟรี</a>
+            <button class="navbar-toggle" id="navToggle" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="services-hero">
+        <div class="services-hero-content">
+            <span class="section-tag">Our Services</span>
+            <h1>บริการ<span>ครบวงจร</span><br>สำหรับทุกโปรเจกต์</h1>
+            <p>ออกแบบ ก่อสร้าง ตกแต่ง ครบจบในที่เดียว ด้วยทีมมืออาชีพและเทคโนโลยี 3D ล่าสุด</p>
+            <a href="#services" class="btn-primary" style="display:inline-block;font-family:var(--font-thai);font-weight:600;color:var(--white);background:var(--red);padding:14px 36px;border-radius:50px;text-decoration:none;transition:all 0.3s var(--ease);">ดูบริการทั้งหมด</a>
+        </div>
+    </section>
+
+    <!-- Service Categories -->
+    <section class="services-section" id="services">
+        <div class="section-header">
+            <span class="section-tag">Categories</span>
+            <h2>บริการทั้งหมด 9 หมวด</h2>
+            <p class="section-desc">เลือกบริการที่ตรงกับความต้องการของคุณ</p>
+        </div>
+        <div class="services-grid" id="servicesGrid">
+            <!-- Card 1: Signage -->
+            <div class="service-card">
+                <span class="service-card-icon">🪧</span>
+                <h3>ออกแบบป้าย</h3>
+                <div class="service-en">Signage Design</div>
+                <span class="service-price">เริ่มต้น ฿1,500</span>
+                <p>ออกแบบและผลิตป้ายทุกประเภท ตั้งแต่ป้ายโครงการขนาดใหญ่ไปจนถึงป้าย LED และ Neon sign</p>
+                <ul class="sub-services">
+                    <li>ป้ายโครงการ / ป้ายหมู่บ้าน</li>
+                    <li>ป้ายบริษัท / ป้ายสำนักงาน</li>
+                    <li>ป้ายโฆษณา / Billboard / Banner</li>
+                    <li>ป้าย LED / กล่องไฟ / Neon sign</li>
+                    <li>ป้ายสแตนเลส / อะคริลิค / ไม้</li>
+                    <li>ป้ายอสังหา / ป้ายขาย-เช่า</li>
+                </ul>
+            </div>
+
+            <!-- Card 2: Interior -->
+            <div class="service-card">
+                <span class="service-card-icon">🏠</span>
+                <h3>ออกแบบตกแต่งภายใน</h3>
+                <div class="service-en">Interior Design</div>
+                <span class="service-price">เริ่มต้น ฿6,000/ห้อง</span>
+                <p>ออกแบบภายในทุกสไตล์ ตั้งแต่ห้องเดี่ยวจนถึงบ้านทั้งหลัง ร้านค้า โรงแรม และออฟฟิศ</p>
+                <ul class="sub-services">
+                    <li>ห้องนั่งเล่น / ห้องนอน / ห้องครัว</li>
+                    <li>ห้องน้ำ / Walk-in closet</li>
+                    <li>คอนโด / บ้านทั้งหลัง</li>
+                    <li>ร้านค้า / ร้านอาหาร / Café</li>
+                    <li>ออฟฟิศ / โรงแรม / รีสอร์ท</li>
+                </ul>
+            </div>
+
+            <!-- Card 3: Architecture -->
+            <div class="service-card">
+                <span class="service-card-icon">🏡</span>
+                <h3>ออกแบบสถาปัตยกรรม</h3>
+                <div class="service-en">Architectural Design</div>
+                <span class="service-price">เริ่มต้น ฿20,000</span>
+                <p>ออกแบบอาคารทุกประเภท ตั้งแต่บ้านเดี่ยว อาคารพาณิชย์ ไปจนถึงสระว่ายน้ำและศาลา</p>
+                <ul class="sub-services">
+                    <li>บ้านเดี่ยว / ทาวน์โฮม / บ้านแฝด</li>
+                    <li>อาคารพาณิชย์ / ออฟฟิศ / โกดัง</li>
+                    <li>ต่อเติม / รีโนเวท</li>
+                    <li>สระว่ายน้ำ / ศาลา / Pavilion</li>
+                </ul>
+            </div>
+
+            <!-- Card 4: Landscape -->
+            <div class="service-card">
+                <span class="service-card-icon">🌳</span>
+                <h3>ออกแบบภูมิทัศน์</h3>
+                <div class="service-en">Landscape Design</div>
+                <span class="service-price">เริ่มต้น ฿5,000</span>
+                <p>ออกแบบสวนและภูมิทัศน์ทุกสไตล์ พร้อมระบบไฟสนามและ Water feature</p>
+                <ul class="sub-services">
+                    <li>สวนโมเดิร์น / ญี่ปุ่น / Tropical</li>
+                    <li>ระบบไฟสนาม / Garden lighting</li>
+                    <li>น้ำพุ / บ่อปลา / Water feature</li>
+                    <li>Vertical garden / ไม้ประดับ</li>
+                </ul>
+            </div>
+
+            <!-- Card 5: Drafting -->
+            <div class="service-card">
+                <span class="service-card-icon">📐</span>
+                <h3>เขียนแบบและเอกสาร</h3>
+                <div class="service-en">Drafting & Documentation</div>
+                <span class="service-price">เริ่มต้น ฿3,000</span>
+                <p>เขียนแบบก่อสร้าง แบบขออนุญาต BOQ และเอกสาร TOR ครบถ้วนตามมาตรฐาน</p>
+                <ul class="sub-services">
+                    <li>เขียนแบบก่อสร้าง (Arch + Str + MEP)</li>
+                    <li>เขียนแบบขออนุญาต (อก. / เทศบาล)</li>
+                    <li>BOQ / ประมาณราคา</li>
+                    <li>TOR / ขอบเขตงาน</li>
+                </ul>
+            </div>
+
+            <!-- Card 6: Visualization -->
+            <div class="service-card">
+                <span class="service-card-icon">🖼️</span>
+                <h3>งาน Visual / 3D</h3>
+                <div class="service-en">Visualization</div>
+                <span class="service-price">เริ่มต้น ฿2,000</span>
+                <p>สร้างภาพ 3D Perspective Walkthrough และ Virtual Tour คุณภาพสูง พร้อม Moodboard</p>
+                <ul class="sub-services">
+                    <li>3D Perspective (ภายใน/ภายนอก)</li>
+                    <li>3D Walkthrough (วิดีโอ)</li>
+                    <li>360° Virtual Tour</li>
+                    <li>Floor Plan 2D / 3D</li>
+                    <li>Moodboard / Concept Board</li>
+                </ul>
+            </div>
+
+            <!-- Card 7: MEP -->
+            <div class="service-card">
+                <span class="service-card-icon">🔧</span>
+                <h3>งานระบบ (MEP)</h3>
+                <div class="service-en">MEP Design</div>
+                <span class="service-price">เริ่มต้น ฿3,000</span>
+                <p>ออกแบบระบบไฟฟ้า ประปา ปรับอากาศ CCTV และ Smart Home / IoT ครบวงจร</p>
+                <ul class="sub-services">
+                    <li>ระบบไฟฟ้า / Solar cell</li>
+                    <li>ระบบประปา / ปรับอากาศ</li>
+                    <li>CCTV / สัญญาณกันขโมย</li>
+                    <li>Smart Home / IoT</li>
+                </ul>
+            </div>
+
+            <!-- Card 8: Consulting -->
+            <div class="service-card">
+                <span class="service-card-icon">📋</span>
+                <h3>บริการที่ปรึกษา</h3>
+                <div class="service-en">Consulting</div>
+                <span class="service-price">เริ่มต้น ฿3,000</span>
+                <p>ที่ปรึกษาครบวงจร ตั้งแต่สำรวจพื้นที่ ตรวจสอบโครงสร้าง ประเมินราคา จนถึงขออนุญาต</p>
+                <ul class="sub-services">
+                    <li>สำรวจพื้นที่ (Site Survey)</li>
+                    <li>ตรวจสอบโครงสร้าง</li>
+                    <li>ที่ปรึกษาโครงการ</li>
+                    <li>ประเมินราคาก่อสร้าง</li>
+                    <li>ขออนุญาตก่อสร้าง</li>
+                </ul>
+            </div>
+
+            <!-- Card 9: Print & Production -->
+            <div class="service-card">
+                <span class="service-card-icon">📦</span>
+                <h3>งานพิมพ์และผลิต</h3>
+                <div class="service-en">Print & Production</div>
+                <span class="service-price">เริ่มต้น ฿300/ตร.ม.</span>
+                <p>ผลิตป้าย สติกเกอร์ Wallpaper และป้ายไฟ LED คุณภาพสูง ทุกขนาด</p>
+                <ul class="sub-services">
+                    <li>ป้ายไวนิล / Flex face</li>
+                    <li>สติกเกอร์ติดกระจก / ผนัง / รถ</li>
+                    <li>Wallpaper สั่งพิมพ์</li>
+                    <li>ป้ายไฟ LED / Light box / Neon sign</li>
+                    <li>ป้ายสแตนเลส / อะคริลิค</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3D Showcase -->
+    <section class="showcase-section">
+        <div class="section-header">
+            <span class="section-tag">3D Preview</span>
+            <h2>สำรวจงานออกแบบ 3D</h2>
+            <p class="section-desc">หมุนและลากเพื่อดูโมเดล 3D ตัวอย่างของแต่ละบริการ</p>
+        </div>
+        <div class="showcase-grid">
+            <div class="showcase-card">
+                <canvas class="showcase-canvas" id="canvas-signage"></canvas>
+                <div class="showcase-card-body">
+                    <h4>🪧 ป้าย & Signage</h4>
+                    <p>โมเดลป้าย 3D ตัวอย่าง — ลากเพื่อหมุน</p>
+                </div>
+            </div>
+            <div class="showcase-card">
+                <canvas class="showcase-canvas" id="canvas-interior"></canvas>
+                <div class="showcase-card-body">
+                    <h4>🏠 ตกแต่งภายใน</h4>
+                    <p>โมเดลเฟอร์นิเจอร์ 3D — ลากเพื่อหมุน</p>
+                </div>
+            </div>
+            <div class="showcase-card">
+                <canvas class="showcase-canvas" id="canvas-architecture"></canvas>
+                <div class="showcase-card-body">
+                    <h4>🏡 สถาปัตยกรรม</h4>
+                    <p>โมเดลอาคาร 3D — ลากเพื่อหมุน</p>
+                </div>
+            </div>
+            <div class="showcase-card">
+                <canvas class="showcase-canvas" id="canvas-landscape"></canvas>
+                <div class="showcase-card-body">
+                    <h4>🌳 ภูมิทัศน์</h4>
+                    <p>โมเดลสวน 3D — ลากเพื่อหมุน</p>
+                </div>
+            </div>
+            <div class="showcase-card">
+                <canvas class="showcase-canvas" id="canvas-mep"></canvas>
+                <div class="showcase-card-body">
+                    <h4>🔧 งานระบบ</h4>
+                    <p>โมเดลระบบ 3D — ลากเพื่อหมุน</p>
+                </div>
+            </div>
+            <div class="showcase-card">
+                <canvas class="showcase-canvas" id="canvas-visual"></canvas>
+                <div class="showcase-card-body">
+                    <h4>🖼️ Visual / 3D</h4>
+                    <p>โมเดล Perspective 3D — ลากเพื่อหมุน</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Packages -->
+    <section class="packages-section">
+        <div class="section-header">
+            <span class="section-tag">Packages</span>
+            <h2>แพ็กเกจยอดนิยม</h2>
+            <p class="section-desc">เลือกแพ็กเกจที่เหมาะกับโปรเจกต์ของคุณ</p>
+        </div>
+        <div class="packages-grid">
+            <div class="package-card">
+                <h4>Starter Home</h4>
+                <div class="package-price">฿15,000 <span>起</span></div>
+                <p>ออกแบบบ้านขั้นพื้นฐาน เหมาะสำหรับบ้านเดี่ยวขนาดเล็ก เริ่มต้นธุรกิจ</p>
+                <a href="#contact" class="btn-outline">สอบถามเพิ่มเติม</a>
+            </div>
+            <div class="package-card featured">
+                <h4>Pro Home</h4>
+                <div class="package-price">฿50,000 <span>起</span></div>
+                <p>ออกแบบบ้านครบวงจร พร้อม 3D Perspective และแบบก่อสร้าง คุ้มค่าที่สุด</p>
+                <a href="#contact" class="btn-primary">สอบถามเพิ่มเติม</a>
+            </div>
+            <div class="package-card">
+                <h4>Premium Home</h4>
+                <div class="package-price">฿150,000 <span>起</span></div>
+                <p>ออกแบบบ้านหรู ครบวงจร รวม Interior Design และ Landscape ทั้งหลัง</p>
+                <a href="#contact" class="btn-outline">สอบถามเพิ่มเติม</a>
+            </div>
+            <div class="package-card">
+                <h4>Project Signage</h4>
+                <div class="package-price">฿15,000 <span>起</span></div>
+                <p>ออกแบบป้ายโครงการครบชุด ป้ายทางเข้า ป้ายหมู่บ้าน ป้ายบริษัท</p>
+                <a href="#contact" class="btn-outline">สอบถามเพิ่มเติม</a>
+            </div>
+            <div class="package-card">
+                <h4>Visual Pack</h4>
+                <div class="package-price">฿20,000 <span>起</span></div>
+                <p>ภาพ 3D Perspective หลายมุม Walkthrough Video และ Moodboard ครบชุด</p>
+                <a href="#contact" class="btn-outline">สอบถามเพิ่มเติม</a>
+            </div>
+            <div class="package-card">
+                <h4>Office Package</h4>
+                <div class="package-price">฿60,000 <span>起</span></div>
+                <p>ออกแบบออฟฟิศครบวงจร Interior + MEP + แบบขออนุญาต พร้อมใช้งาน</p>
+                <a href="#contact" class="btn-outline">สอบถามเพิ่มเติม</a>
+            </div>
+            <div class="package-card">
+                <h4>Restaurant Package</h4>
+                <div class="package-price">฿50,000 <span>起</span></div>
+                <p>ออกแบบร้านอาหาร ครบ Interior + Kitchen Plan + MEP + ป้ายหน้าร้าน</p>
+                <a href="#contact" class="btn-outline">สอบถามเพิ่มเติม</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Process -->
+    <section class="process-section">
+        <div class="section-header">
+            <span class="section-tag">Process</span>
+            <h2>ขั้นตอนการทำงาน</h2>
+            <p class="section-desc">4 ขั้นตอนง่ายๆ จากแนวคิดสู่ความจริง</p>
+        </div>
+        <div class="process-steps">
+            <div class="process-step">
+                <div class="step-number">1</div>
+                <h4>ปรึกษาฟรี</h4>
+                <p>พูดคุยความต้องการ สำรวจพื้นที่ ไม่มีค่าใช้จ่าย</p>
+            </div>
+            <div class="process-step">
+                <div class="step-number">2</div>
+                <h4>เสนอราคา</h4>
+                <p>เสนอราคาและขอบเขตงาน พร้อมรายละเอียดชัดเจน</p>
+            </div>
+            <div class="process-step">
+                <div class="step-number">3</div>
+                <h4>ออกแบบ 3D</h4>
+                <p>สร้างโมเดล 3D และภาพ Perspective ก่อนลงมือจริง</p>
+            </div>
+            <div class="process-step">
+                <div class="step-number">4</div>
+                <h4>ก่อสร้าง</h4>
+                <p>ดำเนินการก่อสร้างตามแบบ ดูแลคุณภาพทุกขั้นตอน</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section" id="contact">
+        <div class="cta-content">
+            <h2>พร้อมเริ่มโปรเจกต์?</h2>
+            <p>ปรึกษาฟรี ไม่มีค่าใช้จ่าย ทีมมืออาชีพพร้อมให้คำแนะนำและออกแบบตามความต้องการของคุณ</p>
+            <a href="https://line.me/R/ti/p/@nucha" class="btn-white" target="_blank">💬 ปรึกษาฟรีผ่าน LINE</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div>
+                <h4>Nucha Construction</h4>
+                <p>บริการออกแบบ 3D ก่อสร้าง ตกแต่ง ครบวงจร ด้วยทีมมืออาชีพ</p>
+            </div>
+            <div>
+                <h4>บริการ</h4>
+                <p><a href="services.html">บริการทั้งหมด</a></p>
+                <p><a href="service.html">ผลงาน</a></p>
+                <p><a href="#contact">ติดต่อเรา</a></p>
+            </div>
+            <div>
+                <h4>ติดต่อ</h4>
+                <p>LINE: @nucha</p>
+                <p>โทร: 09X-XXX-XXXX</p>
+                <p>อีเมล: info@nucha.co.th</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Nucha Construction. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Floating CTA -->
+    <div class="floating-cta">
+        <a href="https://line.me/R/ti/p/@nucha" class="line-btn" target="_blank" aria-label="LINE">💬</a>
+        <a href="tel:09XXXXXXXX" class="phone-btn" aria-label="Phone">📞</a>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Loader
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('loader').classList.add('hidden');
+            }, 600);
+        });
+
+        // Mobile nav toggle
+        const navToggle = document.getElementById('navToggle');
+        const navLinks = document.getElementById('navLinks');
+        navToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+        });
+
+        // GSAP Animations
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Hero animation
+        gsap.from('.services-hero-content', {
+            y: 40,
+            opacity: 0,
+            duration: 1,
+            ease: 'power3.out'
+        });
+
+        // Service cards
+        gsap.utils.toArray('.service-card').forEach((card, i) => {
+            gsap.from(card, {
+                scrollTrigger: {
+                    trigger: card,
+                    start: 'top 85%',
+                    toggleActions: 'play none none none'
+                },
+                y: 40,
+                opacity: 0,
+                duration: 0.7,
+                delay: i % 3 * 0.12,
+                ease: 'power3.out'
+            });
+        });
+
+        // Showcase cards
+        gsap.utils.toArray('.showcase-card').forEach((card, i) => {
+            gsap.from(card, {
+                scrollTrigger: {
+                    trigger: card,
+                    start: 'top 85%',
+                    toggleActions: 'play none none none'
+                },
+                y: 30,
+                opacity: 0,
+                duration: 0.6,
+                delay: i % 3 * 0.1,
+                ease: 'power3.out'
+            });
+        });
+
+        // Package cards
+        gsap.utils.toArray('.package-card').forEach((card, i) => {
+            gsap.from(card, {
+                scrollTrigger: {
+                    trigger: card,
+                    start: 'top 85%',
+                    toggleActions: 'play none none none'
+                },
+                y: 30,
+                opacity: 0,
+                duration: 0.6,
+                delay: i % 3 * 0.1,
+                ease: 'power3.out'
+            });
+        });
+
+        // Process steps
+        gsap.utils.toArray('.process-step').forEach((step, i) => {
+            gsap.from(step, {
+                scrollTrigger: {
+                    trigger: step,
+                    start: 'top 85%',
+                    toggleActions: 'play none none none'
+                },
+                y: 30,
+                opacity: 0,
+                duration: 0.6,
+                delay: i * 0.15,
+                ease: 'power3.out'
+            });
+        });
+
+        // CTA section
+        gsap.from('.cta-content', {
+            scrollTrigger: {
+                trigger: '.cta-section',
+                start: 'top 80%',
+                toggleActions: 'play none none none'
+            },
+            y: 40,
+            opacity: 0,
+            duration: 0.8,
+            ease: 'power3.out'
+        });
+
+        // ============================================
+        // THREE.JS 3D SHOWCASE
+        // ============================================
+        const RED = 0xD60000;
+        const RED_LIGHT = 0xFF1A1A;
+        const RED_DARK = 0xB00000;
+        const DARK_BG = 0x1a0505;
+
+        function createScene(canvasId, geometryFn) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(DARK_BG);
+
+            const camera = new THREE.PerspectiveCamera(50, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
+            camera.position.z = 4;
+
+            const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(RED_LIGHT, 1.2);
+            directionalLight.position.set(3, 4, 5);
+            scene.add(directionalLight);
+
+            const pointLight = new THREE.PointLight(RED, 0.8, 10);
+            pointLight.position.set(-2, 2, 3);
+            scene.add(pointLight);
+
+            // Create geometry
+            const mesh = geometryFn();
+            scene.add(mesh);
+
+            // Mouse interaction
+            let isDragging = false;
+            let previousMouse = { x: 0, y: 0 };
+            let rotationVelocity = { x: 0, y: 0 };
+
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMouse = { x: e.clientX, y: e.clientY };
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaX = e.clientX - previousMouse.x;
+                const deltaY = e.clientY - previousMouse.y;
+                rotationVelocity.x = deltaY * 0.005;
+                rotationVelocity.y = deltaX * 0.005;
+                mesh.rotation.x += rotationVelocity.x;
+                mesh.rotation.y += rotationVelocity.y;
+                previousMouse = { x: e.clientX, y: e.clientY };
+            });
+
+            canvas.addEventListener('mouseup', () => { isDragging = false; });
+            canvas.addEventListener('mouseleave', () => { isDragging = false; });
+
+            // Touch support
+            canvas.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                previousMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }, { passive: true });
+
+            canvas.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                const deltaX = e.touches[0].clientX - previousMouse.x;
+                const deltaY = e.touches[0].clientY - previousMouse.y;
+                mesh.rotation.x += deltaY * 0.005;
+                mesh.rotation.y += deltaX * 0.005;
+                previousMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }, { passive: true });
+
+            canvas.addEventListener('touchend', () => { isDragging = false; });
+
+            // Animate
+            function animate() {
+                requestAnimationFrame(animate);
+                if (!isDragging) {
+                    mesh.rotation.y += 0.005;
+                    mesh.rotation.x += 0.002;
+                }
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // Handle resize
+            const resizeObserver = new ResizeObserver(() => {
+                const width = canvas.clientWidth;
+                const height = canvas.clientHeight;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            });
+            resizeObserver.observe(canvas);
+        }
+
+        // Signage: Tall box (like a sign)
+        createScene('canvas-signage', () => {
+            const group = new THREE.Group();
+            const material = new THREE.MeshPhongMaterial({ color: RED, shininess: 80, flatShading: false });
+            const box = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.5, 0.3), material);
+            group.add(box);
+            const post = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.5, 0.2), new THREE.MeshPhongMaterial({ color: RED_DARK }));
+            post.position.y = -2;
+            group.add(post);
+            return group;
+        });
+
+        // Interior: Sofa shape
+        createScene('canvas-interior', () => {
+            const group = new THREE.Group();
+            const material = new THREE.MeshPhongMaterial({ color: RED, shininess: 60 });
+            // Seat
+            const seat = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.5, 1.2), material);
+            seat.position.y = -0.3;
+            group.add(seat);
+            // Back
+            const back = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1, 0.3), material);
+            back.position.set(0, 0.5, -0.45);
+            group.add(back);
+            // Arms
+            const armMat = new THREE.MeshPhongMaterial({ color: RED_DARK });
+            const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 1.2), armMat);
+            leftArm.position.set(-1.1, 0.1, 0);
+            group.add(leftArm);
+            const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 1.2), armMat);
+            rightArm.position.set(1.1, 0.1, 0);
+            group.add(rightArm);
+            return group;
+        });
+
+        // Architecture: House shape
+        createScene('canvas-architecture', () => {
+            const group = new THREE.Group();
+            const material = new THREE.MeshPhongMaterial({ color: RED, shininess: 60 });
+            // Base
+            const base = new THREE.Mesh(new THREE.BoxGeometry(2, 1.2, 1.8), material);
+            base.position.y = -0.4;
+            group.add(base);
+            // Roof (pyramid)
+            const roofGeo = new THREE.ConeGeometry(1.6, 1, 4);
+            const roof = new THREE.Mesh(roofGeo, new THREE.MeshPhongMaterial({ color: RED_DARK, shininess: 80 }));
+            roof.position.y = 0.7;
+            roof.rotation.y = Math.PI / 4;
+            group.add(roof);
+            // Door
+            const door = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.7, 0.05), new THREE.MeshPhongMaterial({ color: RED_LIGHT }));
+            door.position.set(0, -0.35, 0.93);
+            group.add(door);
+            return group;
+        });
+
+        // Landscape: Tree + terrain
+        createScene('canvas-landscape', () => {
+            const group = new THREE.Group();
+            // Ground
+            const ground = new THREE.Mesh(
+                new THREE.CylinderGeometry(1.5, 1.5, 0.2, 32),
+                new THREE.MeshPhongMaterial({ color: RED_DARK })
+            );
+            ground.position.y = -1;
+            group.add(ground);
+            // Trunk
+            const trunk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.12, 0.15, 1.5, 8),
+                new THREE.MeshPhongMaterial({ color: 0x8B0000 })
+            );
+            trunk.position.y = -0.1;
+            group.add(trunk);
+            // Canopy (multiple spheres)
+            const canopyMat = new THREE.MeshPhongMaterial({ color: RED, shininess: 40 });
+            const s1 = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 16), canopyMat);
+            s1.position.set(0, 0.8, 0);
+            group.add(s1);
+            const s2 = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), canopyMat);
+            s2.position.set(0.5, 0.5, 0.3);
+            group.add(s2);
+            const s3 = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), canopyMat);
+            s3.position.set(-0.4, 0.6, -0.3);
+            group.add(s3);
+            return group;
+        });
+
+        // MEP: Pipe system
+        createScene('canvas-mep', () => {
+            const group = new THREE.Group();
+            const mat = new THREE.MeshPhongMaterial({ color: RED, shininess: 100 });
+            const matDark = new THREE.MeshPhongMaterial({ color: RED_DARK, shininess: 100 });
+            // Vertical pipe
+            const pipe1 = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.5, 16), mat);
+            group.add(pipe1);
+            // Horizontal pipe
+            const pipe2 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.5, 16), matDark);
+            pipe2.rotation.z = Math.PI / 2;
+            pipe2.position.set(0.5, 0.5, 0);
+            group.add(pipe2);
+            // Connector spheres
+            const connector1 = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), mat);
+            connector1.position.set(0, 0.5, 0);
+            group.add(connector1);
+            const connector2 = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), mat);
+            connector2.position.set(1.2, 0.5, 0);
+            group.add(connector2);
+            // T-junction
+            const pipe3 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1, 16), mat);
+            pipe3.position.set(0.5, -0.2, 0.5);
+            group.add(pipe3);
+            return group;
+        });
+
+        // Visual/3D: Torus knot (abstract 3D visualization)
+        createScene('canvas-visual', () => {
+            const geometry = new THREE.TorusKnotGeometry(0.9, 0.3, 100, 16);
+            const material = new THREE.MeshPhongMaterial({
+                color: RED,
+                shininess: 100,
+                specular: RED_LIGHT
+            });
+            return new THREE.Mesh(geometry, material);
+        });
+    </script>
+</body>
+</html>

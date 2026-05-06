@@ -1,10 +1,10 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> **Last Updated:** 2026-05-06 11:20 (GMT+8)
-> **Updated By:** OpenClaw AI Agent (Services + 3D Models)
+> **Last Updated:** 2026-05-06 12:15 (GMT+8)
+> **Updated By:** OpenClaw AI Agent (Theme-consistent services + quotation pages)
 > **Branch:** main
-> **Latest Commit:** Services catalog + 3D models + seed data
-> **Status:** ✅ All features implemented, services catalog complete with interactive 3D models
+> **Latest Commit:** Merge nucha-services into main site with correct red/white theme
+> **Status:** ✅ Services overview + quotation template rewritten with site theme + Three.js 3D models
 ---
 
 ## 📋 Project Overview
@@ -257,11 +257,37 @@ node scripts/site-docs.js           # รัน script (จะ scroll + force vi
 |---|---------|-------|--------|
 | 81 | **Services Catalog (Markdown)** — 9 หมวดบริการ 53 รายการ | nucha-services/services-catalog.md | ✅ NEW |
 | 82 | **Price List (Markdown)** — ราคาทุกรายการ + 7 Package | nucha-services/pricing.md | ✅ NEW |
-| 83 | **Quotation Template (HTML)** — ใบเสนอราคาสวย พร้อมพิมพ์ | nucha-services/quotation-template.html | ✅ NEW |
-| 84 | **Services Page (HTML)** — หน้าบริการเว็บ | nucha-services/services-page.html | ✅ NEW |
-| 85 | **Services Page + 3D Models** — หน้าบริการพร้อมโมเดล 3D จริง (Three.js) | nucha-services/services-page-3d.html | ✅ NEW |
+| 83 | **Quotation Template (HTML)** — ใบเสนอราคาสวย พร้อมพิมพ์ | nucha-services/quotation-template.html | ✅ (template เก่า — ธีม gold/navy) |
+| 84 | **Services Page (HTML)** — หน้าบริการเว็บ | nucha-services/services-page.html | ✅ (template เก่า — ธีม gold/navy) |
+| 85 | **Services Page + 3D Models** — หน้าบริการพร้อมโมเดล 3D จริง (Three.js) | nucha-services/services-page-3d.html | ✅ (template เก่า — ธีม gold/navy) |
 | 86 | **SQL Seed** — 53 services + 7 packages ลง DB | nucha-services/seed-services.sql | ✅ NEW |
 | 87 | **DB Seeded** — services + service_packages tables สร้างแล้ว มีข้อมูลครบ | data/nucha.db | ✅ NEW |
+
+### 🎨 Services + Quotation Theme Rewrite (2026-05-06 12:15)
+**ปัญหา:** ไฟล์ใน `nucha-services/` ทั้งหมดใช้ธีมผิด — Gold (#c8a951) / Navy (#1a1a2e) / Font: Prompt ไม่ตรงกับเว็ปหลักที่ใช้ธีมแดง-ขาว
+
+| # | Feature | Files | Status |
+|---|---------|-------|--------|
+| 88 | **services.html (ธีมใหม่)** — หน้าบริการ overview ครบ 9 หมวด + 3D models + 7 packages + process + CTA | services.html | ✅ NEW |
+| 89 | **quotation.html (ธีมใหม่)** — ใบเสนอราคา template ธีมแดง-ขาว + print-friendly | quotation.html | ✅ NEW |
+| 90 | **Three.js 3D Models (6 ฉาก)** — Signage, Interior, Architecture, Landscape, MEP, Visual | services.html (inline) | ✅ NEW |
+| 91 | **GSAP Animations** — scroll animations + feature cards | services.html | ✅ NEW |
+
+#### สิ่งที่แก้ไขใน services.html ใหม่:
+- ❌ Gold `#c8a951` → ✅ Red `#D60000`
+- ❌ Navy `#1a1a2e` → ✅ Gray `#4A4543` / dark red gradients
+- ❌ Font Prompt → ✅ Noto Sans Thai + Inter
+- ❌ ไม่มี navbar/footer/loader → ✅ มีครบ (เหมือนเว็ปหลัก)
+- ❌ Hardcoded HTML → ✅ โหลด style.css จากเว็ปหลัก
+- ✅ เพิ่ม GSAP animations (ไม่มีในต้นฉบับ)
+- ✅ Responsive (mobile + desktop)
+- ✅ Floating CTA (LINE + Phone)
+
+#### สิ่งที่แก้ไขใน quotation.html ใหม่:
+- ❌ Gold borders/highlights → ✅ Red borders/highlights
+- ❌ Font Prompt → ✅ Noto Sans Thai + Inter
+- ✅ @media print CSS สำหรับพิมพ์
+- ✅ Floating CTA
 
 #### โมเดล 3D ที่สร้าง (7 ฉาก — Three.js)
 | โมเดล | เนื้อหา | Container ID |
@@ -318,13 +344,15 @@ CREATE TABLE service_packages (
 ```
 
 #### สิ่งที่ Agent ถัดไปทำต่อได้
-1. **เพิ่ม API endpoints** สำหรับ services (CRUD) ใน server.js
+1. **เพิ่ม API endpoints** สำหรับ services (CRUD) ใน server.js — ใช้ seed-services.sql เป็น schema reference
 2. **เพิ่มหน้า Services** ใน admin CMS (admin.js) — แก้ไขบริการผ่านแอดมิน
-3. **เชื่อม services-page-3d.html** เข้า route หลัก (`/services`)
+3. **เชื่อม services.html** เข้า route หลัก (`/services`) — เพิ่ม route ใน server.js
 4. **เพิ่ม API สำหรับ service_packages** (CRUD)
-5. **สร้างใบเสนอราคาอัตโนมัติ** — เลือกบริการ → สร้าง PDF
+5. **สร้างใบเสนอราคาอัตโนมัติ** — เลือกบริการ → สร้าง PDF (ใช้ quotation.html เป็น template)
 6. **เพิ่ม booking form** ที่ผูกกับบริการที่เลือก
 7. **Lead scoring** ตามบริการที่สนใจ (ราคาสูง = score สูง)
+8. **Run seed-services.sql** — สร้าง tables + insert ข้อมูลลง DB จริง
+9. **เชื่อม 3D models** — ย้าย Three.js code จาก services.html ไปเป็น shared module ถ้าต้องการใช้ในหน้าอื่น
 
 ---
 
@@ -393,12 +421,14 @@ nucha-construction-crm/
 ├── README.md
 ├── SALES-SCRIPT.md
 ├── HANDOFF.md                ← THIS FILE
-└── nucha-services/           ← Services catalog + 3D models (NEW)
+├── services.html             ← [NEW] หน้าบริการ overview — ธีมแดง-ขาว + 3D + packages (1,608 lines)
+├── quotation.html            ← [NEW] ใบเสนอราคา template — ธีมแดง-ขาว + print (825 lines)
+└── nucha-services/           ← Services catalog (OLD templates — gold/navy theme, เก็บเป็น reference)
     ├── services-catalog.md   ← 9 หมวดบริการ 53 รายการ
     ├── pricing.md            ← ราคาทุกรายการ + 7 Package
-    ├── quotation-template.html ← ใบเสนอราคา (HTML พร้อมพิมพ์)
-    ├── services-page.html    ← หน้าบริการเว็บ (ไม่มี 3D)
-    ├── services-page-3d.html ← หน้าบริการ + โมเดล 3D จริง (Three.js, 7 ฉาก)
+    ├── quotation-template.html ← ใบเสนอราคา (เก่า — ธีม gold/navy)
+    ├── services-page.html    ← หน้าบริการเว็บ (เก่า — ธีม gold/navy)
+    ├── services-page-3d.html ← หน้าบริการ + โมเดล 3D (เก่า — ธีม gold/navy)
     └── seed-services.sql     ← SQL seed 53 services + 7 packages
 ```
 
@@ -535,6 +565,9 @@ nucha-construction-crm/
 8. **Dashboard Charts** — กราฟ leads ตามเดือน, conversion funnel (ใช้ Chart.js)
 9. **Live Chat Real-time** — เปลี่ยนจาก polling 5s → WebSocket สำหรับ chat ที่เร็วขึ้น
 10. **Chat typing indicator** — แสดง "แอดมินกำลังพิมพ์..." ฝั่งลูกค้า
+11. **🔗 เชื่อม services.html เข้าเว็บหลัก** — เพิ่ม route `/services` ใน server.js + เพิ่ม nav link
+12. **🗄️ Run seed-services.sql** — สร้าง services + service_packages tables ใน DB
+13. **🔌 Services API** — CRUD endpoints สำหรับ services ใน server.js
 
 ### 🟢 Priority 3 — Features ใหม่
 11. **Customer Portal** — ให้ลูกค้าเข้ามาดู progress โครงการ (login ด้วยเบอร์โทร + OTP)
