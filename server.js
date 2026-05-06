@@ -1474,6 +1474,104 @@ app.get('/api/services/:id', (req, res) => {
   }
 });
 
+// ===== SERVICE GALLERY API =====
+app.get('/api/services/:id/gallery', (req, res) => {
+  try {
+    const service = db.prepare('SELECT * FROM services WHERE id = ?').get(req.params.id);
+    if (!service) return res.status(404).json({ error: 'ไม่พบบริการ' });
+    const items = db.prepare(
+      'SELECT * FROM service_gallery WHERE (service_id = ? OR service_category = ?) ORDER BY sort_order, id'
+    ).all(req.params.id, service.category);
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.get('/api/gallery/category/:category', (req, res) => {
+  try {
+    const items = db.prepare(
+      'SELECT * FROM service_gallery WHERE service_category = ? ORDER BY sort_order, id'
+    ).all(req.params.category);
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.post('/api/services/:id/gallery', authMiddleware, uploadLimiter, upload.single('image'), (req, res) => {
+  try {
+    const service = db.prepare('SELECT * FROM services WHERE id = ?').get(req.params.id);
+    if (!service) return res.status(404).json({ error: 'ไม่พบบริการ' });
+    const { title, description, image_type } = req.body;
+    let imageUrl = req.body.image_url;
+    if (req.file) imageUrl = `/uploads/${req.file.filename}`;
+    if (!imageUrl) return res.status(400).json({ error: 'กรุณาอัพโหลดรูปหรือใส่ URL' });
+    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM service_gallery').get().m || 0;
+    const result = db.prepare(
+      'INSERT INTO service_gallery (service_id, service_category, title, description, image_url, image_type, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(req.params.id, service.category, title || '', description || '', imageUrl, image_type || 'photo', maxOrder + 1);
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.delete('/api/gallery/:id', authMiddleware, (req, res) => {
+  try {
+    const item = db.prepare('SELECT * FROM service_gallery WHERE id = ?').get(req.params.id);
+    if (!item) return res.status(404).json({ error: 'ไม่พบรูป' });
+    if (item.image_url && item.image_url.startsWith('/uploads/')) {
+      const filepath = path.join(__dirname, item.image_url);
+      if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
+    }
+    db.prepare('DELETE FROM service_gallery WHERE id = ?').run(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+// ===== SERVICE 3D MODELS API =====
+app.get('/api/services/:id/models', (req, res) => {
+  try {
+    const service = db.prepare('SELECT * FROM services WHERE id = ?').get(req.params.id);
+    if (!service) return res.status(404).json({ error: 'ไม่พบบริการ' });
+    const items = db.prepare(
+      'SELECT * FROM service_models WHERE (service_id = ? OR service_category = ?) ORDER BY sort_order, id'
+    ).all(req.params.id, service.category);
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.get('/api/models/category/:category', (req, res) => {
+  try {
+    const items = db.prepare(
+      'SELECT * FROM service_models WHERE service_category = ? ORDER BY sort_order, id'
+    ).all(req.params.category);
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.post('/api/services/:id/models', authMiddleware, (req, res) => {
+  try {
+    const service = db.prepare('SELECT * FROM services WHERE id = ?').get(req.params.id);
+    if (!service) return res.status(404).json({ error: 'ไม่พบบริการ' });
+    const { title, description, model_url, model_format, poster_url, auto_rotate, camera_orbit } = req.body;
+    if (!model_url) return res.status(400).json({ error: 'กรุณาใส่ URL ของโมเดล 3D' });
+    const result = db.prepare(
+      'INSERT INTO service_models (service_id, service_category, title, description, model_url, model_format, poster_url, auto_rotate, camera_orbit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(req.params.id, service.category, title || '', description || '', model_url, model_format || 'glb', poster_url || '', auto_rotate !== undefined ? auto_rotate : 1, camera_orbit || '0deg 75deg 105%');
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
 app.get('/api/service-packages', (req, res) => {
   try {
     const packages = db.prepare('SELECT * FROM service_packages WHERE is_active = 1 ORDER BY sort_order').all();
