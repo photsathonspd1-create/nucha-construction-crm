@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Thai:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
+    <!-- Model Viewer (Google Web Component) — load early so it's ready when models render -->
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
     <style>
         /* Override custom cursor for service page */
         body { cursor: auto !important; }
@@ -1689,8 +1691,7 @@
         <div class="lightbox-counter" id="lightboxCounter"></div>
     </div>
 
-    <!-- Model Viewer (Google Web Component) -->
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+    <!-- Model Viewer already loaded in <head> -->
 
     <script src="/chat-widget.js"></script>
 </body>

@@ -64,6 +64,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// Block path traversal attempts on raw URL (before Express normalizes)
+app.use((req, res, next) => {
+  if (req.url.includes('..')) {
+    return res.status(400).json({ error: 'คำขอไม่ถูกต้อง' });
+  }
+  next();
+});
+
 // Disable ETag and cache for API routes — prevents 304 responses that break client-side JSON parsing
 app.use('/api', (req, res, next) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -138,7 +146,7 @@ async function convertObjToGlb(objPath) {
 // ===== RATE LIMITERS =====
 const loginLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 5,
+  max: 10,
   message: { error: 'เข้าสู่ระบบหลายครั้งเกินไป กรุณารอสักครู่' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -156,6 +164,14 @@ const uploadLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 30,
   message: { error: 'อัพโหลดบ่อยเกินไป กรุณารอสักครู่' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const bulkLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: 'ดำเนินการจำนวนมากเกินไป กรุณารอสักครู่' },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -178,6 +194,25 @@ function adminOnly(req, res, next) {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'ไม่มีสิทธิ์เข้าถึง' });
   }
+  next();
+}
+
+// CSRF protection for cookie-based auth
+// Checks Origin/Referer header matches the server host
+function csrfProtection(req, res, next) {
+  const origin = req.headers.origin || req.headers.referer;
+  if (origin) {
+    try {
+      const originHost = new URL(origin).host;
+      const reqHost = req.headers.host;
+      if (originHost !== reqHost) {
+        return res.status(403).json({ error: 'CSRF validation failed' });
+      }
+    } catch {
+      // Invalid origin URL — allow (could be non-browser client)
+    }
+  }
+  // If no origin/referer (e.g., API client, mobile app), allow through
   next();
 }
 
@@ -349,6 +384,17 @@ function notifyLeadStatusChange(leadId, newStatus, leadName) {
   sendTelegramNotify(message).catch(() => {});
 }
 
+// Apply CSRF protection to all state-changing authenticated routes
+app.use('/api', (req, res, next) => {
+  if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
+    // Only apply CSRF when request has cookies (browser auth)
+    if (req.cookies && req.cookies.token) {
+      return csrfProtection(req, res, next);
+    }
+  }
+  next();
+});
+
 // ===== AUTH ROUTES =====
 app.post('/api/auth/login', loginLimiter, (req, res) => {
   try {
@@ -402,7 +448,7 @@ app.put('/api/auth/change-password', authMiddleware, (req, res) => {
 
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
     if (!user || !bcrypt.compareSync(current_password, user.password)) {
-      return res.status(401).json({ error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
+      return res.status(400).json({ error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
     }
 
     const hashed = bcrypt.hashSync(new_password, 10);
@@ -564,7 +610,8 @@ app.put('/api/nav', authMiddleware, (req, res) => {
     const insert = db.prepare('INSERT INTO nav_items (label, href, sort_order, is_visible) VALUES (?, ?, ?, ?)');
     items.forEach((item, i) => {
       const safeLabel = String(item.label || '').replace(/<[^>]*>/g, '');
-      const safeHref = String(item.href || '#').replace(/[^a-zA-Z0-9\-_/#.?&=:@]/g, '');
+      // Allow tel:, mailto:, http(s)://, and relative paths like #section or /page
+      const safeHref = String(item.href || '#').replace(/[^a-zA-Z0-9\-_/#.?&=:@+!%,]/g, '');
       insert.run(safeLabel, safeHref, item.sort_order || i + 1, item.is_visible ?? 1);
     });
     res.json({ success: true });
@@ -776,7 +823,7 @@ app.delete('/api/leads/:id', authMiddleware, (req, res) => {
 });
 
 // Bulk update leads
-app.post('/api/leads/bulk-update', authMiddleware, (req, res) => {
+app.post('/api/leads/bulk-update', authMiddleware, bulkLimiter, (req, res) => {
   try {
     const { ids, updates } = req.body;
     if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'ไม่มี leads ที่เลือก' });
@@ -811,7 +858,7 @@ app.post('/api/leads/bulk-update', authMiddleware, (req, res) => {
 });
 
 // Bulk delete leads
-app.post('/api/leads/bulk-delete', authMiddleware, (req, res) => {
+app.post('/api/leads/bulk-delete', authMiddleware, bulkLimiter, (req, res) => {
   try {
     const { ids } = req.body;
     if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'ไม่มี leads ที่เลือก' });
@@ -1338,10 +1385,18 @@ app.post('/api/chat/messages', leadsLimiter, (req, res) => {
 // Customer polls for admin responses
 app.get('/api/chat/messages/:session_id', (req, res) => {
   try {
-    const messages = db.prepare('SELECT * FROM chat_messages WHERE session_id = ? ORDER BY created_at ASC').all(req.params.session_id);
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 100));
+    const offset = (page - 1) * limit;
+
+    const total = db.prepare('SELECT COUNT(*) as count FROM chat_messages WHERE session_id = ?').get(req.params.session_id).count;
+    const messages = db.prepare('SELECT * FROM chat_messages WHERE session_id = ? ORDER BY created_at ASC LIMIT ? OFFSET ?').all(req.params.session_id, limit, offset);
     // Mark admin messages as read
     db.prepare("UPDATE chat_messages SET is_read = 1 WHERE session_id = ? AND sender = 'admin' AND is_read = 0").run(req.params.session_id);
-    res.json(messages);
+    res.json({
+      data: messages,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+    });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
@@ -1398,7 +1453,7 @@ app.delete('/api/chat/sessions/:session_id', authMiddleware, (req, res) => {
 });
 
 // Bulk delete chat sessions
-app.post('/api/chat/sessions/bulk-delete', authMiddleware, (req, res) => {
+app.post('/api/chat/sessions/bulk-delete', authMiddleware, bulkLimiter, (req, res) => {
   try {
     const { session_ids } = req.body;
     if (!Array.isArray(session_ids) || session_ids.length === 0) return res.status(400).json({ error: 'ไม่มี session ที่เลือก' });
@@ -1474,6 +1529,22 @@ app.delete('/api/media/:name', authMiddleware, (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
+});
+
+// Serve uploaded files — reject path traversal attempts
+app.get('/uploads/:name', (req, res) => {
+  const safeName = path.basename(req.params.name);
+  if (!safeName || safeName.includes('..')) {
+    return res.status(400).json({ error: 'ชื่อไฟล์ไม่ถูกต้อง' });
+  }
+  const filePath = path.join(uploadsDir, safeName);
+  if (!filePath.startsWith(uploadsDir)) {
+    return res.status(400).json({ error: 'ชื่อไฟล์ไม่ถูกต้อง' });
+  }
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'ไม่พบไฟล์' });
+  }
+  res.sendFile(filePath);
 });
 
 // ===== ADMIN SERVICES API (CRUD) =====
@@ -1926,6 +1997,11 @@ app.get('/api/service-packages/:id', (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
+});
+
+// ===== API 404 HANDLER =====
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'ไม่พบ endpoint นี้' });
 });
 
 // ===== SERVE STATIC FILES =====
