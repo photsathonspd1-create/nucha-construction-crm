@@ -39,6 +39,17 @@ async function loadAll() {
   allContent = content;
   allLeads = leadsRes.data || leadsRes; // extract .data array
   allNav = nav;
+  // Pre-load DB services data for counts
+  try {
+    const servicesRes = await api('/api/admin/services');
+    allDbServices = servicesRes.data || [];
+    dbCategories = servicesRes.categories || [];
+    document.getElementById('dbServicesCount').textContent = allDbServices.length;
+  } catch {}
+  try {
+    allDbPackages = await api('/api/admin/service-packages').catch(() => []);
+    document.getElementById('dbPackagesCount').textContent = allDbPackages.length;
+  } catch {}
 }
 
 // ===== API HELPER =====
@@ -393,6 +404,357 @@ async function saveServices() {
   allContent.services = data;
   toast('✅ บันทึกบริการสำเร็จ');
 }
+
+// ===== DB SERVICES MANAGEMENT =====
+let allDbServices = [];
+let allDbPackages = [];
+let dbCategories = [];
+
+async function loadDbServices() {
+  try {
+    const [servicesRes, packages] = await Promise.all([
+      api('/api/admin/services'),
+      api('/api/admin/service-packages').catch(() => [])
+    ]);
+    allDbServices = servicesRes.data || [];
+    dbCategories = servicesRes.categories || [];
+    allDbPackages = packages || [];
+
+    // Populate category filter
+    const catSelect = document.getElementById('dbServiceCategoryFilter');
+    if (catSelect) {
+      const current = catSelect.value;
+      catSelect.innerHTML = '<option value="">ทุกหมวดหมู่</option>' + dbCategories.map(c => `<option value="${esc(c)}" ${c === current ? 'selected' : ''}>${esc(c)}</option>`).join('');
+    }
+
+    document.getElementById('dbServicesCount').textContent = allDbServices.length;
+    document.getElementById('dbPackagesCount').textContent = allDbPackages.length;
+  } catch (err) {
+    console.error('Load DB services error:', err);
+  }
+}
+
+function switchDbTab(tab) {
+  document.getElementById('dbServicesPanel').style.display = tab === 'services' ? '' : 'none';
+  document.getElementById('dbPackagesPanel').style.display = tab === 'packages' ? '' : 'none';
+  document.getElementById('dbTabServices').className = tab === 'services' ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
+  document.getElementById('dbTabPackages').className = tab === 'packages' ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
+  if (tab === 'services') renderDbServices();
+  else renderDbPackages();
+}
+
+function renderDbServices() {
+  const search = document.getElementById('dbServiceSearch')?.value?.toLowerCase() || '';
+  const catFilter = document.getElementById('dbServiceCategoryFilter')?.value || '';
+  const activeFilter = document.getElementById('dbServiceActiveFilter')?.value ?? '';
+
+  let filtered = allDbServices;
+  if (search) filtered = filtered.filter(s => s.name.toLowerCase().includes(search) || (s.description || '').toLowerCase().includes(search));
+  if (catFilter) filtered = filtered.filter(s => s.category === catFilter);
+  if (activeFilter !== '') filtered = filtered.filter(s => String(s.is_active) === activeFilter);
+
+  document.getElementById('dbServicesBody').innerHTML = filtered.length ? filtered.map(s => `
+    <tr>
+      <td>${s.sort_order}</td>
+      <td style="font-size:1.4rem">${esc(s.icon || '🔧')}</td>
+      <td><strong>${esc(s.name)}</strong>${s.image_url ? '<br><small style="color:var(--gray-400)">🖼️ มีรูป</small>' : ''}</td>
+      <td><span class="status-badge new">${esc(s.category)}</span></td>
+      <td>${s.price_start ? Number(s.price_start).toLocaleString('th-TH') : '-'}</td>
+      <td>${esc(s.price_unit || '-')}</td>
+      <td><span class="status-badge ${s.is_active ? 'won' : 'lost'}">${s.is_active ? 'เปิด' : 'ปิด'}</span></td>
+      <td>
+        <button class="btn btn-sm btn-outline" onclick="editDbService(${s.id})">✏️</button>
+        <button class="btn btn-sm ${s.is_active ? 'btn-secondary' : 'btn-blue'}" onclick="toggleServiceActive(${s.id}, ${s.is_active ? 0 : 1})">${s.is_active ? '⏸️' : '▶️'}</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteDbService(${s.id}, '${esc(s.name)}')">🗑️</button>
+      </td>
+    </tr>
+  `).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--gray-400);padding:40px">ไม่พบบริการ</td></tr>';
+}
+
+function renderDbPackages() {
+  document.getElementById('dbPackagesBody').innerHTML = allDbPackages.length ? allDbPackages.map(p => {
+    let features = [];
+    try { features = typeof p.features === 'string' ? JSON.parse(p.features) : p.features || []; } catch { features = []; }
+    return `
+    <tr>
+      <td>${p.sort_order}</td>
+      <td><strong>${esc(p.name)}</strong><br><small style="color:var(--gray-400)">${esc((p.description || '').slice(0, 60))}</small></td>
+      <td>${p.price_start ? Number(p.price_start).toLocaleString('th-TH') : '-'}</td>
+      <td>${p.is_featured ? '⭐' : '-'}</td>
+      <td><span class="status-badge ${p.is_active ? 'won' : 'lost'}">${p.is_active ? 'เปิด' : 'ปิด'}</span></td>
+      <td>
+        <button class="btn btn-sm btn-outline" onclick="editDbPackage(${p.id})">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteDbPackage(${p.id}, '${esc(p.name)}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:40px">ไม่พบแพ็กเกจ</td></tr>';
+}
+
+function showAddServiceModal() {
+  const catOptions = dbCategories.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  document.getElementById('modalTitle').textContent = '➕ เพิ่มบริการใหม่';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-row">
+      <div class="form-group"><label>หมวดหมู่</label>
+        <div style="display:flex;gap:8px">
+          <select id="ns_category" style="flex:1">${catOptions}<option value="__new__">+ หมวดหมู่ใหม่</option></select>
+          <input type="text" id="ns_category_new" placeholder="ชื่อหมวดหมู่ใหม่" style="display:none;flex:1">
+        </div>
+      </div>
+      <div class="form-group"><label>ชื่อบริการ *</label><input type="text" id="ns_name" required></div>
+    </div>
+    <div class="form-group"><label>รายละเอียด</label><textarea id="ns_desc" rows="3"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>ราคาเริ่มต้น</label><input type="number" id="ns_price" value="0" min="0"></div>
+      <div class="form-group"><label>หน่วยราคา</label><input type="text" id="ns_unit" value="รายการ" placeholder="รายการ, ห้อง, ตร.ม."></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>ไอคอน (emoji)</label><input type="text" id="ns_icon" value="🔧"></div>
+      <div class="form-group"><label>ลำดับ</label><input type="number" id="ns_sort" value="0" min="0"></div>
+    </div>
+    ${imageField('ns_image', '', 'รูปภาพ')}
+    <div class="form-group"><label><input type="checkbox" id="ns_active" checked> เปิดใช้</label></div>
+    <button class="btn btn-primary" onclick="createDbService()">💾 สร้างบริการ</button>
+  `;
+  document.getElementById('leadModal').classList.add('show');
+  // Toggle new category input
+  document.getElementById('ns_category').addEventListener('change', function() {
+    document.getElementById('ns_category_new').style.display = this.value === '__new__' ? '' : 'none';
+  });
+}
+
+async function createDbService() {
+  try {
+    let category = gv('ns_category');
+    if (category === '__new__') category = gv('ns_category_new').trim();
+    if (!category) return toast('❌ กรุณาเลือกหรือกรอกหมวดหมู่', 'error');
+    const name = gv('ns_name').trim();
+    if (!name) return toast('❌ กรุณากรอกชื่อบริการ', 'error');
+
+    const data = {
+      category,
+      name,
+      description: gv('ns_desc'),
+      price_start: parseInt(gv('ns_price')) || 0,
+      price_unit: gv('ns_unit') || 'รายการ',
+      icon: gv('ns_icon') || '🔧',
+      image_url: getImageValue('ns_image'),
+      sort_order: parseInt(gv('ns_sort')) || 0,
+      is_active: document.getElementById('ns_active')?.checked ? 1 : 0
+    };
+    await api('/api/admin/services', { method: 'POST', body: JSON.stringify(data) });
+    closeModal();
+    await loadDbServices();
+    renderDbServices();
+    toast('✅ สร้างบริการสำเร็จ');
+  } catch (err) {
+    toast('❌ สร้างไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function editDbService(id) {
+  const s = allDbServices.find(x => x.id === id);
+  if (!s) return;
+  const catOptions = [...new Set([...dbCategories, s.category])].map(c => `<option value="${esc(c)}" ${c === s.category ? 'selected' : ''}>${esc(c)}</option>`).join('');
+  document.getElementById('modalTitle').textContent = '✏️ แก้ไขบริการ';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-row">
+      <div class="form-group"><label>หมวดหมู่</label>
+        <div style="display:flex;gap:8px">
+          <select id="es_category" style="flex:1">${catOptions}<option value="__new__">+ หมวดหมู่ใหม่</option></select>
+          <input type="text" id="es_category_new" placeholder="ชื่อหมวดหมู่ใหม่" style="display:none;flex:1">
+        </div>
+      </div>
+      <div class="form-group"><label>ชื่อบริการ *</label><input type="text" id="es_name" value="${esc(s.name)}"></div>
+    </div>
+    <div class="form-group"><label>รายละเอียด</label><textarea id="es_desc" rows="3">${esc(s.description || '')}</textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>ราคาเริ่มต้น</label><input type="number" id="es_price" value="${s.price_start || 0}" min="0"></div>
+      <div class="form-group"><label>หน่วยราคา</label><input type="text" id="es_unit" value="${esc(s.price_unit || 'รายการ')}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>ไอคอน (emoji)</label><input type="text" id="es_icon" value="${esc(s.icon || '')}"></div>
+      <div class="form-group"><label>ลำดับ</label><input type="number" id="es_sort" value="${s.sort_order || 0}" min="0"></div>
+    </div>
+    ${imageField('es_image', s.image_url, 'รูปภาพ')}
+    <div class="form-group"><label><input type="checkbox" id="es_active" ${s.is_active ? 'checked' : ''}> เปิดใช้</label></div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-primary" onclick="saveDbService(${id})">💾 บันทึก</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteDbService(${id}, '${esc(s.name)}')">🗑️ ลบ</button>
+    </div>
+  `;
+  document.getElementById('leadModal').classList.add('show');
+  document.getElementById('es_category').addEventListener('change', function() {
+    document.getElementById('es_category_new').style.display = this.value === '__new__' ? '' : 'none';
+  });
+}
+
+async function saveDbService(id) {
+  try {
+    let category = gv('es_category');
+    if (category === '__new__') category = gv('es_category_new').trim();
+    if (!category) return toast('❌ กรุณาเลือกหมวดหมู่', 'error');
+
+    const data = {
+      category,
+      name: gv('es_name').trim(),
+      description: gv('es_desc'),
+      price_start: parseInt(gv('es_price')) || 0,
+      price_unit: gv('es_unit') || 'รายการ',
+      icon: gv('es_icon') || '',
+      image_url: getImageValue('es_image'),
+      sort_order: parseInt(gv('es_sort')) || 0,
+      is_active: document.getElementById('es_active')?.checked ? 1 : 0
+    };
+    await api(`/api/admin/services/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    closeModal();
+    await loadDbServices();
+    renderDbServices();
+    toast('✅ บันทึกสำเร็จ');
+  } catch (err) {
+    toast('❌ บันทึกไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function toggleServiceActive(id, newActive) {
+  try {
+    await api(`/api/admin/services/${id}`, { method: 'PUT', body: JSON.stringify({ is_active: newActive }) });
+    const s = allDbServices.find(x => x.id === id);
+    if (s) s.is_active = newActive;
+    renderDbServices();
+    toast(newActive ? '✅ เปิดใช้บริการ' : '⏸️ ปิดใช้บริการ');
+  } catch (err) {
+    toast('❌ อัพเดทไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function deleteDbService(id, name) {
+  if (!confirm(`ลบบริการ "${name}"?\nการดำเนินการนี้จะลบรูป Gallery และ 3D Models ที่เกี่ยวข้องด้วย`)) return;
+  try {
+    await api(`/api/admin/services/${id}`, { method: 'DELETE' });
+    allDbServices = allDbServices.filter(s => s.id !== id);
+    renderDbServices();
+    document.getElementById('dbServicesCount').textContent = allDbServices.length;
+    toast('🗑️ ลบบริการสำเร็จ');
+  } catch (err) {
+    toast('❌ ลบไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+// ===== PACKAGE MANAGEMENT =====
+function showAddPackageModal() {
+  document.getElementById('modalTitle').textContent = '➕ เพิ่มแพ็กเกจใหม่';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group"><label>ชื่อแพ็กเกจ *</label><input type="text" id="np_name"></div>
+    <div class="form-group"><label>รายละเอียด</label><textarea id="np_desc" rows="2"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>ราคาเริ่มต้น</label><input type="number" id="np_price" value="0" min="0"></div>
+      <div class="form-group"><label>ลำดับ</label><input type="number" id="np_sort" value="0" min="0"></div>
+    </div>
+    <div class="form-group"><label>Features (JSON Array)</label><textarea id="np_features" rows="4" placeholder='["แปลนบ้าน 2D","3D Perspective 2 มุม","BOQ / ประมาณราคา"]'>[]</textarea></div>
+    <div class="form-group"><label><input type="checkbox" id="np_featured"> ⭐ แนะนำ</label></div>
+    <div class="form-group"><label><input type="checkbox" id="np_active" checked> เปิดใช้</label></div>
+    <button class="btn btn-primary" onclick="createDbPackage()">💾 สร้างแพ็กเกจ</button>
+  `;
+  document.getElementById('leadModal').classList.add('show');
+}
+
+async function createDbPackage() {
+  try {
+    const name = gv('np_name').trim();
+    if (!name) return toast('❌ กรุณากรอกชื่อแพ็กเกจ', 'error');
+    let features = [];
+    try { features = JSON.parse(gv('np_features') || '[]'); } catch { return toast('❌ Features ต้องเป็น JSON Array', 'error'); }
+
+    const data = {
+      name,
+      description: gv('np_desc'),
+      price_start: parseInt(gv('np_price')) || 0,
+      features,
+      is_featured: document.getElementById('np_featured')?.checked ? 1 : 0,
+      sort_order: parseInt(gv('np_sort')) || 0,
+      is_active: document.getElementById('np_active')?.checked ? 1 : 0
+    };
+    await api('/api/admin/service-packages', { method: 'POST', body: JSON.stringify(data) });
+    closeModal();
+    await loadDbServices();
+    renderDbPackages();
+    toast('✅ สร้างแพ็กเกจสำเร็จ');
+  } catch (err) {
+    toast('❌ สร้างไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function editDbPackage(id) {
+  const p = allDbPackages.find(x => x.id === id);
+  if (!p) return;
+  let featuresStr = '[]';
+  try { featuresStr = JSON.stringify(typeof p.features === 'string' ? JSON.parse(p.features) : p.features || [], null, 2); } catch { featuresStr = p.features || '[]'; }
+
+  document.getElementById('modalTitle').textContent = '✏️ แก้ไขแพ็กเกจ';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group"><label>ชื่อแพ็กเกจ *</label><input type="text" id="ep_name" value="${esc(p.name)}"></div>
+    <div class="form-group"><label>รายละเอียด</label><textarea id="ep_desc" rows="2">${esc(p.description || '')}</textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>ราคาเริ่มต้น</label><input type="number" id="ep_price" value="${p.price_start || 0}" min="0"></div>
+      <div class="form-group"><label>ลำดับ</label><input type="number" id="ep_sort" value="${p.sort_order || 0}" min="0"></div>
+    </div>
+    <div class="form-group"><label>Features (JSON Array)</label><textarea id="ep_features" rows="4">${esc(featuresStr)}</textarea></div>
+    <div class="form-group"><label><input type="checkbox" id="ep_featured" ${p.is_featured ? 'checked' : ''}> ⭐ แนะนำ</label></div>
+    <div class="form-group"><label><input type="checkbox" id="ep_active" ${p.is_active ? 'checked' : ''}> เปิดใช้</label></div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-primary" onclick="saveDbPackage(${id})">💾 บันทึก</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteDbPackage(${id}, '${esc(p.name)}')">🗑️ ลบ</button>
+    </div>
+  `;
+  document.getElementById('leadModal').classList.add('show');
+}
+
+async function saveDbPackage(id) {
+  try {
+    let features = null;
+    try { features = JSON.stringify(JSON.parse(gv('ep_features') || '[]')); } catch { return toast('❌ Features ต้องเป็น JSON Array', 'error'); }
+
+    const data = {
+      name: gv('ep_name').trim(),
+      description: gv('ep_desc'),
+      price_start: parseInt(gv('ep_price')) || 0,
+      features,
+      is_featured: document.getElementById('ep_featured')?.checked ? 1 : 0,
+      sort_order: parseInt(gv('ep_sort')) || 0,
+      is_active: document.getElementById('ep_active')?.checked ? 1 : 0
+    };
+    await api(`/api/admin/service-packages/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    closeModal();
+    await loadDbServices();
+    renderDbPackages();
+    toast('✅ บันทึกสำเร็จ');
+  } catch (err) {
+    toast('❌ บันทึกไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function deleteDbPackage(id, name) {
+  if (!confirm(`ลบแพ็กเกจ "${name}"?`)) return;
+  try {
+    await api(`/api/admin/service-packages/${id}`, { method: 'DELETE' });
+    allDbPackages = allDbPackages.filter(p => p.id !== id);
+    renderDbPackages();
+    document.getElementById('dbPackagesCount').textContent = allDbPackages.length;
+    toast('🗑️ ลบแพ็กเกจสำเร็จ');
+  } catch (err) {
+    toast('❌ ลบไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+// Hook into showPage to load DB services
+const _origShowPage = showPage;
+showPage = function(pageId) {
+  _origShowPage(pageId);
+  if (pageId === 'db-services') {
+    loadDbServices().then(() => { renderDbServices(); renderDbPackages(); });
+  }
+};
 
 // ===== PROCESS FORM =====
 function renderProcessForm() {

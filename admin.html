@@ -135,6 +135,54 @@
                 <form class="cms-form" id="servicesForm"></form>
             </div>
 
+            <!-- DB Services Management -->
+            <div class="page-section" id="page-db-services">
+                <div class="page-header">
+                    <h1>📦 บริการ (DB)</h1>
+                    <p>จัดการบริการและแพ็กเกจจากฐานข้อมูล — เพิ่ม แก้ไข ลบ</p>
+                </div>
+                <!-- Tabs -->
+                <div style="display:flex;gap:8px;margin-bottom:1.2rem;border-bottom:2px solid var(--gray-100);padding-bottom:12px">
+                    <button class="btn btn-primary btn-sm" id="dbTabServices" onclick="switchDbTab('services')">🔧 บริการ <span id="dbServicesCount" class="badge">0</span></button>
+                    <button class="btn btn-outline btn-sm" id="dbTabPackages" onclick="switchDbTab('packages')">📦 แพ็กเกจ <span id="dbPackagesCount" class="badge">0</span></button>
+                </div>
+
+                <!-- Services Tab -->
+                <div id="dbServicesPanel">
+                    <div class="leads-toolbar">
+                        <input type="text" id="dbServiceSearch" placeholder="🔍 ค้นหาชื่อบริการ..." class="search-input" oninput="renderDbServices()">
+                        <select id="dbServiceCategoryFilter" class="filter-select" onchange="renderDbServices()">
+                            <option value="">ทุกหมวดหมู่</option>
+                        </select>
+                        <select id="dbServiceActiveFilter" class="filter-select" onchange="renderDbServices()" style="width:auto">
+                            <option value="">ทั้งหมด</option>
+                            <option value="1">เปิดใช้</option>
+                            <option value="0">ปิดใช้</option>
+                        </select>
+                        <button class="btn btn-primary btn-sm" onclick="showAddServiceModal()">➕ เพิ่มบริการ</button>
+                    </div>
+                    <div class="leads-table-wrap">
+                        <table class="leads-table" id="dbServicesTable">
+                            <thead><tr><th>ลำดับ</th><th>ไอคอน</th><th>ชื่อ</th><th>หมวดหมู่</th><th>ราคาเริ่มต้น</th><th>หน่วย</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+                            <tbody id="dbServicesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Packages Tab -->
+                <div id="dbPackagesPanel" style="display:none">
+                    <div style="margin-bottom:1rem">
+                        <button class="btn btn-primary btn-sm" onclick="showAddPackageModal()">➕ เพิ่มแพ็กเกจ</button>
+                    </div>
+                    <div class="leads-table-wrap">
+                        <table class="leads-table" id="dbPackagesTable">
+                            <thead><tr><th>ลำดับ</th><th>ชื่อ</th><th>ราคาเริ่มต้น</th><th>แนะนำ</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+                            <tbody id="dbPackagesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- Edit Process -->
             <div class="page-section" id="page-edit-process">
                 <div class="page-header"><h1>📋 กระบวนการ</h1><p>ขั้นตอนการทำงาน</p></div>

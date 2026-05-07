@@ -1445,6 +1445,173 @@ app.delete('/api/media/:name', authMiddleware, (req, res) => {
   }
 });
 
+// ===== ADMIN SERVICES API (CRUD) =====
+app.get('/api/admin/services', authMiddleware, adminOnly, (req, res) => {
+  try {
+    let query = 'SELECT * FROM services';
+    const conditions = [];
+    const params = [];
+
+    if (req.query.category) {
+      conditions.push('category = ?');
+      params.push(req.query.category);
+    }
+    if (req.query.search) {
+      conditions.push('(name LIKE ? OR description LIKE ?)');
+      const escaped = String(req.query.search).replace(/[%_]/g, '\\$&');
+      params.push(`%${escaped}%`, `%${escaped}%`);
+    }
+    if (req.query.is_active !== undefined) {
+      conditions.push('is_active = ?');
+      params.push(parseInt(req.query.is_active));
+    }
+
+    if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');
+
+    const sortField = ['name', 'category', 'sort_order', 'price_start', 'created_at'].includes(req.query.sort) ? req.query.sort : 'category';
+    const sortOrder = String(req.query.order).toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    query += ` ORDER BY ${sortField} ${sortOrder}, sort_order ASC`;
+
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 100));
+    const offset = (page - 1) * limit;
+
+    const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
+    const total = db.prepare(countQuery).get(...params).total;
+
+    query += ' LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const services = db.prepare(query).all(...params);
+    const categories = db.prepare('SELECT DISTINCT category FROM services ORDER BY category').all().map(r => r.category);
+
+    res.json({ data: services, categories, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
+  } catch (err) {
+    console.error('Admin get services error:', err);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.post('/api/admin/services', authMiddleware, adminOnly, (req, res) => {
+  try {
+    const { category, name, description, price_start, price_unit, icon, image_url, sort_order, is_active } = req.body;
+    if (!category || !name) return res.status(400).json({ error: 'กรุณากรอกหมวดหมู่และชื่อบริการ' });
+
+    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM services').get().m || 0;
+    const result = db.prepare(
+      'INSERT INTO services (category, name, description, price_start, price_unit, icon, image_url, sort_order, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(category, name, description || '', price_start || 0, price_unit || 'รายการ', icon || '', image_url || '', sort_order ?? maxOrder + 1, is_active !== undefined ? is_active : 1);
+
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch (err) {
+    console.error('Create service error:', err);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.put('/api/admin/services/:id', authMiddleware, adminOnly, (req, res) => {
+  try {
+    const allowedFields = ['category', 'name', 'description', 'price_start', 'price_unit', 'icon', 'image_url', 'sort_order', 'is_active'];
+    const fields = [];
+    const values = [];
+    for (const [key, val] of Object.entries(req.body)) {
+      if (allowedFields.includes(key)) {
+        fields.push(`${key} = ?`);
+        values.push(val);
+      }
+    }
+    if (fields.length === 0) return res.status(400).json({ error: 'ไม่มีข้อมูลที่อัพเดท' });
+
+    fields.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(req.params.id);
+    const result = db.prepare(`UPDATE services SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+    if (result.changes === 0) return res.status(404).json({ error: 'ไม่พบบริการ' });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update service error:', err);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.delete('/api/admin/services/:id', authMiddleware, adminOnly, (req, res) => {
+  try {
+    const result = db.prepare('DELETE FROM services WHERE id = ?').run(req.params.id);
+    if (result.changes === 0) return res.status(404).json({ error: 'ไม่พบบริการ' });
+    // Also delete related gallery and models
+    db.prepare('DELETE FROM service_gallery WHERE service_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM service_models WHERE service_id = ?').run(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete service error:', err);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+// ===== ADMIN SERVICE PACKAGES API (CRUD) =====
+app.get('/api/admin/service-packages', authMiddleware, adminOnly, (req, res) => {
+  try {
+    const packages = db.prepare('SELECT * FROM service_packages ORDER BY sort_order').all();
+    res.json(packages);
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.post('/api/admin/service-packages', authMiddleware, adminOnly, (req, res) => {
+  try {
+    const { name, description, price_start, features, is_featured, sort_order, is_active } = req.body;
+    if (!name) return res.status(400).json({ error: 'กรุณากรอกชื่อแพ็กเกจ' });
+
+    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM service_packages').get().m || 0;
+    const featuresStr = typeof features === 'string' ? features : JSON.stringify(features || []);
+    const result = db.prepare(
+      'INSERT INTO service_packages (name, description, price_start, features, is_featured, sort_order, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(name, description || '', price_start || 0, featuresStr, is_featured ? 1 : 0, sort_order ?? maxOrder + 1, is_active !== undefined ? is_active : 1);
+
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch (err) {
+    console.error('Create package error:', err);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.put('/api/admin/service-packages/:id', authMiddleware, adminOnly, (req, res) => {
+  try {
+    const allowedFields = ['name', 'description', 'price_start', 'features', 'is_featured', 'sort_order', 'is_active'];
+    const fields = [];
+    const values = [];
+    for (const [key, val] of Object.entries(req.body)) {
+      if (allowedFields.includes(key)) {
+        fields.push(`${key} = ?`);
+        values.push(key === 'features' ? (typeof val === 'string' ? val : JSON.stringify(val)) : val);
+      }
+    }
+    if (fields.length === 0) return res.status(400).json({ error: 'ไม่มีข้อมูลที่อัพเดท' });
+
+    fields.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(req.params.id);
+    const result = db.prepare(`UPDATE service_packages SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+    if (result.changes === 0) return res.status(404).json({ error: 'ไม่พบแพ็กเกจ' });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update package error:', err);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.delete('/api/admin/service-packages/:id', authMiddleware, adminOnly, (req, res) => {
+  try {
+    const result = db.prepare('DELETE FROM service_packages WHERE id = ?').run(req.params.id);
+    if (result.changes === 0) return res.status(404).json({ error: 'ไม่พบแพ็กเกจ' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete package error:', err);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
 // ===== SERVICES API (Public) =====
 app.get('/api/services/categories', (req, res) => {
   try {
