@@ -104,6 +104,26 @@ const attachmentUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
+// File upload for 3D models (.glb, .gltf, poster images)
+const modelStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadsDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const name = Date.now() + '-' + crypto.randomBytes(4).toString('hex') + ext;
+    cb(null, name);
+  }
+});
+const modelUpload = multer({
+  storage: modelStorage,
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.glb', '.gltf', '.jpg', '.jpeg', '.png', '.webp'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) cb(null, true);
+    else cb(new Error('อนุญาตเฉพาะไฟล์ .glb, .gltf, .jpg, .png, .webp เท่านั้น'));
+  }
+});
+
 // ===== RATE LIMITERS =====
 const loginLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -1755,29 +1775,53 @@ app.get('/api/models/category/:category', (req, res) => {
   }
 });
 
-app.post('/api/services/:id/models', authMiddleware, (req, res) => {
+app.post('/api/services/:id/models', authMiddleware, modelUpload.fields([
+  { name: 'model_file', maxCount: 1 },
+  { name: 'poster_file', maxCount: 1 }
+]), (req, res) => {
   try {
     const service = db.prepare('SELECT * FROM services WHERE id = ?').get(req.params.id);
     if (!service) return res.status(404).json({ error: 'ไม่พบบริการ' });
     const { title, description, model_url, model_format, poster_url, auto_rotate, camera_orbit } = req.body;
-    if (!model_url) return res.status(400).json({ error: 'กรุณาใส่ URL ของโมเดล 3D' });
+    let finalModelUrl = model_url || '';
+    let finalPosterUrl = poster_url || '';
+    if (req.files?.model_file?.[0]) finalModelUrl = '/uploads/' + req.files.model_file[0].filename;
+    if (req.files?.poster_file?.[0]) finalPosterUrl = '/uploads/' + req.files.poster_file[0].filename;
+    if (!finalModelUrl) return res.status(400).json({ error: 'กรุณาอัพโหลดไฟล์โมเดลหรือใส่ URL' });
+    const fmt = model_format || (finalModelUrl.endsWith('.gltf') ? 'gltf' : 'glb');
     const result = db.prepare(
       'INSERT INTO service_models (service_id, service_category, title, description, model_url, model_format, poster_url, auto_rotate, camera_orbit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(req.params.id, service.category, title || '', description || '', model_url, model_format || 'glb', poster_url || '', auto_rotate !== undefined ? auto_rotate : 1, camera_orbit || '0deg 75deg 105%');
+    ).run(req.params.id, service.category, title || '', description || '', finalModelUrl, fmt, finalPosterUrl, auto_rotate !== undefined ? auto_rotate : 1, camera_orbit || '0deg 75deg 105%');
     res.json({ success: true, id: result.lastInsertRowid });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });
 
-app.put('/api/models/:id', authMiddleware, (req, res) => {
+app.put('/api/models/:id', authMiddleware, modelUpload.fields([
+  { name: 'model_file', maxCount: 1 },
+  { name: 'poster_file', maxCount: 1 }
+]), (req, res) => {
   try {
     const item = db.prepare('SELECT * FROM service_models WHERE id = ?').get(req.params.id);
     if (!item) return res.status(404).json({ error: 'ไม่พบโมเดล' });
     const { title, description, model_url, model_format, poster_url, auto_rotate, camera_orbit, sort_order } = req.body;
+    let finalModelUrl = model_url ?? item.model_url;
+    let finalPosterUrl = poster_url ?? item.poster_url;
+    if (req.files?.model_file?.[0]) finalModelUrl = '/uploads/' + req.files.model_file[0].filename;
+    if (req.files?.poster_file?.[0]) finalPosterUrl = '/uploads/' + req.files.poster_file[0].filename;
+    // Delete old uploaded files if replaced
+    if (req.files?.model_file?.[0] && item.model_url?.startsWith('/uploads/')) {
+      const oldPath = path.join(__dirname, item.model_url);
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+    if (req.files?.poster_file?.[0] && item.poster_url?.startsWith('/uploads/')) {
+      const oldPath = path.join(__dirname, item.poster_url);
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
     db.prepare(
       'UPDATE service_models SET title = ?, description = ?, model_url = ?, model_format = ?, poster_url = ?, auto_rotate = ?, camera_orbit = ?, sort_order = ? WHERE id = ?'
-    ).run(title ?? item.title, description ?? item.description, model_url ?? item.model_url, model_format ?? item.model_format, poster_url ?? item.poster_url, auto_rotate !== undefined ? auto_rotate : item.auto_rotate, camera_orbit ?? item.camera_orbit, sort_order ?? item.sort_order, req.params.id);
+    ).run(title ?? item.title, description ?? item.description, finalModelUrl, model_format ?? item.model_format, finalPosterUrl, auto_rotate !== undefined ? auto_rotate : item.auto_rotate, camera_orbit ?? item.camera_orbit, sort_order ?? item.sort_order, req.params.id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
@@ -1788,6 +1832,15 @@ app.delete('/api/models/:id', authMiddleware, (req, res) => {
   try {
     const item = db.prepare('SELECT * FROM service_models WHERE id = ?').get(req.params.id);
     if (!item) return res.status(404).json({ error: 'ไม่พบโมเดล' });
+    // Delete uploaded files
+    if (item.model_url?.startsWith('/uploads/')) {
+      const fp = path.join(__dirname, item.model_url);
+      if (fs.existsSync(fp)) fs.unlinkSync(fp);
+    }
+    if (item.poster_url?.startsWith('/uploads/')) {
+      const fp = path.join(__dirname, item.poster_url);
+      if (fs.existsSync(fp)) fs.unlinkSync(fp);
+    }
     db.prepare('DELETE FROM service_models WHERE id = ?').run(req.params.id);
     res.json({ success: true });
   } catch (err) {

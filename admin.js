@@ -987,19 +987,25 @@ function showAddModelModal() {
     <div class="form-group"><label>บริการ *</label><select id="am_service">${serviceOptions}</select></div>
     <div class="form-group"><label>ชื่อโมเดล *</label><input type="text" id="am_title" placeholder="เช่น ห้องนั่งเล่น Modern"></div>
     <div class="form-group"><label>รายละเอียด</label><textarea id="am_desc" rows="2"></textarea></div>
-    <div class="form-group"><label>URL โมเดล 3D (.glb/.gltf) *</label><input type="text" id="am_url" placeholder="https://...model.glb"></div>
+    <div style="background:var(--off-white);border-radius:12px;padding:16px;margin-bottom:16px">
+      <div class="form-group"><label>📁 อัพโหลดไฟล์โมเดล (.glb/.gltf)</label><input type="file" id="am_file" accept=".glb,.gltf"></div>
+      <div style="text-align:center;color:var(--gray-300);font-size:0.85rem;margin:8px 0">— หรือใส่ URL —</div>
+      <div class="form-group"><label>🔗 URL โมเดล 3D</label><input type="text" id="am_url" placeholder="https://...model.glb"></div>
+    </div>
+    <div style="background:var(--off-white);border-radius:12px;padding:16px;margin-bottom:16px">
+      <div class="form-group"><label>📁 อัพโหลดรูปโปสเตอร์</label><input type="file" id="am_poster_file" accept="image/*"></div>
+      <div style="text-align:center;color:var(--gray-300);font-size:0.85rem;margin:8px 0">— หรือใส่ URL —</div>
+      <div class="form-group"><label>🔗 URL รูปโปสเตอร์</label><input type="text" id="am_poster" placeholder="https://...poster.jpg"></div>
+    </div>
     <div class="form-row">
       <div class="form-group"><label>Format</label>
         <select id="am_format"><option value="glb">GLB</option><option value="gltf">GLTF</option></select>
       </div>
-      <div class="form-group"><label>URL รูปโปสเตอร์</label><input type="text" id="am_poster" placeholder="https://...poster.jpg"></div>
-    </div>
-    <div class="form-row">
       <div class="form-group"><label>หมุนอัตโนมัติ</label>
         <select id="am_rotate"><option value="1">เปิด</option><option value="0">ปิด</option></select>
       </div>
-      <div class="form-group"><label>มุมกล้อง</label><input type="text" id="am_orbit" value="0deg 75deg 105%" placeholder="0deg 75deg 105%"></div>
     </div>
+    <div class="form-group"><label>มุมกล้อง</label><input type="text" id="am_orbit" value="0deg 75deg 105%" placeholder="0deg 75deg 105%"></div>
     <button class="btn btn-primary" onclick="createSvcModel()">💾 บันทึก</button>
   `;
   document.getElementById('leadModal').classList.add('show');
@@ -1009,23 +1015,46 @@ async function createSvcModel() {
   try {
     const serviceId = gv('am_service');
     const title = gv('am_title').trim();
+    const modelFile = document.getElementById('am_file')?.files?.[0];
     const modelUrl = gv('am_url').trim();
     if (!serviceId) return toast('❌ กรุณาเลือกบริการ', 'error');
     if (!title) return toast('❌ กรุณากรอกชื่อโมเดล', 'error');
-    if (!modelUrl) return toast('❌ กรุณาใส่ URL โมเดล 3D', 'error');
+    if (!modelFile && !modelUrl) return toast('❌ กรุณาอัพโหลดไฟล์โมเดลหรือใส่ URL', 'error');
 
-    await api(`/api/services/${serviceId}/models`, {
-      method: 'POST',
-      body: JSON.stringify({
-        title,
-        description: gv('am_desc'),
-        model_url: modelUrl,
-        model_format: gv('am_format'),
-        poster_url: gv('am_poster'),
-        auto_rotate: parseInt(gv('am_rotate')),
-        camera_orbit: gv('am_orbit')
-      })
-    });
+    const posterFile = document.getElementById('am_poster_file')?.files?.[0];
+
+    if (modelFile || posterFile) {
+      // Use FormData for file upload
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', gv('am_desc'));
+      formData.append('model_format', gv('am_format'));
+      formData.append('auto_rotate', gv('am_rotate'));
+      formData.append('camera_orbit', gv('am_orbit'));
+      if (modelFile) formData.append('model_file', modelFile);
+      else if (modelUrl) formData.append('model_url', modelUrl);
+      if (posterFile) formData.append('poster_file', posterFile);
+      else if (gv('am_poster')) formData.append('poster_url', gv('am_poster'));
+
+      await fetch(`/api/services/${serviceId}/models`, {
+        method: 'POST',
+        body: formData
+      }).then(r => { if (!r.ok) throw new Error('Upload failed'); return r.json(); });
+    } else {
+      // URL only — use JSON
+      await api(`/api/services/${serviceId}/models`, {
+        method: 'POST',
+        body: JSON.stringify({
+          title,
+          description: gv('am_desc'),
+          model_url: modelUrl,
+          model_format: gv('am_format'),
+          poster_url: gv('am_poster'),
+          auto_rotate: parseInt(gv('am_rotate')),
+          camera_orbit: gv('am_orbit')
+        })
+      });
+    }
     closeModal();
     await loadSvcModels();
     populateModelsFilters();
@@ -1044,19 +1073,25 @@ function editSvcModel(id) {
     ${m.poster_url ? `<div style="margin-bottom:16px;text-align:center"><img src="${esc(m.poster_url)}" alt="" style="max-width:100%;max-height:200px;border-radius:12px;object-fit:cover"></div>` : ''}
     <div class="form-group"><label>ชื่อโมเดล *</label><input type="text" id="em_title" value="${esc(m.title || '')}"></div>
     <div class="form-group"><label>รายละเอียด</label><textarea id="em_desc" rows="2">${esc(m.description || '')}</textarea></div>
-    <div class="form-group"><label>URL โมเดล 3D</label><input type="text" id="em_url" value="${esc(m.model_url || '')}"></div>
+    <div style="background:var(--off-white);border-radius:12px;padding:16px;margin-bottom:16px">
+      <div class="form-group"><label>📁 อัพโหลดไฟล์โมเดลใหม่ (.glb/.gltf)</label><input type="file" id="em_file" accept=".glb,.gltf"></div>
+      <div style="text-align:center;color:var(--gray-300);font-size:0.85rem;margin:8px 0">— หรือแก้ URL —</div>
+      <div class="form-group"><label>🔗 URL โมเดล 3D</label><input type="text" id="em_url" value="${esc(m.model_url || '')}"></div>
+    </div>
+    <div style="background:var(--off-white);border-radius:12px;padding:16px;margin-bottom:16px">
+      <div class="form-group"><label>📁 อัพโหลดรูปโปสเตอร์ใหม่</label><input type="file" id="em_poster_file" accept="image/*"></div>
+      <div style="text-align:center;color:var(--gray-300);font-size:0.85rem;margin:8px 0">— หรือแก้ URL —</div>
+      <div class="form-group"><label>🔗 URL รูปโปสเตอร์</label><input type="text" id="em_poster" value="${esc(m.poster_url || '')}"></div>
+    </div>
     <div class="form-row">
       <div class="form-group"><label>Format</label>
         <select id="em_format"><option value="glb" ${m.model_format === 'glb' ? 'selected' : ''}>GLB</option><option value="gltf" ${m.model_format === 'gltf' ? 'selected' : ''}>GLTF</option></select>
       </div>
-      <div class="form-group"><label>URL รูปโปสเตอร์</label><input type="text" id="em_poster" value="${esc(m.poster_url || '')}"></div>
-    </div>
-    <div class="form-row">
       <div class="form-group"><label>หมุนอัตโนมัติ</label>
         <select id="em_rotate"><option value="1" ${m.auto_rotate ? 'selected' : ''}>เปิด</option><option value="0" ${!m.auto_rotate ? 'selected' : ''}>ปิด</option></select>
       </div>
-      <div class="form-group"><label>มุมกล้อง</label><input type="text" id="em_orbit" value="${esc(m.camera_orbit || '0deg 75deg 105%')}"></div>
     </div>
+    <div class="form-group"><label>มุมกล้อง</label><input type="text" id="em_orbit" value="${esc(m.camera_orbit || '0deg 75deg 105%')}"></div>
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn btn-primary" onclick="saveSvcModel(${id})">💾 บันทึก</button>
       <button class="btn btn-danger btn-sm" onclick="deleteSvcModel(${id}, '${esc(m.title || 'โมเดล ID ' + m.id)}')">🗑️ ลบ</button>
@@ -1068,22 +1103,43 @@ function editSvcModel(id) {
 async function saveSvcModel(id) {
   try {
     const title = gv('em_title').trim();
+    const modelFile = document.getElementById('em_file')?.files?.[0];
     const modelUrl = gv('em_url').trim();
     if (!title) return toast('❌ กรุณากรอกชื่อโมเดล', 'error');
-    if (!modelUrl) return toast('❌ กรุณาใส่ URL โมเดล 3D', 'error');
+    if (!modelFile && !modelUrl) return toast('❌ กรุณาอัพโหลดไฟล์โมเดลหรือใส่ URL', 'error');
 
-    await api(`/api/models/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        title,
-        description: gv('em_desc'),
-        model_url: modelUrl,
-        model_format: gv('em_format'),
-        poster_url: gv('em_poster'),
-        auto_rotate: parseInt(gv('em_rotate')),
-        camera_orbit: gv('em_orbit')
-      })
-    });
+    const posterFile = document.getElementById('em_poster_file')?.files?.[0];
+
+    if (modelFile || posterFile) {
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', gv('em_desc'));
+      formData.append('model_format', gv('em_format'));
+      formData.append('auto_rotate', gv('em_rotate'));
+      formData.append('camera_orbit', gv('em_orbit'));
+      if (modelFile) formData.append('model_file', modelFile);
+      else if (modelUrl) formData.append('model_url', modelUrl);
+      if (posterFile) formData.append('poster_file', posterFile);
+      else if (gv('em_poster')) formData.append('poster_url', gv('em_poster'));
+
+      await fetch(`/api/models/${id}`, {
+        method: 'PUT',
+        body: formData
+      }).then(r => { if (!r.ok) throw new Error('Update failed'); return r.json(); });
+    } else {
+      await api(`/api/models/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title,
+          description: gv('em_desc'),
+          model_url: modelUrl,
+          model_format: gv('em_format'),
+          poster_url: gv('em_poster'),
+          auto_rotate: parseInt(gv('em_rotate')),
+          camera_orbit: gv('em_orbit')
+        })
+      });
+    }
     closeModal();
     await loadSvcModels();
     populateModelsFilters();
