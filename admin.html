@@ -58,6 +58,8 @@
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">🖼️ สื่อ</div>
                     <div class="sidebar-link" data-page="media" onclick="showPage('media')"><span>📁 คลังรูปภาพ</span></div>
+                    <div class="sidebar-link" data-page="svc-gallery" onclick="showPage('svc-gallery')"><span>🖼️ แกลเลอรีบริการ</span><span class="badge" id="svcGalleryCount">0</span></div>
+                    <div class="sidebar-link" data-page="svc-models" onclick="showPage('svc-models')"><span>🎲 โมเดล 3D</span><span class="badge" id="svcModelsCount">0</span></div>
                 </div>
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">🤖 Chatbot</div>
@@ -180,6 +182,57 @@
                             <tbody id="dbPackagesBody"></tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            <!-- Service Gallery Management -->
+            <div class="page-section" id="page-svc-gallery">
+                <div class="page-header">
+                    <h1>🖼️ แกลเลอรีบริการ</h1>
+                    <p>จัดการรูปภาพ Gallery ของแต่ละบริการ — เพิ่ม แก้ไข ลบรูป</p>
+                </div>
+                <div class="leads-toolbar">
+                    <select id="svcGalleryServiceFilter" class="filter-select" onchange="renderSvcGallery()">
+                        <option value="">ทุกบริการ</option>
+                    </select>
+                    <select id="svcGalleryCategoryFilter" class="filter-select" onchange="renderSvcGallery()">
+                        <option value="">ทุกหมวดหมู่</option>
+                    </select>
+                    <select id="svcGalleryTypeFilter" class="filter-select" onchange="renderSvcGallery()" style="width:auto">
+                        <option value="">ทุกประเภท</option>
+                        <option value="photo">📷 รูปถ่าย</option>
+                        <option value="render">🖼️ 3D Render</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" onclick="showAddGalleryModal()">➕ เพิ่มรูป</button>
+                </div>
+                <div class="leads-table-wrap">
+                    <table class="leads-table" id="svcGalleryTable">
+                        <thead><tr><th>ID</th><th>รูป</th><th>ชื่อ</th><th>บริการ</th><th>หมวดหมู่</th><th>ประเภท</th><th>ลำดับ</th><th>จัดการ</th></tr></thead>
+                        <tbody id="svcGalleryBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Service 3D Models Management -->
+            <div class="page-section" id="page-svc-models">
+                <div class="page-header">
+                    <h1>🎲 โมเดล 3D</h1>
+                    <p>จัดการโมเดล 3 มิติของแต่ละบริการ — เพิ่ม แก้ไข ลบโมเดล</p>
+                </div>
+                <div class="leads-toolbar">
+                    <select id="svcModelsServiceFilter" class="filter-select" onchange="renderSvcModels()">
+                        <option value="">ทุกบริการ</option>
+                    </select>
+                    <select id="svcModelsCategoryFilter" class="filter-select" onchange="renderSvcModels()">
+                        <option value="">ทุกหมวดหมู่</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" onclick="showAddModelModal()">➕ เพิ่มโมเดล</button>
+                </div>
+                <div class="leads-table-wrap">
+                    <table class="leads-table" id="svcModelsTable">
+                        <thead><tr><th>ID</th><th>ตัวอย่าง</th><th>ชื่อ</th><th>บริการ</th><th>หมวดหมู่</th><th>Format</th><th>จัดการ</th></tr></thead>
+                        <tbody id="svcModelsBody"></tbody>
+                    </table>
                 </div>
             </div>
 

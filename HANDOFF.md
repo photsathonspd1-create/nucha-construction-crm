@@ -1,6 +1,6 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> อัพเดทล่าสุด: 2026-05-07 15:46 (GMT+8)
+> อัพเดทล่าสุด: 2026-05-07 16:05 (GMT+8)
 
 ---
 
@@ -59,6 +59,29 @@
 - ใช้ `window._svcModalReturn` flag — lightbox keyboard handler ตรวจ flag ถ้ามี → กลับ modal แทนปิดหมด
 - Override lightbox nav buttons + close button + click-outside เมื่อเปิดจาก modal
 - `closeModal()` function ปิด lightbox + เปิด modal ซ้ำ
+
+### 🆕 Admin Gallery & 3D Models Management UI (2026-05-07) — เสร็จสมบูรณ์
+ก่อนหน้า: API endpoints มีแล้ว แต่ไม่มี admin UI — ต้องใช้ Postman/curl เท่านั้น
+ตอนนี้: จัดการได้ทั้งหมดในหลังบ้าน
+
+#### Server API ใหม่ (`server.js`) — 5 endpoints
+| Method | Endpoint | ฟังก์ชัน |
+|--------|----------|----------|
+| GET | `/api/admin/gallery` | รายการ gallery ทั้งหมด (filter by service/category) |
+| PUT | `/api/gallery/:id` | แก้ไขรูป gallery (title, description, image_url, type, sort_order) + upload |
+| GET | `/api/admin/models` | รายการ 3D models ทั้งหมด (filter by service/category) |
+| PUT | `/api/models/:id` | แก้ไขโมเดล 3D (title, description, model_url, format, poster, orbit) |
+| DELETE | `/api/models/:id` | ลบโมเดล 3D |
+
+#### Admin HTML (`admin.html`) — 2 หน้าใหม่
+- **Sidebar**: 🖼️ แกลเลอรีบริการ + 🎲 โมเดล 3D (badge counts)
+- **page-svc-gallery**: table + filters (service/category/type) + add/edit/delete
+- **page-svc-models**: table + filters (service/category) + add/edit/delete
+
+#### Admin JS (`admin.js`) — ~200 บรรทัด
+- Gallery: `loadSvcGallery()`, `renderSvcGallery()`, `populateGalleryFilters()`, `showAddGalleryModal()`, `createSvcGallery()`, `editSvcGallery()`, `saveSvcGallery()`, `deleteSvcGallery()`
+- Models: `loadSvcModels()`, `renderSvcModels()`, `populateModelsFilters()`, `showAddModelModal()`, `createSvcModel()`, `editSvcModel()`, `saveSvcModel()`, `deleteSvcModel()`
+- Hook เข้า `showPage()` + pre-load counts ใน `loadAll()`
 
 ### Server & API (40+ endpoints ทำงานปกติ)
 - Auth, Leads CRUD, Pipeline, Reports, Chat, Services, Proposals, Notes, Activities
@@ -127,10 +150,9 @@
 
 ### 🟡 ควรทำ
 
-1. **Admin Gallery/Models Management UI**
-   - API endpoints สำหรับ gallery + models มีแล้ว
-   - แต่ยังไม่มี admin UI สำหรับจัดการรูป gallery + โมเดล 3D ของแต่ละบริการ
-   - ต้องเพิ่มใน admin.html + admin.js (คล้าย pattern ของ DB Services page)
+1. **Admin Gallery/Models Management UI** ← ✅ เสร็จแล้ว (2026-05-07)
+   - API endpoints สำหรับ gallery + models มีแล้ว + admin UI สร้างเสร็จครบ
+   - จัดการได้ทั้ง gallery images และ 3D models ในหลังบ้าน
 
 2. **3D Model Seed Data**
    - ตาราง `service_models` สร้างแล้ว แต่ยังไม่มีข้อมูล
@@ -391,6 +413,18 @@ Admin: GET /api/chat → reply → real-time polling
 ---
 
 ## 📝 Notes สำหรับ Agent ถัดไป
+
+### สิ่งที่ทำวันนี้ (2026-05-07) — Session 3
+
+**Admin Gallery & 3D Models Management UI — สร้างเสร็จ:**
+- แก้ปัญหา: API gallery/models มีแต่ไม่มี admin UI ต้องใช้ Postman/curl
+- เพิ่ม 5 API endpoints ใน server.js (admin gallery list, gallery PUT, admin models list, model PUT, model DELETE)
+- สร้าง 2 หน้าใหม่ใน admin.html: svc-gallery (table + filters + CRUD) + svc-models (table + filters + CRUD)
+- สร้าง ~200 บรรทัด JS ใน admin.js: load, render, filter, add, edit, delete ทั้ง gallery + models
+- Pre-load counts ใน loadAll() + showPage hook
+- ทดสอบ: 39 gallery items, model CRUD ครบ, admin page sections 4 elements found
+
+**ไฟล์ที่แก้:** `server.js` (+71), `admin.html` (+53), `admin.js` (+366), `HANDOFF.md`
 
 ### สิ่งที่ทำวันนี้ (2026-05-07) — Session 2
 

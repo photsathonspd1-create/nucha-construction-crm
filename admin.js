@@ -50,6 +50,15 @@ async function loadAll() {
     allDbPackages = await api('/api/admin/service-packages').catch(() => []);
     document.getElementById('dbPackagesCount').textContent = allDbPackages.length;
   } catch {}
+  // Pre-load gallery + models counts
+  try {
+    const galleryRes = await api('/api/admin/gallery').catch(() => []);
+    document.getElementById('svcGalleryCount').textContent = galleryRes.length;
+  } catch {}
+  try {
+    const modelsRes = await api('/api/admin/models').catch(() => []);
+    document.getElementById('svcModelsCount').textContent = modelsRes.length;
+  } catch {}
 }
 
 // ===== API HELPER =====
@@ -747,12 +756,369 @@ async function deleteDbPackage(id, name) {
   }
 }
 
+// ===== SERVICE GALLERY MANAGEMENT =====
+let allSvcGallery = [];
+
+async function loadSvcGallery() {
+  try {
+    allSvcGallery = await api('/api/admin/gallery');
+    document.getElementById('svcGalleryCount').textContent = allSvcGallery.length;
+  } catch { allSvcGallery = []; }
+}
+
+function renderSvcGallery() {
+  const serviceFilter = document.getElementById('svcGalleryServiceFilter')?.value || '';
+  const catFilter = document.getElementById('svcGalleryCategoryFilter')?.value || '';
+  const typeFilter = document.getElementById('svcGalleryTypeFilter')?.value || '';
+
+  let filtered = allSvcGallery;
+  if (serviceFilter) filtered = filtered.filter(g => String(g.service_id) === serviceFilter);
+  if (catFilter) filtered = filtered.filter(g => g.service_category === catFilter);
+  if (typeFilter) filtered = filtered.filter(g => g.image_type === typeFilter);
+
+  const body = document.getElementById('svcGalleryBody');
+  if (!body) return;
+  body.innerHTML = filtered.length === 0
+    ? '<tr><td colspan="8" style="text-align:center;color:#999;padding:40px">ไม่พบรูปภาพ</td></tr>'
+    : filtered.map(g => `
+        <tr>
+          <td>${g.id}</td>
+          <td><img src="${esc(g.image_url)}" alt="" style="width:64px;height:48px;object-fit:cover;border-radius:8px;cursor:pointer" onclick="window.open('${esc(g.image_url)}','_blank')" onerror="this.style.display='none'"></td>
+          <td>${esc(g.title || '-')}</td>
+          <td>${esc(g.service_name || '-')}</td>
+          <td><span class="badge">${esc(g.service_category || '-')}</span></td>
+          <td>${g.image_type === 'render' ? '🖼️ Render' : '📷 Photo'}</td>
+          <td>${g.sort_order || 0}</td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="editSvcGallery(${g.id})">✏️</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteSvcGallery(${g.id}, '${esc(g.title || 'รูป ID ' + g.id)}')">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+}
+
+function populateGalleryFilters() {
+  const serviceSelect = document.getElementById('svcGalleryServiceFilter');
+  const catSelect = document.getElementById('svcGalleryCategoryFilter');
+  if (!serviceSelect || !catSelect) return;
+
+  const services = [...new Map(allSvcGallery.map(g => [g.service_id, { id: g.service_id, name: g.service_name || 'ID:' + g.service_id }])).values()].filter(s => s.id);
+  const categories = [...new Set(allSvcGallery.map(g => g.service_category).filter(Boolean))];
+
+  serviceSelect.innerHTML = '<option value="">ทุกบริการ</option>' + services.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  catSelect.innerHTML = '<option value="">ทุกหมวดหมู่</option>' + categories.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+}
+
+function showAddGalleryModal() {
+  const serviceOptions = allDbServices.filter(s => s.is_active).map(s => `<option value="${s.id}">${esc(s.name)} (${esc(s.category)})</option>`).join('');
+  document.getElementById('modalTitle').textContent = '➕ เพิ่มรูป Gallery';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group"><label>บริการ *</label><select id="ag_service">${serviceOptions}</select></div>
+    <div class="form-group"><label>ชื่อรูป</label><input type="text" id="ag_title" placeholder="เช่น ห้องนั่งเล่น Modern Luxury"></div>
+    <div class="form-group"><label>รายละเอียด</label><textarea id="ag_desc" rows="2"></textarea></div>
+    <div class="form-group"><label>URL รูปภาพ *</label><input type="text" id="ag_url" placeholder="https://... หรือ /uploads/..."></div>
+    <div class="form-group"><label>อัพโหลดไฟล์</label><input type="file" id="ag_file" accept="image/*"></div>
+    <div class="form-row">
+      <div class="form-group"><label>ประเภท</label>
+        <select id="ag_type"><option value="photo">📷 รูปถ่าย</option><option value="render">🖼️ 3D Render</option></select>
+      </div>
+      <div class="form-group"><label>ลำดับ</label><input type="number" id="ag_sort" value="0" min="0"></div>
+    </div>
+    <button class="btn btn-primary" onclick="createSvcGallery()">💾 บันทึก</button>
+  `;
+  document.getElementById('leadModal').classList.add('show');
+}
+
+async function createSvcGallery() {
+  try {
+    const serviceId = gv('ag_service');
+    if (!serviceId) return toast('❌ กรุณาเลือกบริการ', 'error');
+    const fileInput = document.getElementById('ag_file');
+    const hasFile = fileInput && fileInput.files.length > 0;
+    const url = gv('ag_url').trim();
+    if (!hasFile && !url) return toast('❌ กรุณาอัพโหลดรูปหรือใส่ URL', 'error');
+
+    if (hasFile) {
+      const formData = new FormData();
+      formData.append('image', fileInput.files[0]);
+      formData.append('title', gv('ag_title'));
+      formData.append('description', gv('ag_desc'));
+      formData.append('image_type', gv('ag_type'));
+      await fetch(`/api/services/${serviceId}/gallery`, { method: 'POST', body: formData }).then(r => { if (!r.ok) throw new Error('Upload failed'); return r.json(); });
+    } else {
+      await api(`/api/services/${serviceId}/gallery`, {
+        method: 'POST',
+        body: JSON.stringify({ title: gv('ag_title'), description: gv('ag_desc'), image_url: url, image_type: gv('ag_type'), sort_order: parseInt(gv('ag_sort')) || 0 })
+      });
+    }
+    closeModal();
+    await loadSvcGallery();
+    populateGalleryFilters();
+    renderSvcGallery();
+    toast('✅ เพิ่มรูปสำเร็จ');
+  } catch (err) {
+    toast('❌ เพิ่มไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+function editSvcGallery(id) {
+  const g = allSvcGallery.find(x => x.id === id);
+  if (!g) return;
+  document.getElementById('modalTitle').textContent = '✏️ แก้ไขรูป Gallery';
+  document.getElementById('modalBody').innerHTML = `
+    <div style="margin-bottom:16px;text-align:center">
+      <img src="${esc(g.image_url)}" alt="" style="max-width:100%;max-height:200px;border-radius:12px;object-fit:cover" onerror="this.style.display='none'">
+    </div>
+    <div class="form-group"><label>ชื่อรูป</label><input type="text" id="eg_title" value="${esc(g.title || '')}"></div>
+    <div class="form-group"><label>รายละเอียด</label><textarea id="eg_desc" rows="2">${esc(g.description || '')}</textarea></div>
+    <div class="form-group"><label>URL รูปภาพ</label><input type="text" id="eg_url" value="${esc(g.image_url)}"></div>
+    <div class="form-group"><label>อัพโหลดไฟล์ใหม่</label><input type="file" id="eg_file" accept="image/*"></div>
+    <div class="form-row">
+      <div class="form-group"><label>ประเภท</label>
+        <select id="eg_type"><option value="photo" ${g.image_type === 'photo' ? 'selected' : ''}>📷 รูปถ่าย</option><option value="render" ${g.image_type === 'render' ? 'selected' : ''}>🖼️ 3D Render</option></select>
+      </div>
+      <div class="form-group"><label>ลำดับ</label><input type="number" id="eg_sort" value="${g.sort_order || 0}" min="0"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-primary" onclick="saveSvcGallery(${id})">💾 บันทึก</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteSvcGallery(${id}, '${esc(g.title || 'รูป ID ' + g.id)}')">🗑️ ลบ</button>
+    </div>
+  `;
+  document.getElementById('leadModal').classList.add('show');
+}
+
+async function saveSvcGallery(id) {
+  try {
+    const fileInput = document.getElementById('eg_file');
+    const hasFile = fileInput && fileInput.files.length > 0;
+
+    if (hasFile) {
+      const formData = new FormData();
+      formData.append('image', fileInput.files[0]);
+      formData.append('title', gv('eg_title'));
+      formData.append('description', gv('eg_desc'));
+      formData.append('image_type', gv('eg_type'));
+      formData.append('image_url', gv('eg_url'));
+      formData.append('sort_order', gv('eg_sort'));
+      await fetch(`/api/gallery/${id}`, { method: 'PUT', body: formData }).then(r => { if (!r.ok) throw new Error('Update failed'); return r.json(); });
+    } else {
+      await api(`/api/gallery/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ title: gv('eg_title'), description: gv('eg_desc'), image_url: gv('eg_url'), image_type: gv('eg_type'), sort_order: parseInt(gv('eg_sort')) || 0 })
+      });
+    }
+    closeModal();
+    await loadSvcGallery();
+    populateGalleryFilters();
+    renderSvcGallery();
+    toast('✅ บันทึกสำเร็จ');
+  } catch (err) {
+    toast('❌ บันทึกไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function deleteSvcGallery(id, name) {
+  if (!confirm(`ลบรูป "${name}"?`)) return;
+  try {
+    await api(`/api/gallery/${id}`, { method: 'DELETE' });
+    allSvcGallery = allSvcGallery.filter(g => g.id !== id);
+    renderSvcGallery();
+    document.getElementById('svcGalleryCount').textContent = allSvcGallery.length;
+    toast('🗑️ ลบรูปสำเร็จ');
+  } catch (err) {
+    toast('❌ ลบไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+// ===== SERVICE 3D MODELS MANAGEMENT =====
+let allSvcModels = [];
+
+async function loadSvcModels() {
+  try {
+    allSvcModels = await api('/api/admin/models');
+    document.getElementById('svcModelsCount').textContent = allSvcModels.length;
+  } catch { allSvcModels = []; }
+}
+
+function renderSvcModels() {
+  const serviceFilter = document.getElementById('svcModelsServiceFilter')?.value || '';
+  const catFilter = document.getElementById('svcModelsCategoryFilter')?.value || '';
+
+  let filtered = allSvcModels;
+  if (serviceFilter) filtered = filtered.filter(m => String(m.service_id) === serviceFilter);
+  if (catFilter) filtered = filtered.filter(m => m.service_category === catFilter);
+
+  const body = document.getElementById('svcModelsBody');
+  if (!body) return;
+  body.innerHTML = filtered.length === 0
+    ? '<tr><td colspan="7" style="text-align:center;color:#999;padding:40px">ไม่พบโมเดล 3D</td></tr>'
+    : filtered.map(m => `
+        <tr>
+          <td>${m.id}</td>
+          <td>${m.poster_url ? `<img src="${esc(m.poster_url)}" alt="" style="width:64px;height:48px;object-fit:cover;border-radius:8px">` : '<div style="width:64px;height:48px;background:#1a1a2e;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#666;font-size:0.7rem">3D</div>'}</td>
+          <td>${esc(m.title || '-')}</td>
+          <td>${esc(m.service_name || '-')}</td>
+          <td><span class="badge">${esc(m.service_category || '-')}</span></td>
+          <td>${esc((m.model_format || 'glb').toUpperCase())}</td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="editSvcModel(${m.id})">✏️</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteSvcModel(${m.id}, '${esc(m.title || 'โมเดล ID ' + m.id)}')">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+}
+
+function populateModelsFilters() {
+  const serviceSelect = document.getElementById('svcModelsServiceFilter');
+  const catSelect = document.getElementById('svcModelsCategoryFilter');
+  if (!serviceSelect || !catSelect) return;
+
+  const services = [...new Map(allSvcModels.map(m => [m.service_id, { id: m.service_id, name: m.service_name || 'ID:' + m.service_id }])).values()].filter(s => s.id);
+  const categories = [...new Set(allSvcModels.map(m => m.service_category).filter(Boolean))];
+
+  serviceSelect.innerHTML = '<option value="">ทุกบริการ</option>' + services.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  catSelect.innerHTML = '<option value="">ทุกหมวดหมู่</option>' + categories.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+}
+
+function showAddModelModal() {
+  const serviceOptions = allDbServices.filter(s => s.is_active).map(s => `<option value="${s.id}">${esc(s.name)} (${esc(s.category)})</option>`).join('');
+  document.getElementById('modalTitle').textContent = '➕ เพิ่มโมเดล 3D';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="form-group"><label>บริการ *</label><select id="am_service">${serviceOptions}</select></div>
+    <div class="form-group"><label>ชื่อโมเดล *</label><input type="text" id="am_title" placeholder="เช่น ห้องนั่งเล่น Modern"></div>
+    <div class="form-group"><label>รายละเอียด</label><textarea id="am_desc" rows="2"></textarea></div>
+    <div class="form-group"><label>URL โมเดล 3D (.glb/.gltf) *</label><input type="text" id="am_url" placeholder="https://...model.glb"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Format</label>
+        <select id="am_format"><option value="glb">GLB</option><option value="gltf">GLTF</option></select>
+      </div>
+      <div class="form-group"><label>URL รูปโปสเตอร์</label><input type="text" id="am_poster" placeholder="https://...poster.jpg"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>หมุนอัตโนมัติ</label>
+        <select id="am_rotate"><option value="1">เปิด</option><option value="0">ปิด</option></select>
+      </div>
+      <div class="form-group"><label>มุมกล้อง</label><input type="text" id="am_orbit" value="0deg 75deg 105%" placeholder="0deg 75deg 105%"></div>
+    </div>
+    <button class="btn btn-primary" onclick="createSvcModel()">💾 บันทึก</button>
+  `;
+  document.getElementById('leadModal').classList.add('show');
+}
+
+async function createSvcModel() {
+  try {
+    const serviceId = gv('am_service');
+    const title = gv('am_title').trim();
+    const modelUrl = gv('am_url').trim();
+    if (!serviceId) return toast('❌ กรุณาเลือกบริการ', 'error');
+    if (!title) return toast('❌ กรุณากรอกชื่อโมเดล', 'error');
+    if (!modelUrl) return toast('❌ กรุณาใส่ URL โมเดล 3D', 'error');
+
+    await api(`/api/services/${serviceId}/models`, {
+      method: 'POST',
+      body: JSON.stringify({
+        title,
+        description: gv('am_desc'),
+        model_url: modelUrl,
+        model_format: gv('am_format'),
+        poster_url: gv('am_poster'),
+        auto_rotate: parseInt(gv('am_rotate')),
+        camera_orbit: gv('am_orbit')
+      })
+    });
+    closeModal();
+    await loadSvcModels();
+    populateModelsFilters();
+    renderSvcModels();
+    toast('✅ เพิ่มโมเดลสำเร็จ');
+  } catch (err) {
+    toast('❌ เพิ่มไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+function editSvcModel(id) {
+  const m = allSvcModels.find(x => x.id === id);
+  if (!m) return;
+  document.getElementById('modalTitle').textContent = '✏️ แก้ไขโมเดล 3D';
+  document.getElementById('modalBody').innerHTML = `
+    ${m.poster_url ? `<div style="margin-bottom:16px;text-align:center"><img src="${esc(m.poster_url)}" alt="" style="max-width:100%;max-height:200px;border-radius:12px;object-fit:cover"></div>` : ''}
+    <div class="form-group"><label>ชื่อโมเดล *</label><input type="text" id="em_title" value="${esc(m.title || '')}"></div>
+    <div class="form-group"><label>รายละเอียด</label><textarea id="em_desc" rows="2">${esc(m.description || '')}</textarea></div>
+    <div class="form-group"><label>URL โมเดล 3D</label><input type="text" id="em_url" value="${esc(m.model_url || '')}"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Format</label>
+        <select id="em_format"><option value="glb" ${m.model_format === 'glb' ? 'selected' : ''}>GLB</option><option value="gltf" ${m.model_format === 'gltf' ? 'selected' : ''}>GLTF</option></select>
+      </div>
+      <div class="form-group"><label>URL รูปโปสเตอร์</label><input type="text" id="em_poster" value="${esc(m.poster_url || '')}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>หมุนอัตโนมัติ</label>
+        <select id="em_rotate"><option value="1" ${m.auto_rotate ? 'selected' : ''}>เปิด</option><option value="0" ${!m.auto_rotate ? 'selected' : ''}>ปิด</option></select>
+      </div>
+      <div class="form-group"><label>มุมกล้อง</label><input type="text" id="em_orbit" value="${esc(m.camera_orbit || '0deg 75deg 105%')}"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-primary" onclick="saveSvcModel(${id})">💾 บันทึก</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteSvcModel(${id}, '${esc(m.title || 'โมเดล ID ' + m.id)}')">🗑️ ลบ</button>
+    </div>
+  `;
+  document.getElementById('leadModal').classList.add('show');
+}
+
+async function saveSvcModel(id) {
+  try {
+    const title = gv('em_title').trim();
+    const modelUrl = gv('em_url').trim();
+    if (!title) return toast('❌ กรุณากรอกชื่อโมเดล', 'error');
+    if (!modelUrl) return toast('❌ กรุณาใส่ URL โมเดล 3D', 'error');
+
+    await api(`/api/models/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        title,
+        description: gv('em_desc'),
+        model_url: modelUrl,
+        model_format: gv('em_format'),
+        poster_url: gv('em_poster'),
+        auto_rotate: parseInt(gv('em_rotate')),
+        camera_orbit: gv('em_orbit')
+      })
+    });
+    closeModal();
+    await loadSvcModels();
+    populateModelsFilters();
+    renderSvcModels();
+    toast('✅ บันทึกสำเร็จ');
+  } catch (err) {
+    toast('❌ บันทึกไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function deleteSvcModel(id, name) {
+  if (!confirm(`ลบโมเดล "${name}"?`)) return;
+  try {
+    await api(`/api/models/${id}`, { method: 'DELETE' });
+    allSvcModels = allSvcModels.filter(m => m.id !== id);
+    renderSvcModels();
+    document.getElementById('svcModelsCount').textContent = allSvcModels.length;
+    toast('🗑️ ลบโมเดลสำเร็จ');
+  } catch (err) {
+    toast('❌ ลบไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
 // Hook into showPage to load DB services
 const _origShowPage = showPage;
 showPage = function(pageId) {
   _origShowPage(pageId);
   if (pageId === 'db-services') {
     loadDbServices().then(() => { renderDbServices(); renderDbPackages(); });
+  }
+  if (pageId === 'svc-gallery') {
+    loadSvcGallery().then(() => { populateGalleryFilters(); renderSvcGallery(); });
+  }
+  if (pageId === 'svc-models') {
+    loadSvcModels().then(() => { populateModelsFilters(); renderSvcModels(); });
   }
 };
 

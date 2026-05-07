@@ -1699,6 +1699,37 @@ app.delete('/api/gallery/:id', authMiddleware, (req, res) => {
   }
 });
 
+app.put('/api/gallery/:id', authMiddleware, uploadLimiter, upload.single('image'), (req, res) => {
+  try {
+    const item = db.prepare('SELECT * FROM service_gallery WHERE id = ?').get(req.params.id);
+    if (!item) return res.status(404).json({ error: 'ไม่พบรูป' });
+    const { title, description, image_type, image_url, sort_order } = req.body;
+    let newImageUrl = image_url || item.image_url;
+    if (req.file) newImageUrl = `/uploads/${req.file.filename}`;
+    db.prepare(
+      'UPDATE service_gallery SET title = ?, description = ?, image_url = ?, image_type = ?, sort_order = ? WHERE id = ?'
+    ).run(title ?? item.title, description ?? item.description, newImageUrl, image_type ?? item.image_type, sort_order ?? item.sort_order, req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+// Admin: list all gallery items with service info
+app.get('/api/admin/gallery', authMiddleware, (req, res) => {
+  try {
+    const { service_id, category } = req.query;
+    let sql = 'SELECT sg.*, s.name as service_name FROM service_gallery sg LEFT JOIN services s ON sg.service_id = s.id WHERE 1=1';
+    const params = [];
+    if (service_id) { sql += ' AND sg.service_id = ?'; params.push(service_id); }
+    if (category) { sql += ' AND sg.service_category = ?'; params.push(category); }
+    sql += ' ORDER BY sg.sort_order, sg.id';
+    res.json(db.prepare(sql).all(...params));
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
 // ===== SERVICE 3D MODELS API =====
 app.get('/api/services/:id/models', (req, res) => {
   try {
@@ -1734,6 +1765,46 @@ app.post('/api/services/:id/models', authMiddleware, (req, res) => {
       'INSERT INTO service_models (service_id, service_category, title, description, model_url, model_format, poster_url, auto_rotate, camera_orbit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
     ).run(req.params.id, service.category, title || '', description || '', model_url, model_format || 'glb', poster_url || '', auto_rotate !== undefined ? auto_rotate : 1, camera_orbit || '0deg 75deg 105%');
     res.json({ success: true, id: result.lastInsertRowid });
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.put('/api/models/:id', authMiddleware, (req, res) => {
+  try {
+    const item = db.prepare('SELECT * FROM service_models WHERE id = ?').get(req.params.id);
+    if (!item) return res.status(404).json({ error: 'ไม่พบโมเดล' });
+    const { title, description, model_url, model_format, poster_url, auto_rotate, camera_orbit, sort_order } = req.body;
+    db.prepare(
+      'UPDATE service_models SET title = ?, description = ?, model_url = ?, model_format = ?, poster_url = ?, auto_rotate = ?, camera_orbit = ?, sort_order = ? WHERE id = ?'
+    ).run(title ?? item.title, description ?? item.description, model_url ?? item.model_url, model_format ?? item.model_format, poster_url ?? item.poster_url, auto_rotate !== undefined ? auto_rotate : item.auto_rotate, camera_orbit ?? item.camera_orbit, sort_order ?? item.sort_order, req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+app.delete('/api/models/:id', authMiddleware, (req, res) => {
+  try {
+    const item = db.prepare('SELECT * FROM service_models WHERE id = ?').get(req.params.id);
+    if (!item) return res.status(404).json({ error: 'ไม่พบโมเดล' });
+    db.prepare('DELETE FROM service_models WHERE id = ?').run(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+  }
+});
+
+// Admin: list all models with service info
+app.get('/api/admin/models', authMiddleware, (req, res) => {
+  try {
+    const { service_id, category } = req.query;
+    let sql = 'SELECT sm.*, s.name as service_name FROM service_models sm LEFT JOIN services s ON sm.service_id = s.id WHERE 1=1';
+    const params = [];
+    if (service_id) { sql += ' AND sm.service_id = ?'; params.push(service_id); }
+    if (category) { sql += ' AND sm.service_category = ?'; params.push(category); }
+    sql += ' ORDER BY sm.sort_order, sm.id';
+    res.json(db.prepare(sql).all(...params));
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
