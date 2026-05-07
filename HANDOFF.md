@@ -1,6 +1,6 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> อัพเดทล่าสุด: 2026-05-07 11:19 (GMT+8)
+> อัพเดทล่าสุด: 2026-05-07 15:46 (GMT+8)
 
 ---
 
@@ -36,6 +36,29 @@
 - **`index.html`** — fallback cards 9 ใบใส่รูป Unsplash ทุกใบ
 - **`style.css`** — ปรับ `.service-card` เป็น card layout แบบมี cover image
 - **`service.html`** — key mode + category mode ใช้ image_url จาก CMS/DB
+
+### 🆕 Service Detail Modal — Sub-Service Clickable Cards (2026-05-07)
+ก่อนหน้า: feature cards ใน `service.html` (category mode) กดไม่ได้ แค่มี hover effect
+ตอนนี้: กด card เปิด modal แสดงรายละเอียด sub-service แบบเต็ม
+
+#### สิ่งที่เพิ่ม:
+- **CSS**: `.svc-modal-overlay`, `.svc-modal`, `.svc-modal-hero`, `.svc-modal-gallery`, `.svc-modal-model-wrap` + responsive breakpoints
+- **HTML**: Modal structure 12 elements (`svcModal`, `svcModalClose`, `svcModalHero`, `svcModalHeroImg`, `svcModalHeroFallback`, `svcModalName`, `svcModalDesc`, `svcModalPrice`, `svcModalGallerySection`, `svcModalGallery`, `svcModal3DSection`, `svcModalModels`)
+- **JS**: Event delegation บน `featuresGrid` → คลิก card → ดึง `data-service-*` → เปิด modal → fetch gallery + 3D models (parallel) → render
+
+#### Modal Flow:
+```
+กด card → เปิด modal (info ทันที) → fetch /api/services/:id/gallery + /api/services/:id/models
+  ↓ gallery มี → แสดง horizontal scroll slider
+  ↓ 3D model มี → แสดง <model-viewer>
+  ↓ คลิก gallery item → ปิด modal → เปิด lightbox (reuse ตัวเดิม)
+  ↓ Escape/✕ lightbox → ปิด lightbox → กลับมาเปิด modal
+```
+
+#### Lightbox ↔ Modal Integration:
+- ใช้ `window._svcModalReturn` flag — lightbox keyboard handler ตรวจ flag ถ้ามี → กลับ modal แทนปิดหมด
+- Override lightbox nav buttons + close button + click-outside เมื่อเปิดจาก modal
+- `closeModal()` function ปิด lightbox + เปิด modal ซ้ำ
 
 ### Server & API (40+ endpoints ทำงานปกติ)
 - Auth, Leads CRUD, Pipeline, Reports, Chat, Services, Proposals, Notes, Activities
@@ -113,10 +136,11 @@
    - ตาราง `service_models` สร้างแล้ว แต่ยังไม่มีข้อมูล
    - ต้องหา/สร้างไฟล์ .glb ตัวอย่าง
 
-3. **service.html feature cards — hardcoded 5 ชุด**
+3. **service.html feature cards — hardcoded 5 ชุด** ← 🆕 แก้บางส่วนแล้ว
    - `featureSets` object มีแค่ 5 keys: construction, builtin, design, decoration, project-management
    - อีก 4 บริการ (signage, landscape, drafting, visualization) ไม่มี feature cards
-   - ควรเปลี่ยนไปดึงจาก DB หรือ CMS แทน hardcode
+   - 🆕 **Category mode**: cards เป็น clickable แล้ว → เปิด modal ดู gallery + 3D model + จองคิว
+   - **Key mode**: ยังเป็น hardcoded static cards (ไม่ clickable) — ควรเปลี่ยนไปดึงจาก DB/CMS
 
 4. **services.html — แสดง images จาก DB**
    - ตอนนี้ใช้ `meta.icon` (emoji) สำหรับ category cards
@@ -248,8 +272,14 @@ Admin: GET /api/chat → reply → real-time polling
   → fetch /api/services (DB) → หา service ที่ชื่อตรง → ดึง gallery + models
 
 เข้า /service?category=สถาปัตยกรรม (DB mode)
-  → fetch /api/services → filter ตาม category → แสดง sub-services
-  → fetch /api/gallery/category/สถาปัตยกรรม → แสดง gallery
+  → fetch /api/services → filter ตาม category → แสดง sub-services (clickable cards)
+  → คลิก card → เปิด Service Detail Modal:
+    → แสดง info ทันที (ชื่อ, คำอธิบาย, ราคา, รูป hero)
+    → fetch /api/services/:id/gallery → render gallery slider (horizontal scroll)
+    → fetch /api/services/:id/models → render <model-viewer> ถ้ามี
+    → คลิก gallery item → เปิด lightbox (fullscreen, navigate, thumbnails)
+    → Escape/✕ lightbox → กลับ modal
+    → CTA "จองคิวปรึกษาฟรี" → /#booking
 ```
 
 ---
@@ -362,7 +392,21 @@ Admin: GET /api/chat → reply → real-time polling
 
 ## 📝 Notes สำหรับ Agent ถัดไป
 
-### สิ่งที่ทำวันนี้ (2026-05-07)
+### สิ่งที่ทำวันนี้ (2026-05-07) — Session 2
+
+**Service Detail Modal — สร้างเสร็จ:**
+- แก้ปัญหา: feature cards ใน service.html (category mode) กดไม่ได้ มีแค่ hover effect ดูน่าคลิกแต่คลิกไม่ได้
+- สร้าง modal UI: hero image + คำอธิบาย + ราคา + gallery slider + 3D model viewer + CTA
+- สร้าง click handler: event delegation บน featuresGrid → data attributes → เปิด modal → fetch gallery/models
+- เชื่อม lightbox ↔ modal: `_svcModalReturn` flag ให้ Escape กลับมา modal ได้
+- ทดสอบ: page load 200, API gallery 6 items, modal structure 12 elements, JS bracket balance OK
+
+**ไฟล์ที่แก้:** `service.html` (1 ไฟล์)
+- CSS: +150 บรรทัด (modal styles + responsive)
+- HTML: +30 บรรทัด (modal structure)
+- JS: +120 บรรทัด (click handler + modal logic + lightbox integration)
+
+### สิ่งที่ทำวันนี้ (2026-05-07) — Session 1
 
 **Admin DB Services Management — สร้างเสร็จสมบูรณ์:**
 - แก้ปัญหา: sidebar link "📦 บริการ (DB)" มีแต่ไม่มีหน้าจริง (ไม่มี HTML section, ไม่มี JS logic, ไม่มี admin API)

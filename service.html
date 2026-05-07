@@ -334,6 +334,178 @@
             .process-timeline::before { display: none; }
         }
 
+        /* ===== SERVICE DETAIL MODAL ===== */
+        .svc-modal-overlay {
+            position: fixed; inset: 0; z-index: 10000;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(6px);
+            display: none; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.35s ease;
+            padding: 24px;
+        }
+        .svc-modal-overlay.open { display: flex; opacity: 1; }
+        .svc-modal {
+            background: var(--white);
+            border-radius: 24px;
+            max-width: 860px; width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 32px 80px rgba(0,0,0,0.25);
+            transform: translateY(30px) scale(0.96);
+            transition: transform 0.4s var(--ease);
+        }
+        .svc-modal-overlay.open .svc-modal {
+            transform: translateY(0) scale(1);
+        }
+        .svc-modal-close {
+            position: absolute; top: 16px; right: 16px; z-index: 10;
+            width: 44px; height: 44px;
+            background: rgba(0,0,0,0.06);
+            border: none; border-radius: 50%;
+            font-size: 1.3rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.25s;
+            color: var(--gray-500);
+        }
+        .svc-modal-close:hover { background: var(--red-soft); color: var(--red); }
+
+        .svc-modal-hero {
+            position: relative; overflow: hidden;
+            border-radius: 24px 24px 0 0;
+            height: 320px;
+            background: var(--gray-100);
+        }
+        .svc-modal-hero img {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        .svc-modal-hero-fallback {
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 5rem;
+            background: linear-gradient(135deg, var(--red-soft), var(--gray-100));
+        }
+        .svc-modal-hero-overlay {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            padding: 40px 32px 24px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            color: #fff;
+        }
+        .svc-modal-hero-overlay h2 {
+            font-family: var(--font-display);
+            font-size: 1.8rem; font-weight: 800;
+            margin-bottom: 4px;
+        }
+        .svc-modal-hero-overlay .svc-modal-price {
+            font-size: 1.1rem; font-weight: 700;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .svc-modal-body { padding: 28px 32px 32px; }
+
+        .svc-modal-desc {
+            font-size: 1rem; color: var(--gray-400);
+            line-height: 1.8; margin-bottom: 28px;
+        }
+
+        /* Modal Gallery Slider */
+        .svc-modal-gallery-label {
+            font-size: 0.85rem; font-weight: 700;
+            color: var(--gray-500); text-transform: uppercase;
+            letter-spacing: 0.05em; margin-bottom: 12px;
+        }
+        .svc-modal-gallery {
+            display: flex; gap: 12px;
+            overflow-x: auto; padding-bottom: 8px;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            margin-bottom: 28px;
+        }
+        .svc-modal-gallery::-webkit-scrollbar { height: 6px; }
+        .svc-modal-gallery::-webkit-scrollbar-track { background: var(--gray-100); border-radius: 3px; }
+        .svc-modal-gallery::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+        .svc-modal-gallery-item {
+            flex: 0 0 auto; width: 220px; height: 160px;
+            border-radius: 14px; overflow: hidden;
+            position: relative; cursor: pointer;
+            scroll-snap-align: start;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .svc-modal-gallery-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 28px rgba(0,0,0,0.15);
+        }
+        .svc-modal-gallery-item img {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        .svc-modal-gallery-item .gallery-badge {
+            position: absolute; top: 8px; right: 8px;
+            padding: 3px 10px; border-radius: 50px;
+            font-size: 0.65rem; font-weight: 700;
+            background: rgba(214,0,0,0.9); color: #fff;
+            text-transform: uppercase;
+        }
+        .svc-modal-gallery-item .gallery-badge.render { background: rgba(0,100,200,0.9); }
+
+        /* Modal 3D Viewer */
+        .svc-modal-3d-label {
+            font-size: 0.85rem; font-weight: 700;
+            color: var(--gray-500); text-transform: uppercase;
+            letter-spacing: 0.05em; margin-bottom: 12px;
+        }
+        .svc-modal-model-wrap {
+            width: 100%; aspect-ratio: 16/10;
+            background: #1a1a2e; border-radius: 16px;
+            overflow: hidden; margin-bottom: 28px;
+            position: relative;
+        }
+        .svc-modal-model-wrap model-viewer {
+            width: 100%; height: 100%;
+        }
+        .svc-modal-model-loading {
+            position: absolute; inset: 0; display: flex;
+            align-items: center; justify-content: center;
+            background: rgba(26,26,46,0.9);
+        }
+        .svc-modal-model-spinner {
+            width: 36px; height: 36px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: var(--red); border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* Modal CTA */
+        .svc-modal-cta {
+            display: flex; gap: 12px; flex-wrap: wrap;
+            padding-top: 4px;
+        }
+        .svc-modal-cta .btn { flex: 1; min-width: 180px; justify-content: center; }
+
+        /* No-gallery / no-model states */
+        .svc-modal-empty {
+            text-align: center; padding: 24px;
+            color: var(--gray-300); font-size: 0.9rem;
+        }
+
+        /* Modal responsive */
+        @media (max-width: 768px) {
+            .svc-modal-overlay { padding: 12px; }
+            .svc-modal { border-radius: 20px; max-height: 95vh; }
+            .svc-modal-hero { height: 220px; }
+            .svc-modal-hero-overlay { padding: 24px 20px 16px; }
+            .svc-modal-hero-overlay h2 { font-size: 1.4rem; }
+            .svc-modal-body { padding: 20px; }
+            .svc-modal-gallery-item { width: 170px; height: 120px; }
+            .svc-modal-model-wrap { aspect-ratio: 4/3; }
+            .svc-modal-cta { flex-direction: column; }
+            .svc-modal-cta .btn { min-width: 100%; }
+        }
+
+        /* Feature card clickable state */
+        .feature-card.clickable { cursor: pointer; }
+        .feature-card.clickable:active { transform: scale(0.98); }
+
         /* ===== GALLERY SECTION ===== */
         .service-gallery { padding: 80px 0; background: var(--white); }
         .gallery-filter { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 32px; justify-content: center; }
@@ -814,9 +986,9 @@
                 if (heroVisual) heroVisual.style.display = 'none';
             }
 
-            // Show sub-services as feature cards with images
+            // Show sub-services as clickable feature cards
             document.getElementById('featuresGrid').innerHTML = dbServices.map(s => `
-                <div class="feature-card" data-animate="fade-up">
+                <div class="feature-card clickable" data-animate="fade-up" data-service-id="${s.id}" data-service-name="${esc(s.name)}" data-service-desc="${esc(s.description || '')}" data-service-price="เริ่มต้น ฿${s.price_start.toLocaleString('th-TH')} / ${esc(s.price_unit || 'รายการ')}" data-service-icon="${esc(s.icon || '🔧')}" data-service-img="${esc(s.image_url || '')}" data-service-category="${esc(serviceCategory)}">
                     ${s.image_url ? `<img src="${esc(s.image_url)}" alt="${esc(s.name)}" style="width:100%;height:180px;object-fit:cover;border-radius:12px;margin-bottom:16px" onerror="this.style.display='none'">` : ''}
                     ${s.image_url ? '' : `<div class="feature-icon">${esc(s.icon || '🔧')}</div>`}
                     <h3>${esc(s.name)}</h3>
@@ -824,8 +996,183 @@
                     <div style="margin-top:12px;font-weight:700;color:var(--red);font-size:0.95rem">
                         เริ่มต้น ฿${s.price_start.toLocaleString('th-TH')} / ${esc(s.price_unit || 'รายการ')}
                     </div>
+                    <div style="margin-top:10px;font-size:0.8rem;color:var(--gray-300);display:flex;align-items:center;gap:4px">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+                        คลิกเพื่อดูรายละเอียด
+                    </div>
                 </div>
             `).join('');
+
+            // ===== SERVICE DETAIL MODAL =====
+            const svcModal = document.getElementById('svcModal');
+            const svcModalClose = document.getElementById('svcModalClose');
+
+            function closeSvcModal() {
+                svcModal.classList.remove('open');
+                document.body.style.overflow = '';
+                // Clean up model-viewer to free memory
+                document.getElementById('svcModalModels').innerHTML = '';
+            }
+
+            svcModalClose.addEventListener('click', closeSvcModal);
+            svcModal.addEventListener('click', (e) => { if (e.target === svcModal) closeSvcModal(); });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && svcModal.classList.contains('open')) closeSvcModal();
+            });
+
+            document.getElementById('featuresGrid').addEventListener('click', async (e) => {
+                const card = e.target.closest('.feature-card.clickable');
+                if (!card) return;
+
+                const serviceId = card.dataset.serviceId;
+                const serviceName = card.dataset.serviceName;
+                const serviceDesc = card.dataset.serviceDesc;
+                const servicePrice = card.dataset.servicePrice;
+                const serviceIcon = card.dataset.serviceIcon;
+                const serviceImg = card.dataset.serviceImg;
+                const serviceCategory = card.dataset.serviceCategory;
+
+                // Set basic info immediately
+                document.getElementById('svcModalName').textContent = serviceName;
+                document.getElementById('svcModalDesc').textContent = serviceDesc;
+                document.getElementById('svcModalPrice').textContent = servicePrice;
+
+                const heroImg = document.getElementById('svcModalHeroImg');
+                const heroFallback = document.getElementById('svcModalHeroFallback');
+                if (serviceImg) {
+                    heroImg.src = serviceImg;
+                    heroImg.alt = serviceName;
+                    heroImg.style.display = 'block';
+                    heroImg.onerror = () => { heroImg.style.display = 'none'; heroFallback.style.display = 'flex'; heroFallback.textContent = serviceIcon; };
+                    heroFallback.style.display = 'none';
+                } else {
+                    heroImg.style.display = 'none';
+                    heroFallback.style.display = 'flex';
+                    heroFallback.textContent = serviceIcon;
+                }
+
+                // Reset gallery + 3D sections
+                document.getElementById('svcModalGallerySection').style.display = 'none';
+                document.getElementById('svcModal3DSection').style.display = 'none';
+                document.getElementById('svcModalGallery').innerHTML = '';
+                document.getElementById('svcModalModels').innerHTML = '';
+
+                // Open modal immediately with basic info
+                svcModal.classList.add('open');
+                document.body.style.overflow = 'hidden';
+
+                // Fetch gallery + 3D models in parallel
+                const [gallery, models] = await Promise.all([
+                    fetch(`/api/services/${serviceId}/gallery`).then(r => r.json()).catch(() => []),
+                    fetch(`/api/services/${serviceId}/models`).then(r => r.json()).catch(() => [])
+                ]);
+
+                // Render gallery
+                if (gallery && gallery.length > 0) {
+                    const gallerySection = document.getElementById('svcModalGallerySection');
+                    const galleryGrid = document.getElementById('svcModalGallery');
+                    gallerySection.style.display = 'block';
+                    galleryGrid.innerHTML = gallery.map((item, i) => `
+                        <div class="svc-modal-gallery-item" data-gallery-index="${i}">
+                            <img src="${esc(item.image_url)}" alt="${esc(item.title)}" loading="lazy" onerror="this.parentElement.style.display='none'">
+                            ${item.image_type === 'render' ? '<span class="gallery-badge render">3D Render</span>' : '<span class="gallery-badge">รูปถ่าย</span>'}
+                        </div>
+                    `).join('');
+
+                    // Click gallery item → open lightbox
+                    galleryGrid.querySelectorAll('.svc-modal-gallery-item').forEach(el => {
+                        el.addEventListener('click', () => {
+                            const idx = parseInt(el.dataset.galleryIndex);
+                            // Reuse existing lightbox
+                            closeSvcModal();
+                            setTimeout(() => {
+                                const lightbox = document.getElementById('lightbox');
+                                const lightboxImg = document.getElementById('lightboxImg');
+                                const lightboxTitle = document.getElementById('lightboxTitle');
+                                const lightboxDesc = document.getElementById('lightboxDesc');
+                                const lightboxCounter = document.getElementById('lightboxCounter');
+                                const lightboxThumbs = document.getElementById('lightboxThumbs');
+
+                                function showItem(i) {
+                                    if (i < 0) i = gallery.length - 1;
+                                    if (i >= gallery.length) i = 0;
+                                    const item = gallery[i];
+                                    lightboxImg.src = item.image_url;
+                                    lightboxImg.alt = item.title;
+                                    lightboxTitle.textContent = item.title;
+                                    lightboxDesc.textContent = item.description || '';
+                                    lightboxCounter.textContent = `${i + 1} / ${gallery.length}`;
+                                    lightboxThumbs.innerHTML = gallery.map((t, ti) => `
+                                        <img class="lightbox-thumb ${ti === i ? 'active' : ''}" src="${esc(t.image_url)}" alt="${esc(t.title)}" data-index="${ti}">
+                                    `).join('');
+                                    lightboxThumbs.querySelectorAll('.lightbox-thumb').forEach(t => {
+                                        t.addEventListener('click', () => { showItem(parseInt(t.dataset.index)); });
+                                    });
+                                    window._svcModalGalleryIdx = i;
+                                }
+
+                                window._svcModalGalleryItems = gallery;
+                                window._svcModalGalleryIdx = idx;
+                                showItem(idx);
+                                lightbox.classList.add('open');
+                                document.body.style.overflow = 'hidden';
+
+                                // Override lightbox nav for this context
+                                const prevBtn = document.getElementById('lightboxPrev');
+                                const nextBtn = document.getElementById('lightboxNext');
+                                const closeBtn = document.getElementById('lightboxClose');
+                                window._svcModalReturn = () => {
+                                    lightbox.classList.remove('open');
+                                    svcModal.classList.add('open');
+                                    document.body.style.overflow = 'hidden';
+                                    window._svcModalReturn = null;
+                                };
+
+                                function closeModal() {
+                                    lightbox.classList.remove('open');
+                                    document.body.style.overflow = '';
+                                    // Re-open svc modal
+                                    svcModal.classList.add('open');
+                                    document.body.style.overflow = 'hidden';
+                                    window._svcModalReturn = null;
+                                }
+                                prevBtn.onclick = () => { window._svcModalGalleryIdx--; showItem(window._svcModalGalleryIdx); };
+                                nextBtn.onclick = () => { window._svcModalGalleryIdx++; showItem(window._svcModalGalleryIdx); };
+                                closeBtn.onclick = closeModal;
+                                lightbox.onclick = (ev) => { if (ev.target === lightbox) closeModal(); };
+                            }, 200);
+                        });
+                    });
+                }
+
+                // Render 3D models
+                if (models && models.length > 0) {
+                    const modelSection = document.getElementById('svcModal3DSection');
+                    const modelWrap = document.getElementById('svcModalModels');
+                    modelSection.style.display = 'block';
+                    modelWrap.innerHTML = models.map((m, i) => `
+                        <div class="svc-modal-model-wrap" id="svcModalModel${i}">
+                            <model-viewer
+                                src="${esc(m.model_url)}"
+                                alt="${esc(m.title)}"
+                                ${m.poster_url ? `poster="${esc(m.poster_url)}"` : ''}
+                                auto-rotate
+                                camera-controls
+                                touch-action="pan-y"
+                                shadow-intensity="1"
+                                environment-image="neutral"
+                                exposure="1"
+                                style="width:100%;height:100%;background:#1a1a2e"
+                                ${m.camera_orbit ? `camera-orbit="${esc(m.camera_orbit)}"` : ''}
+                            >
+                                <div slot="progress-bar" class="svc-modal-model-loading">
+                                    <div class="svc-modal-model-spinner"></div>
+                                </div>
+                            </model-viewer>
+                        </div>
+                    `).join('');
+                }
+            });
 
             // Hide portfolio + process for category view
             document.getElementById('servicePortfolio').style.display = 'none';
@@ -1174,7 +1521,14 @@
                 lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
                 document.addEventListener('keydown', (e) => {
                     if (!lightbox.classList.contains('open')) return;
-                    if (e.key === 'Escape') closeLightbox();
+                    if (e.key === 'Escape') {
+                        // If opened from svc-modal, return to modal instead of just closing
+                        if (window._svcModalReturn) {
+                            window._svcModalReturn();
+                            return;
+                        }
+                        closeLightbox();
+                    }
                     if (e.key === 'ArrowLeft') { currentIndex--; showLightboxItem(); }
                     if (e.key === 'ArrowRight') { currentIndex++; showLightboxItem(); }
                 });
@@ -1281,6 +1635,44 @@
         }
     })();
     </script>
+    <!-- Service Detail Modal -->
+    <div class="svc-modal-overlay" id="svcModal">
+        <div class="svc-modal" id="svcModalInner">
+            <button class="svc-modal-close" id="svcModalClose">✕</button>
+            <div class="svc-modal-hero" id="svcModalHero">
+                <div class="svc-modal-hero-fallback" id="svcModalHeroFallback">🔧</div>
+                <img id="svcModalHeroImg" style="display:none" alt="">
+                <div class="svc-modal-hero-overlay">
+                    <h2 id="svcModalName"></h2>
+                    <div class="svc-modal-price" id="svcModalPrice"></div>
+                </div>
+            </div>
+            <div class="svc-modal-body">
+                <p class="svc-modal-desc" id="svcModalDesc"></p>
+
+                <div id="svcModalGallerySection" style="display:none">
+                    <div class="svc-modal-gallery-label">📷 แกลเลอรีผลงาน</div>
+                    <div class="svc-modal-gallery" id="svcModalGallery"></div>
+                </div>
+
+                <div id="svcModal3DSection" style="display:none">
+                    <div class="svc-modal-3d-label">🖼️ โมเดล 3 มิติ</div>
+                    <div id="svcModalModels"></div>
+                </div>
+
+                <div class="svc-modal-cta">
+                    <a href="/#booking" class="btn btn-primary magnetic-btn">
+                        <span>จองคิวปรึกษาฟรี</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </a>
+                    <a href="/services" class="btn btn-outline magnetic-btn">
+                        <span>ดูบริการอื่น</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Lightbox -->
     <div class="lightbox" id="lightbox">
         <button class="lightbox-close" id="lightboxClose">✕</button>
