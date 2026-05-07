@@ -1,12 +1,12 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> อัพเดทล่าสุด: 2026-05-07 18:12 (GMT+8)
+> อัพเดทล่าสุด: 2026-05-07 19:04 (GMT+8)
 
 ---
 
 ## 📋 สถานะปัจจุบัน
 
-**Production-ready** — ผ่าน API test 73/73 (100%) ครอบคลุม health, auth, leads, pipeline, reports, CMS, media, users, chat, proposals, admin services, gallery, 3D models, security, backup, frontend pages, edge cases
+**Production-ready** — ผ่าน API test 73+73=146 test cases (100%) ครอบคลุม health, auth, leads, pipeline, reports, CMS, media, users, chat, proposals, admin services, gallery, 3D models, security, backup, frontend pages, edge cases, upload credentials
 
 ---
 
@@ -26,6 +26,7 @@
 11. **🆕 CSRF protection** — ตรวจ Origin/Referer header สำหรับ cookie-based auth POST/PUT/DELETE
 12. **🆕 Path traversal block** — raw URL `..` check middleware ก่อน Express normalize
 13. **🆕 XSS rejection** — validateName() reject HTML tags ในชื่อ
+14. **🆕 File upload credentials** — เพิ่ม `credentials: 'include'` ใน `fetch()` สำหรับ gallery + 3D model upload (4 จุดใน admin.js)
 
 ### 🆕 API & Server Improvements (2026-05-07 — Session 4)
 1. **API 404 handler** — `/api/*` routes ที่ไม่ตรง return `404 {"error":"ไม่พบ endpoint นี้"}` แทน catch-all HTML
@@ -299,6 +300,21 @@ Admin: showAddModelModal() → เลือก service + upload .obj/.glb/.gltf
 ---
 
 ## 📝 สรุปสิ่งที่ทำแต่ละ Session
+
+### Session 5 (2026-05-07 18:43–19:04) — Full Test + Upload Bug Fix
+- **Clone + install + start** — `npm install` สำเร็จ (186 packages), server start ปกติ
+- **เทส API 42 รายการ** — ทุก endpoint ทำงานปกติ (health, content, nav, auth, leads, stats, pipeline, services, packages, gallery, models, upload, delete, update)
+- **เทส Security** — auth block ✅, wrong password ✅, rate limit (10→429) ✅, path traversal block ✅, XSS block ✅, invalid JSON handled ✅, name length cap ✅, admin page 401 without auth ✅
+- **เทส Frontend Pages** — ทุกหน้า 200 (/ , /admin-login, /services, /privacy, /terms, /quotation), admin 401 without auth, 200 with auth
+- **🐛 พบบั๊ก: อัพโหลดรูป/ไฟล์ไม่ได้** — `fetch()` สำหรับ upload ไม่มี `credentials: 'include'` → cookie JWT ไม่ถูกส่ง → 401
+- **🔧 แก้ไข 4 จุดใน `admin.js`:**
+  - Line 847: Gallery upload (POST) — เพิ่ม `credentials: 'include'`
+  - Line 903: Gallery update (PUT) — เพิ่ม `credentials: 'include'`
+  - Line 1039: 3D Model create (POST) — เพิ่ม `credentials: 'include'`
+  - Line 1126: 3D Model update (PUT) — เพิ่ม `credentials: 'include'`
+- **สาเหตุ**: endpoint อื่นใช้ `api()` helper ที่มี credentials อยู่แล้ว แต่ file upload ใช้ `fetch()` ตรงๆ เพราะต้องส่ง FormData → ลืมใส่ credentials
+- **ไฟล์ที่แก้**: `admin.js`
+- **⚠️ npm audit**: 2 moderate vulnerabilities (`ip-address` ใน `express-rate-limit`) — รัน `npm audit fix` ได้
 
 ### Session 4 (2026-05-07 17:31–18:12) — API Testing + Bug Fixes
 - **เทส API ทั้งหมด** 73 test cases → แก้จน 100% ผ่าน

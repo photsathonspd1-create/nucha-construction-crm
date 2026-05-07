@@ -844,7 +844,7 @@ async function createSvcGallery() {
       formData.append('title', gv('ag_title'));
       formData.append('description', gv('ag_desc'));
       formData.append('image_type', gv('ag_type'));
-      await fetch(`/api/services/${serviceId}/gallery`, { method: 'POST', body: formData }).then(r => { if (!r.ok) throw new Error('Upload failed'); return r.json(); });
+      await fetch(`/api/services/${serviceId}/gallery`, { method: 'POST', body: formData, credentials: 'include' }).then(r => { if (!r.ok) throw new Error('Upload failed'); return r.json(); });
     } else {
       await api(`/api/services/${serviceId}/gallery`, {
         method: 'POST',
@@ -900,7 +900,7 @@ async function saveSvcGallery(id) {
       formData.append('image_type', gv('eg_type'));
       formData.append('image_url', gv('eg_url'));
       formData.append('sort_order', gv('eg_sort'));
-      await fetch(`/api/gallery/${id}`, { method: 'PUT', body: formData }).then(r => { if (!r.ok) throw new Error('Update failed'); return r.json(); });
+      await fetch(`/api/gallery/${id}`, { method: 'PUT', body: formData, credentials: 'include' }).then(r => { if (!r.ok) throw new Error('Update failed'); return r.json(); });
     } else {
       await api(`/api/gallery/${id}`, {
         method: 'PUT',
@@ -1038,7 +1038,8 @@ async function createSvcModel() {
 
       await fetch(`/api/services/${serviceId}/models`, {
         method: 'POST',
-        body: formData
+        body: formData,
+        credentials: 'include'
       }).then(r => { if (!r.ok) throw new Error('Upload failed'); return r.json(); });
     } else {
       // URL only — use JSON
@@ -1124,7 +1125,8 @@ async function saveSvcModel(id) {
 
       await fetch(`/api/models/${id}`, {
         method: 'PUT',
-        body: formData
+        body: formData,
+        credentials: 'include'
       }).then(r => { if (!r.ok) throw new Error('Update failed'); return r.json(); });
     } else {
       await api(`/api/models/${id}`, {
