@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+const obj2gltf = require('obj2gltf');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -117,12 +118,22 @@ const modelUpload = multer({
   storage: modelStorage,
   limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = ['.glb', '.gltf', '.jpg', '.jpeg', '.png', '.webp'];
+    const allowed = ['.glb', '.gltf', '.obj', '.mtl', '.jpg', '.jpeg', '.png', '.webp'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowed.includes(ext)) cb(null, true);
-    else cb(new Error('อนุญาตเฉพาะไฟล์ .glb, .gltf, .jpg, .png, .webp เท่านั้น'));
+    else cb(new Error('อนุญาตเฉพาะไฟล์ .glb, .gltf, .obj, .jpg, .png, .webp เท่านั้น'));
   }
 });
+
+// Convert .obj to .glb using obj2gltf
+async function convertObjToGlb(objPath) {
+  const glbPath = objPath.replace(/\.obj$/i, '.glb');
+  const glb = await obj2gltf(objPath, { binary: true });
+  fs.writeFileSync(glbPath, glb);
+  // Remove original .obj after conversion
+  try { fs.unlinkSync(objPath); } catch {}
+  return glbPath;
+}
 
 // ===== RATE LIMITERS =====
 const loginLimiter = rateLimit({
@@ -1778,22 +1789,38 @@ app.get('/api/models/category/:category', (req, res) => {
 app.post('/api/services/:id/models', authMiddleware, modelUpload.fields([
   { name: 'model_file', maxCount: 1 },
   { name: 'poster_file', maxCount: 1 }
-]), (req, res) => {
+]), async (req, res) => {
   try {
     const service = db.prepare('SELECT * FROM services WHERE id = ?').get(req.params.id);
     if (!service) return res.status(404).json({ error: 'ไม่พบบริการ' });
     const { title, description, model_url, model_format, poster_url, auto_rotate, camera_orbit } = req.body;
     let finalModelUrl = model_url || '';
     let finalPosterUrl = poster_url || '';
-    if (req.files?.model_file?.[0]) finalModelUrl = '/uploads/' + req.files.model_file[0].filename;
+    let fmt = model_format || 'glb';
+    if (req.files?.model_file?.[0]) {
+      let filePath = path.join(uploadsDir, req.files.model_file[0].filename);
+      // Auto-convert .obj to .glb
+      if (filePath.toLowerCase().endsWith('.obj')) {
+        try {
+          filePath = await convertObjToGlb(filePath);
+          fmt = 'glb';
+        } catch (convErr) {
+          console.error('OBJ conversion error:', convErr.message);
+          return res.status(400).json({ error: 'ไม่สามารถแปลงไฟล์ .obj ได้: ' + convErr.message });
+        }
+      }
+      finalModelUrl = '/uploads/' + path.basename(filePath);
+      if (!fmt || fmt === 'obj') fmt = 'glb';
+    }
     if (req.files?.poster_file?.[0]) finalPosterUrl = '/uploads/' + req.files.poster_file[0].filename;
     if (!finalModelUrl) return res.status(400).json({ error: 'กรุณาอัพโหลดไฟล์โมเดลหรือใส่ URL' });
-    const fmt = model_format || (finalModelUrl.endsWith('.gltf') ? 'gltf' : 'glb');
+    if (!fmt || fmt === 'obj') fmt = finalModelUrl.endsWith('.gltf') ? 'gltf' : 'glb';
     const result = db.prepare(
       'INSERT INTO service_models (service_id, service_category, title, description, model_url, model_format, poster_url, auto_rotate, camera_orbit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
     ).run(req.params.id, service.category, title || '', description || '', finalModelUrl, fmt, finalPosterUrl, auto_rotate !== undefined ? auto_rotate : 1, camera_orbit || '0deg 75deg 105%');
     res.json({ success: true, id: result.lastInsertRowid });
   } catch (err) {
+    console.error('Model create error:', err);
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });
@@ -1801,29 +1828,48 @@ app.post('/api/services/:id/models', authMiddleware, modelUpload.fields([
 app.put('/api/models/:id', authMiddleware, modelUpload.fields([
   { name: 'model_file', maxCount: 1 },
   { name: 'poster_file', maxCount: 1 }
-]), (req, res) => {
+]), async (req, res) => {
   try {
     const item = db.prepare('SELECT * FROM service_models WHERE id = ?').get(req.params.id);
     if (!item) return res.status(404).json({ error: 'ไม่พบโมเดล' });
     const { title, description, model_url, model_format, poster_url, auto_rotate, camera_orbit, sort_order } = req.body;
     let finalModelUrl = model_url ?? item.model_url;
     let finalPosterUrl = poster_url ?? item.poster_url;
-    if (req.files?.model_file?.[0]) finalModelUrl = '/uploads/' + req.files.model_file[0].filename;
-    if (req.files?.poster_file?.[0]) finalPosterUrl = '/uploads/' + req.files.poster_file[0].filename;
-    // Delete old uploaded files if replaced
-    if (req.files?.model_file?.[0] && item.model_url?.startsWith('/uploads/')) {
-      const oldPath = path.join(__dirname, item.model_url);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    let fmt = model_format ?? item.model_format;
+    if (req.files?.model_file?.[0]) {
+      let filePath = path.join(uploadsDir, req.files.model_file[0].filename);
+      // Auto-convert .obj to .glb
+      if (filePath.toLowerCase().endsWith('.obj')) {
+        try {
+          filePath = await convertObjToGlb(filePath);
+          fmt = 'glb';
+        } catch (convErr) {
+          console.error('OBJ conversion error:', convErr.message);
+          return res.status(400).json({ error: 'ไม่สามารถแปลงไฟล์ .obj ได้: ' + convErr.message });
+        }
+      }
+      // Delete old uploaded model file
+      if (item.model_url?.startsWith('/uploads/')) {
+        const oldPath = path.join(__dirname, item.model_url);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      finalModelUrl = '/uploads/' + path.basename(filePath);
+      if (!fmt || fmt === 'obj') fmt = 'glb';
     }
-    if (req.files?.poster_file?.[0] && item.poster_url?.startsWith('/uploads/')) {
-      const oldPath = path.join(__dirname, item.poster_url);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    if (req.files?.poster_file?.[0]) {
+      // Delete old uploaded poster
+      if (item.poster_url?.startsWith('/uploads/')) {
+        const oldPath = path.join(__dirname, item.poster_url);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      finalPosterUrl = '/uploads/' + req.files.poster_file[0].filename;
     }
     db.prepare(
       'UPDATE service_models SET title = ?, description = ?, model_url = ?, model_format = ?, poster_url = ?, auto_rotate = ?, camera_orbit = ?, sort_order = ? WHERE id = ?'
-    ).run(title ?? item.title, description ?? item.description, finalModelUrl, model_format ?? item.model_format, finalPosterUrl, auto_rotate !== undefined ? auto_rotate : item.auto_rotate, camera_orbit ?? item.camera_orbit, sort_order ?? item.sort_order, req.params.id);
+    ).run(title ?? item.title, description ?? item.description, finalModelUrl, fmt, finalPosterUrl, auto_rotate !== undefined ? auto_rotate : item.auto_rotate, camera_orbit ?? item.camera_orbit, sort_order ?? item.sort_order, req.params.id);
     res.json({ success: true });
   } catch (err) {
+    console.error('Model update error:', err);
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });

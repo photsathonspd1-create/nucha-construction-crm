@@ -988,7 +988,7 @@ function showAddModelModal() {
     <div class="form-group"><label>ชื่อโมเดล *</label><input type="text" id="am_title" placeholder="เช่น ห้องนั่งเล่น Modern"></div>
     <div class="form-group"><label>รายละเอียด</label><textarea id="am_desc" rows="2"></textarea></div>
     <div style="background:var(--off-white);border-radius:12px;padding:16px;margin-bottom:16px">
-      <div class="form-group"><label>📁 อัพโหลดไฟล์โมเดล (.glb/.gltf)</label><input type="file" id="am_file" accept=".glb,.gltf"></div>
+      <div class="form-group"><label>📁 อัพโหลดไฟล์โมเดล (.glb/.gltf)</label><input type="file" id="am_file" accept=".glb,.gltf,.obj"></div>
       <div style="text-align:center;color:var(--gray-300);font-size:0.85rem;margin:8px 0">— หรือใส่ URL —</div>
       <div class="form-group"><label>🔗 URL โมเดล 3D</label><input type="text" id="am_url" placeholder="https://...model.glb"></div>
     </div>
@@ -1074,7 +1074,7 @@ function editSvcModel(id) {
     <div class="form-group"><label>ชื่อโมเดล *</label><input type="text" id="em_title" value="${esc(m.title || '')}"></div>
     <div class="form-group"><label>รายละเอียด</label><textarea id="em_desc" rows="2">${esc(m.description || '')}</textarea></div>
     <div style="background:var(--off-white);border-radius:12px;padding:16px;margin-bottom:16px">
-      <div class="form-group"><label>📁 อัพโหลดไฟล์โมเดลใหม่ (.glb/.gltf)</label><input type="file" id="em_file" accept=".glb,.gltf"></div>
+      <div class="form-group"><label>📁 อัพโหลดไฟล์โมเดลใหม่ (.glb/.gltf)</label><input type="file" id="em_file" accept=".glb,.gltf,.obj"></div>
       <div style="text-align:center;color:var(--gray-300);font-size:0.85rem;margin:8px 0">— หรือแก้ URL —</div>
       <div class="form-group"><label>🔗 URL โมเดล 3D</label><input type="text" id="em_url" value="${esc(m.model_url || '')}"></div>
     </div>
