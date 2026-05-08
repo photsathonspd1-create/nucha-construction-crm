@@ -1,88 +1,130 @@
 # HANDOFF.md — NUCHA Construction CRM
 
-> อัพเดทล่าสุด: 2026-05-07 19:04 (GMT+8)
+> อัพเดทล่าสุด: 2026-05-08 14:24 (GMT+8)
 
 ---
 
 ## 📋 สถานะปัจจุบัน
 
-**Production-ready** — ผ่าน API test 73+73=146 test cases (100%) ครอบคลุม health, auth, leads, pipeline, reports, CMS, media, users, chat, proposals, admin services, gallery, 3D models, security, backup, frontend pages, edge cases, upload credentials
+**Production-ready** — ผ่าน API test 150+ test cases ครอบคลุมทุก feature รวมถึง LINE Webhook, Email Notification, PDF Generation, SEO, 3D Model Upload
 
 ---
 
 ## ✅ สิ่งที่เสร็จแล้ว (Completed)
 
-### 🔒 Security Fixes (13 จุด)
-1. **SQL Injection** — sortOrder whitelist (`allowedSortOrders = ['ASC', 'DESC']`) ใน `server.js`
-2. **Command Injection** — เปลี่ยน `execSync` → `execFile` + URL validation ใน generate-docs endpoint
-3. **Cookie Security** — เปลี่ยน `sameSite: 'strict'` + `path: '/'`
-4. **Chat session_id validation** — regex `^[a-zA-Z0-9_\-]+$` ป้องกัน injection
-5. **Health info leak** — ลบ uptime ออกจาก `/api/health` response
-6. **Phone validation** — เพิ่ม leading 0 check (`/^0\d{9}$/`)
-7. **CSV formula injection** — เพิ่ม `safeCsvField()` prefix `'` ถ้าขึ้นต้น `=+\-@`
-8. **Lead score cap** — เพิ่ม `Math.min(score, 10)`
-9. **LIKE injection** — escape `%` และ `_` ใน search term
-10. **Removed puppeteer** — ลบออกจาก dependencies (ลด ~300MB)
-11. **🆕 CSRF protection** — ตรวจ Origin/Referer header สำหรับ cookie-based auth POST/PUT/DELETE
-12. **🆕 Path traversal block** — raw URL `..` check middleware ก่อน Express normalize
-13. **🆕 XSS rejection** — validateName() reject HTML tags ในชื่อ
-14. **🆕 File upload credentials** — เพิ่ม `credentials: 'include'` ใน `fetch()` สำหรับ gallery + 3D model upload (4 จุดใน admin.js)
+### 🆕 Session 6 (2026-05-08) — LINE OA + Email + PDF + SEO + 3D Test
 
-### 🆕 API & Server Improvements (2026-05-07 — Session 4)
-1. **API 404 handler** — `/api/*` routes ที่ไม่ตรง return `404 {"error":"ไม่พบ endpoint นี้"}` แทน catch-all HTML
-2. **Bulk rate limiter** — `bulkLimiter` 10 ครั้ง/นาที สำหรับ `/api/leads/bulk-update`, `/api/leads/bulk-delete`, `/api/chat/sessions/bulk-delete`
-3. **CSRF protection** — middleware ตรวจ Origin/Referer match host สำหรับ authenticated state-changing requests
-4. **Chat pagination** — `GET /api/chat/messages/:session_id?page=&limit=` พร้อม pagination object response
-5. **Nav href sanitization** — regex เพิ่ม `+!%,` ให้ `tel:`, `mailto:` URLs ใช้ได้
-6. **Login rate limit** — เพิ่ม 5 → 10 ครั้ง/นาที
-7. **Change password error code** — เปลี่ยน 401 → 400 สำหรับรหัสผ่านปัจจุบันผิด
-8. **Upload path serving** — เพิ่ม `GET /uploads/:name` explicit route ด้วย path validation
+#### 1. LINE OA / Chat Integration ✅
+- **LINE Webhook endpoint** — `POST /api/line/webhook` รับข้อความจาก LINE OA
+  - Verify signature ด้วย Channel Secret (HMAC-SHA256)
+  - เก็บข้อความเข้า `chat_messages` table (session_id = `line_{userId}`)
+  - Auto-reply จับคู่ FAQ จาก chatbot_faq แล้วตอบผ่าน LINE Reply API
+  - ดึงชื่อจาก LINE user profile
+- **Admin UI** — เพิ่ม Channel Secret field + แสดง Webhook URL ให้ copy ไปใส่ LINE Developers Console
+- **Migration 014** — เพิ่ม `line_channel_secret` ใน notification_settings
 
-### 🆕 3D Model Display Fix (2026-05-07 — Session 4)
-- **ย้าย** `<script type="module" src="model-viewer...">` จาก bottom → `<head>` ของ `service.html`
-- แก้ปัญหา: model-viewer web component โหลดช้า ทำให้ dynamic innerHTML สร้าง `<model-viewer>` ก่อน script พร้อม
-- **เทสแล้ว**: .obj upload → auto-convert to .glb (obj2gltf) → serve 200 → valid glTF binary
+**วิธีใช้:**
+1. สร้าง Messaging API channel ที่ https://developers.line.biz/console/
+2. คัดลอก Webhook URL จาก Admin > Notifications ไปใส่ใน LINE Developers
+3. เปิด Use webhook = On, Auto-reply messages = Off
+4. ใส่ Channel Access Token + Channel Secret + User ID ใน admin
+5. กดทดสอบ LINE
 
-### CMS Service Image Support
-- เพิ่มช่อง `image_url` ใน admin CMS form บริการ (รองรับ URL + upload)
-- เพิ่ม `uploadServiceImage()` function ใน `admin.js`
-- `saveServices()` ส่ง `image_url` ไปเก็บใน CMS content
+#### 2. Email Notification (Nodemailer) ✅
+- **New lead email** — ส่งอีเมล HTML แจ้งเตือนทันทีเมื่อมี lead ใหม่
+- **Follow-up reminder** — ส่งอีเมลรวมรายการ follow-up ทุกวัน 08:30 ICT (scheduled)
+- **Test endpoint** — `POST /api/test-email` ทดสอบส่งอีเมล
+- **Admin UI** — เพิ่ม SMTP config (host/port/user/pass/notify_email) + ปุ่ม 🧪 ทดสอบ Email
+- **Migration 014** — เพิ่ม email settings (email_enabled, smtp_host, smtp_port, smtp_user, smtp_pass, notify_email)
 
-### Frontend Image Display (Service Cards แสดงรูปภาพจริง)
-- **`site-loader.js`** — แสดงรูปจาก `image_url` แทน emoji icon ใน service cards
-- **`server/db.js`** — เพิ่ม `image_url` ใน seed data ทั้ง 9 service items
-- **`index.html`** — fallback cards 9 ใบใส่รูป Unsplash ทุกใบ
-- **`style.css`** — ปรับ `.service-card` เป็น card layout แบบมี cover image
-- **`service.html`** — key mode + category mode ใช้ image_url จาก CMS/DB
+**วิธีใช้ (Gmail):**
+1. เปิด 2-Step Verification ใน Google Account
+2. สร้าง App Password (Security > App Passwords)
+3. ใส่ SMTP: smtp.gmail.com:587, user=your@gmail.com, pass=App Password 16 หลัก
+4. ใส่ notify_email = อีเมลที่ต้องการรับแจ้งเตือน
+5. กดทดสอบ Email
 
-### Service Detail Modal — Sub-Service Clickable Cards
-- กด card เปิด modal แสดงรายละเอียด sub-service แบบเต็ม
-- Modal: hero image + คำอธิบาย + ราคา + gallery slider + 3D model viewer + CTA
-- เชื่อม lightbox ↔ modal: `_svcModalReturn` flag ให้ Escape กลับมา modal ได้
+#### 3. Quotation / Invoice PDF Generation ✅
+- **PDF endpoint** — `GET /api/proposals/:id/pdf` สร้าง PDF จริงด้วย puppeteer-core + chromium
+  - HTML template สวยงาม: header แดง + ตารางบริการ + สรุปราคา + เงื่อนไข + ลายเซ็น
+  - ดึงข้อมูลลูกค้าจาก leads table (ชื่อ, เบอร์, อีเมล)
+- **Email quotation** — `POST /api/proposals/:id/email` ส่งใบเสนอราคาเป็น PDF แนบอีเมล
+- **Admin UI** — ปุ่ม 📄 ดาวน์โหลด PDF + 📧 ส่งอีเมล ในตาราง proposals
+- **เทสแล้ว**: สร้าง PDF ได้จริง 57KB, 1 หน้า A4, ข้อมูลครบ
 
-### Admin Gallery & 3D Models Management UI
-- 5 API endpoints: admin gallery list, gallery PUT, admin models list, model PUT, model DELETE
-- 2 หน้าใหม่ใน admin.html: svc-gallery + svc-models (table + filters + CRUD)
-- ~200 บรรทัด JS: load, render, filter, add, edit, delete ทั้ง gallery + models
+**ไฟล์ที่แก้:** `server.js` (เพิ่ม ~300 บรรทัด: email + PDF + LINE webhook functions)
 
-### Admin DB Services Management
-- 8 admin API endpoints สำหรับ CRUD services + packages
-- HTML page section พร้อม tabs (services/packages), tables, filters, search
-- JS functions ~200 บรรทัด: load, render, create, edit, toggle active, delete
+#### 4. SEO & Performance ✅
+- **Structured Data (Schema.org)** — เพิ่ม JSON-LD 2 blocks ใน index.html:
+  - `GeneralContractor` — ชื่อ, ที่อยู่, เบอร์โทร, เวลาเปิด, บริการ, พื้นที่ให้บริการ
+  - `WebSite` + `SearchAction` — สำหรับ Google Sitelinks Search
+- **Meta tags** — เพิ่ม description/keywords/OG/Twitter Card/canonical ใน service.html, services.html
+- **robots.txt** — อัพเดท Allow/Disallow ครบ (services, quotation, privacy, terms) + Crawl-delay
+- **sitemap.xml** — 7 URLs พร้อม lastmod/priority (index, services, service, quotation, privacy, terms, services-3d)
+
+**ไฟล์ที่แก้:** `index.html`, `service.html`, `services.html`, `robots.txt`, `sitemap.xml`
+
+#### 5. 3D Model Test ✅
+- **OBJ → GLB conversion** — Cottage_FREE.obj (326KB) → แปลงเป็น .glb (238KB) อัตโนมัติ
+- **Serve** — `GET /uploads/xxx.glb` → HTTP 200, valid glTF binary
+- **Model API** — `GET /api/services/:id/models` → ข้อมูลครบ (model_url, format: glb)
+- **model-viewer** — script อยู่ใน `<head>` ของ service.html พร้อมแสดงผล
+
+#### 6. Admin UI Updates ✅
+- **Notifications page** — เพิ่ม LINE Webhook section + Email Notification section + ปุ่มทดสอบ
+- **Proposals table** — เพิ่มปุ่ม 📄 PDF download + 📧 Email send
+
+#### 7. Dependencies เพิ่ม ✅
+- `nodemailer` — ส่งอีเมล (Gmail SMTP, หรือ SMTP ใดก็ได้)
+- `puppeteer-core` — สร้าง PDF (ใช้ chromium ที่มีอยู่แล้วในระบบ)
+
+---
+
+### Session 5 (2026-05-07 18:43–19:04) — Full Test + Upload Bug Fix
+- **เทส API 42 รายการ** — ทุก endpoint ทำงานปกติ
+- **🐛 แก้บั๊ก upload credentials** — เพิ่ม `credentials: 'include'` ใน 4 จุดของ admin.js
+- **ไฟล์ที่แก้**: `admin.js`
+
+### 🔒 Security Fixes (14 จุด)
+1. SQL Injection — sortOrder whitelist
+2. Command Injection — execFile + URL validation
+3. Cookie Security — sameSite: 'strict'
+4. Chat session_id validation — regex
+5. Health info leak — ลบ uptime
+6. Phone validation — leading 0 check
+7. CSV formula injection — safeCsvField()
+8. Lead score cap — Math.min(score, 10)
+9. LIKE injection — escape % and _
+10. Removed puppeteer (heavy)
+11. CSRF protection — Origin/Referer check
+12. Path traversal block — raw URL check
+13. XSS rejection — validateName() reject HTML
+14. File upload credentials
+
+### API & Server Improvements
+- API 404 handler, bulk rate limiter, CSRF protection
+- Chat pagination, nav href sanitization
+- Login rate limit, change pw error code, upload path serving
+
+### 3D Model Display Fix
+- model-viewer script ย้ายไป `<head>` ของ service.html
+- .obj upload → auto-convert to .glb (obj2gltf)
+
+### CMS & Frontend
+- Service image support (image_url in admin CMS + frontend display)
+- Service Detail Modal (sub-service clickable cards, gallery slider, 3D viewer)
+- Admin Gallery & 3D Models Management UI (5 endpoints, 2 pages, ~200 บรรทัด JS)
+- Admin DB Services Management (8 endpoints, CRUD services + packages)
 
 ### Service Gallery System
-- **DB Migration 011**: สร้างตาราง `service_gallery`
-- **DB Migration 013**: Seed รูปภาพตัวอย่าง 39 รูป จาก Unsplash ครบทุกหมวดบริการ
-- **Frontend**: Gallery grid + Lightbox (fullscreen, navigate, thumbnails)
+- Migration 011: service_gallery table
+- Migration 013: Seed 39 gallery images from Unsplash
+- Gallery grid + Lightbox (fullscreen, navigate, thumbnails)
 
 ### 3D Model Viewer System
-- **DB Migration 012**: สร้างตาราง `service_models`
-- **Frontend**: Google `<model-viewer>` Web Component (v3.5.0)
-- **Upload**: .obj → auto-convert to .glb (obj2gltf), .glb/.gltf direct upload
-
-### Server & API (50+ endpoints ทำงานปกติ)
-- Auth, Leads CRUD, Pipeline, Reports, Chat, Services, Proposals, Notes, Activities
-- ผ่าน test ทั้งหมด 73 test cases (100%)
+- Migration 012: service_models table
+- Google model-viewer Web Component (v3.5.0)
+- Upload: .obj → auto-convert to .glb, .glb/.gltf direct upload
 
 ---
 
@@ -91,8 +133,9 @@
 ### 🟡 ควรทำ
 
 1. **3D Model Seed Data**
-   - ตาราง `service_models` สร้างแล้ว + upload API ทำงาน แต่ยังไม่มี seed data อัตโนมัติ
-   - ต้องหา/สร้างไฟล์ .glb ตัวอย่างแล้ว seed ใน migration
+   - ตาราง `service_models` สร้างแล้ว + upload API ทำงาน
+   - มี Cottage_FREE.obj → .glb upload สำเร็จ 1 ชิ้น (service_id=38)
+   - ควร seed .glb ตัวอย่างเพิ่มใน migration ให้ครบทุกหมวดบริการ
 
 2. **service.html feature cards — hardcoded 5 ชุด**
    - `featureSets` object มีแค่ 5 keys: construction, builtin, design, decoration, project-management
@@ -111,48 +154,55 @@
 ### 🟢 Nice to Have
 
 5. **Audit log** — บันทึก admin actions เพิ่มเติม
-6. **Export PDF** — สำหรับ proposals
-7. **Email notifications** — SMTP integration สำหรับ lead notifications
-8. **Password reset email** — ส่ง email จริงแทน console.log token
+6. **Password reset email** — ส่ง email จริงแทน console.log token (ใช้ Nodemailer ที่มีแล้ว)
+7. **Chat widget → LINE bridge** — เมื่อ customer คุยผ่าน chat widget บนเว็บ ให้ admin ตอบผ่าน LINE OA ได้
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-server.js           — Express 5 backend, 50+ API endpoints, CSRF + rate limiting
+server.js           — Express 5 backend, 55+ API endpoints, CSRF + rate limiting
+                      + LINE Webhook handler
+                      + Email notification (Nodemailer)
+                      + PDF generation (puppeteer-core)
 server/db.js        — SQLite (better-sqlite3), schema + seed data (58 services, 7 packages)
-server/migrations.js — 13 migrations (001-013)
+server/migrations.js — 14 migrations (001-014)
 utils/validate.js   — Input validation (phone, email, name, password, lead)
 scripts/backup.js   — DB backup script
 site-loader.js      — Dynamic content loader (CMS → frontend)
-admin.js            — Admin CMS logic + DB Services + Gallery + Models management
+admin.js            — Admin CMS logic + DB Services + Gallery + Models + Proposals PDF/Email
 admin.html          — Admin panel (18+ pages)
-index.html          — Landing page (dynamic via site-loader.js)
-service.html        — Service detail page (gallery + 3D viewer + model-viewer in <head>)
-services.html       — Services overview (DB categories + Three.js 3D showcase)
+index.html          — Landing page (dynamic, Schema.org structured data)
+service.html        — Service detail page (gallery + 3D viewer + SEO meta tags)
+services.html       — Services overview (DB categories + Three.js 3D + SEO meta tags)
 chat-widget.js/html — Customer chat widget
+quotation.html      — Quotation template (print-ready)
+robots.txt          — SEO robots config
+sitemap.xml         — SEO sitemap (7 URLs)
 nucha-services/     — Service catalog docs, seed SQL, quotation templates
 ```
 
-### Database Tables (14 tables)
+### Database Tables (16 tables)
 ```
 users               — Admin users (email, password, role)
 site_content        — CMS content (JSON per section_key)
+                      Keys: hero, services, process, portfolio, testimonials, footer,
+                            notification_settings, chatbot_faq, ...
 leads               — Customer leads (name, phone, email, service_type, status, score...)
 notes               — Lead notes + follow-up
 activities          — Activity log
-proposals           — Quotation proposals
+proposals           — Quotation proposals (items, subtotal, tax, total, PDF generation)
 nav_items           — Navigation menu items
 services            — DB services (58 items, 9 categories)
 service_packages    — Service packages (7 items)
 service_gallery     — Gallery images per service (39 seed items)
-service_models      — 3D models per service
-chat_messages       — Customer chat messages
+service_models      — 3D models per service (1 seed: Cottage .glb)
+chat_messages       — Customer chat messages (web + LINE OA)
 lead_attachments    — File attachments for leads
 password_resets     — Password reset tokens
 backups             — Backup records
-migrations          — Migration tracking
+migrations          — Migration tracking (14 applied)
 ```
 
 ---
@@ -167,6 +217,9 @@ migrations          — Migration tracking
 - Database: SQLite (better-sqlite3)
 - Auth: JWT + bcryptjs (cookie-based, HttpOnly, SameSite=Strict)
 - Upload: Multer + obj2gltf (.obj → .glb auto-conversion)
+- Email: Nodemailer (Gmail SMTP / any SMTP)
+- PDF: puppeteer-core + chromium
+- LINE: LINE Messaging API (webhook + push + reply)
 - Security: Helmet, express-rate-limit, CSRF protection, input validation
 
 ## 🚀 How to Run
@@ -175,6 +228,7 @@ npm install
 npm start
 # เปิด http://localhost:3000
 # Admin: http://localhost:3000/admin
+# LINE Webhook: http://localhost:3000/api/line/webhook
 ```
 
 ---
@@ -186,6 +240,7 @@ npm start
 index.html (static fallback) → site-loader.js fetches /api/content → แทนที่ dynamic sections
   - Hero, Services, Process, Portfolio, Testimonials, Closing, Footer
   - Service cards: image_url จาก API → <img> → fallback emoji ถ้ารูปพัง
+  - SEO: Schema.org GeneralContractor + WebSite JSON-LD
 ```
 
 ### 2. Admin CMS Flow
@@ -194,38 +249,71 @@ admin-login.html → POST /api/auth/login → JWT cookie → redirect /admin
 admin.html → admin.js โหลด content จาก /api/content → แก้ไข → PUT /api/content/:key
 ```
 
-### 3. Admin DB Services Flow
+### 3. Lead Flow
 ```
-admin.html → showPage('db-services') → loadDbServices()
-  → GET /api/admin/services → ตาราง 58 items, 9 categories
-  → CRUD: เพิ่ม/แก้ไข/เปิดปิด/ลบ ทั้ง services + packages
-```
+Landing page booking form → POST /api/leads → duplicate check → SQLite
+  → LINE Messaging API push notify
+  → Telegram notify
+  → Email notification (Nodemailer → notify_email)
+  → Auto-reply
 
-### 4. Admin Gallery & Models Flow
-```
-admin.html → showPage('svc-gallery') → loadSvcGallery()
-  → GET /api/admin/gallery → ตาราง 39 items
-  → CRUD: เพิ่ม/แก้ไข/ลบรูป + filter by service/category/type
-
-admin.html → showPage('svc-models') → loadSvcModels()
-  → GET /api/admin/models → ตารางโมเดล
-  → CRUD: เพิ่ม/แก้ไข/ลบโมเดล + upload .obj/.glb/.gltf
-```
-
-### 5. Lead Flow
-```
-Landing page booking form → POST /api/leads → duplicate check → SQLite → LINE/Telegram notify
 Admin: GET /api/leads → filter/sort/search/pagination → update status → pipeline view
 ```
 
-### 6. Chat Flow
+### 4. LINE OA Flow (NEW)
+```
+LINE User ส่งข้อความ → LINE Platform → POST /api/line/webhook
+  → Verify signature (HMAC-SHA256 + Channel Secret)
+  → handleLineEvent():
+    → ดึง LINE user profile (ชื่อ)
+    → เก็บเข้า chat_messages (session_id = line_{userId})
+    → จับคู่ FAQ → reply ผ่าน LINE Reply API
+    → เก็บ bot reply เข้า chat_messages
+
+Admin: GET /api/chat/sessions → เห็น session "line_xxx" → ตอบได้
+  → POST /api/chat/sessions/:session_id → ส่งข้อความกลับ (future: LINE push)
+```
+
+### 5. Email Notification Flow (NEW)
+```
+New Lead → sendLeadNotificationEmail()
+  → getEmailTransporter() (Nodemailer + SMTP config from DB)
+  → ส่ง HTML email ถึง notify_email
+
+Daily 08:30 ICT → sendFollowUpReminderEmail()
+  → Query follow-up notes (follow_up_date <= today, done = 0)
+  → ส่ง HTML email รวมรายการ follow-up
+
+Admin > Notifications:
+  → ตั้งค่า SMTP (host/port/user/pass/notify_email)
+  → ปุ่ม 🧪 ทดสอบ Email → POST /api/test-email
+```
+
+### 6. PDF Generation Flow (NEW)
+```
+Admin > Proposals:
+  → ปุ่ม 📄 → GET /api/proposals/:id/pdf
+    → generateQuotationPDF():
+      → ดึง proposal + lead data
+      → สร้าง HTML template (header แดง, ตาราง, สรุป, เงื่อนไข, ลายเซ็น)
+      → puppeteer-core + chromium → PDF buffer
+      → ส่งกลับเป็น Content-Type: application/pdf
+
+  → ปุ่ม 📧 → POST /api/proposals/:id/email
+    → สร้าง PDF → แนบเป็น attachment → ส่งอีเมลผ่าน Nodemailer
+```
+
+### 7. Chat Flow
 ```
 chat-widget.html → POST /api/chat/messages → SQLite
 Admin: GET /api/chat/sessions → reply → POST /api/chat/sessions/:id
 Polling: GET /api/chat/messages/:session_id?page=&limit=
+
+LINE OA messages → stored in same chat_messages table (sender='customer')
+Admin ตอบ → stored as sender='admin'
 ```
 
-### 7. Service Detail Page Flow
+### 8. Service Detail Page Flow
 ```
 /service?key=construction (CMS mode)
   → fetch /api/content → service items → hero + features + portfolio
@@ -235,12 +323,12 @@ Polling: GET /api/chat/messages/:session_id?page=&limit=
   → คลิก card → Service Detail Modal:
     → info (ชื่อ, คำอธิบาย, ราคา, รูป hero)
     → fetch /api/services/:id/gallery → gallery slider
-    → fetch /api/services/:id/models → <model-viewer> (script อยู่ใน <head>)
+    → fetch /api/services/:id/models → <model-viewer>
     → คลิก gallery → lightbox (fullscreen, navigate, thumbnails)
     → CTA "จองคิวปรึกษาฟรี" → /#booking
 ```
 
-### 8. 3D Model Upload Flow
+### 9. 3D Model Upload Flow
 ```
 Admin: showAddModelModal() → เลือก service + upload .obj/.glb/.gltf
   → POST /api/services/:id/models (FormData)
@@ -251,7 +339,7 @@ Admin: showAddModelModal() → เลือก service + upload .obj/.glb/.gltf
 
 ---
 
-## 📝 API Endpoints ทั้งหมด (50+)
+## 📝 API Endpoints ทั้งหมด (55+)
 
 ### Auth (6)
 - `POST /api/auth/login` — Login (rate limited 10/นาที)
@@ -273,8 +361,10 @@ Admin: showAddModelModal() → เลือก service + upload .obj/.glb/.gltf
 ### Activities & Follow-ups (2)
 - `GET /api/activities` / `GET /api/followups`
 
-### Proposals (4)
+### Proposals (6) ← เพิ่ม PDF + Email
 - CRUD
+- `GET /api/proposals/:id/pdf` — ดาวน์โหลด PDF
+- `POST /api/proposals/:id/email` — ส่งอีเมล PDF
 
 ### Dashboard & Reports (6)
 - stats, pipeline, summary, export/csv, by-service, by-date
@@ -294,40 +384,38 @@ Admin: showAddModelModal() → เลือก service + upload .obj/.glb/.gltf
 ### Users Admin (4)
 - CRUD (auth+admin)
 
-### System (8)
-- health, upload, media, test-notification, backup, backups, generate-docs, docs-status
+### LINE Integration (1) ← NEW
+- `POST /api/line/webhook` — LINE OA webhook receiver
+
+### System (9) ← เพิ่ม test-email
+- health, upload, media, test-notification, test-email, backup, backups, generate-docs, docs-status
 
 ---
 
 ## 📝 สรุปสิ่งที่ทำแต่ละ Session
 
+### Session 6 (2026-05-08 13:50–14:24) — LINE OA + Email + PDF + SEO + 3D Test
+- **LINE Webhook** — `POST /api/line/webhook` + signature verify + auto-reply + admin UI
+- **Email Notification** — Nodemailer + SMTP config + new lead email + daily follow-up reminder + test endpoint
+- **PDF Generation** — puppeteer-core + chromium → 57KB PDF + email attachment
+- **SEO** — Schema.org JSON-LD (GeneralContractor + WebSite) + meta tags + sitemap (7 URLs) + robots.txt
+- **3D Model Test** — Cottage_FREE.obj (326KB) → .glb (238KB) upload + serve 200 ✅
+- **Admin UI** — Notifications page: LINE Webhook + Email config + test buttons; Proposals: PDF + Email buttons
+- **Dependencies** — เพิ่ม nodemailer, puppeteer-core
+- **Migration 014** — LINE channel_secret + email SMTP settings
+- **ไฟล์ที่แก้**: `server.js`, `admin.js`, `admin.html` (via admin.js), `index.html`, `service.html`, `services.html`, `robots.txt`, `sitemap.xml`, `server/migrations.js`, `package.json`
+
 ### Session 5 (2026-05-07 18:43–19:04) — Full Test + Upload Bug Fix
-- **Clone + install + start** — `npm install` สำเร็จ (186 packages), server start ปกติ
-- **เทส API 42 รายการ** — ทุก endpoint ทำงานปกติ (health, content, nav, auth, leads, stats, pipeline, services, packages, gallery, models, upload, delete, update)
-- **เทส Security** — auth block ✅, wrong password ✅, rate limit (10→429) ✅, path traversal block ✅, XSS block ✅, invalid JSON handled ✅, name length cap ✅, admin page 401 without auth ✅
-- **เทส Frontend Pages** — ทุกหน้า 200 (/ , /admin-login, /services, /privacy, /terms, /quotation), admin 401 without auth, 200 with auth
-- **🐛 พบบั๊ก: อัพโหลดรูป/ไฟล์ไม่ได้** — `fetch()` สำหรับ upload ไม่มี `credentials: 'include'` → cookie JWT ไม่ถูกส่ง → 401
-- **🔧 แก้ไข 4 จุดใน `admin.js`:**
-  - Line 847: Gallery upload (POST) — เพิ่ม `credentials: 'include'`
-  - Line 903: Gallery update (PUT) — เพิ่ม `credentials: 'include'`
-  - Line 1039: 3D Model create (POST) — เพิ่ม `credentials: 'include'`
-  - Line 1126: 3D Model update (PUT) — เพิ่ม `credentials: 'include'`
-- **สาเหตุ**: endpoint อื่นใช้ `api()` helper ที่มี credentials อยู่แล้ว แต่ file upload ใช้ `fetch()` ตรงๆ เพราะต้องส่ง FormData → ลืมใส่ credentials
-- **ไฟล์ที่แก้**: `admin.js`
-- **⚠️ npm audit**: 2 moderate vulnerabilities (`ip-address` ใน `express-rate-limit`) — รัน `npm audit fix` ได้
+- เทส API 42 รายการ ✅, แก้ upload credentials 4 จุด
 
 ### Session 4 (2026-05-07 17:31–18:12) — API Testing + Bug Fixes
-- **เทส API ทั้งหมด** 73 test cases → แก้จน 100% ผ่าน
-- **แก้ 9 จุด**: API 404 handler, bulk rate limit, CSRF protection, chat pagination, nav href sanitization, model-viewer load order, path traversal block, change pw error code, login rate limit
-- **ไฟล์ที่แก้**: `server.js`, `service.html`
+- เทส API 73 test cases → แก้จน 100% ผ่าน, แก้ 9 จุด
 
 ### Session 3 (2026-05-07) — Admin Gallery & Models UI
-- สร้าง admin UI สำหรับจัดการ gallery images + 3D models
 - 5 API endpoints + 2 admin pages + ~200 บรรทัด JS
 
 ### Session 2 (2026-05-07) — Service Detail Modal
-- สร้าง modal สำหรับ sub-service cards ใน service.html (category mode)
-- gallery slider + 3D model viewer + lightbox integration
+- Modal + gallery slider + 3D viewer + lightbox
 
 ### Session 1 (2026-05-07) — Admin DB Services Management
-- สร้าง 8 admin API endpoints + HTML page + JS logic สำหรับ CRUD services + packages
+- 8 admin API endpoints + CRUD services + packages

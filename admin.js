@@ -1577,6 +1577,7 @@ async function saveBadges() {
 // ===== NOTIFICATIONS FORM =====
 function renderNotificationsForm() {
   const n = allContent.notification_settings || {};
+  const webhookUrl = window.location.origin + '/api/line/webhook';
   document.getElementById('notificationsForm').innerHTML = `
     <div class="form-section">
       <h3>📱 LINE Messaging API</h3>
@@ -1596,9 +1597,56 @@ function renderNotificationsForm() {
         <input type="text" id="nt_line_channel_access_token" value="${esc(n.line_channel_access_token || '')}" placeholder="ใส่ Channel Access Token จาก LINE Developers">
       </div>
       <div class="form-group">
+        <label>Channel Secret (สำหรับ Webhook)</label>
+        <input type="text" id="nt_line_channel_secret" value="${esc(n.line_channel_secret || '')}" placeholder="ใส่ Channel Secret จาก LINE Developers">
+      </div>
+      <div class="form-group">
         <label>LINE User ID หรือ Group ID</label>
         <input type="text" id="nt_line_user_id" value="${esc(n.line_user_id || '')}" placeholder="ใส่ User ID หรือ Group ID สำหรับรับข้อความ">
         <small>สามารถดู User ID ได้จาก webhook หรือ LINE Official Account Manager</small>
+      </div>
+      <div class="form-group" style="background:#f0fff0;padding:12px 16px;border-radius:8px;border-left:4px solid #4ADE80;">
+        <label style="font-weight:600;color:#16a34a;">🔗 LINE Webhook URL</label>
+        <code style="display:block;padding:8px;background:#fff;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;margin-top:4px;word-break:break-all;">${webhookUrl}</code>
+        <small>ตั้ง Webhook URL นี้ใน LINE Developers Console → Messaging API settings</small>
+      </div>
+    </div>
+    <div class="form-section">
+      <h3>📧 Email Notification</h3>
+      <p style="font-size:0.85rem;color:var(--gray-400);margin-bottom:16px">
+        ส่งอีเมลแจ้งเตือนเมื่อมี Lead ใหม่ + Follow-up Reminder — ใช้ Gmail SMTP หรือ SMTP ใดก็ได้
+      </p>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="nt_email_enabled" ${n.email_enabled ? 'checked' : ''} style="margin-right:8px">
+          เปิดใช้ Email Notification
+        </label>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>SMTP Host</label>
+          <input type="text" id="nt_smtp_host" value="${esc(n.smtp_host || 'smtp.gmail.com')}" placeholder="smtp.gmail.com">
+        </div>
+        <div class="form-group">
+          <label>SMTP Port</label>
+          <input type="text" id="nt_smtp_port" value="${esc(n.smtp_port || '587')}" placeholder="587">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>SMTP Username (อีเมล)</label>
+          <input type="email" id="nt_smtp_user" value="${esc(n.smtp_user || '')}" placeholder="your-email@gmail.com">
+        </div>
+        <div class="form-group">
+          <label>SMTP Password (App Password)</label>
+          <input type="password" id="nt_smtp_pass" value="${esc(n.smtp_pass || '')}" placeholder="App Password 16 หลัก">
+          <small>สำหรับ Gmail: ไปที่ Google Account → Security → 2-Step Verification → App Passwords</small>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>อีเมลผู้รับแจ้งเตือน</label>
+        <input type="email" id="nt_notify_email" value="${esc(n.notify_email || '')}" placeholder="admin@nuchainnovation.com">
+        <small>อีเมลที่จะรับแจ้งเตือนเมื่อมี Lead ใหม่ (ปล่อยว่าง = ใช้ SMTP Username)</small>
       </div>
     </div>
     <div class="form-section">
@@ -1665,6 +1713,7 @@ function renderNotificationsForm() {
       <button type="button" class="btn btn-outline" onclick="testNotification('all')" style="margin-left:8px">🧪 ทดสอบส่งทั้งหมด</button>
       <button type="button" class="btn btn-outline" onclick="testNotification('line')" style="margin-left:8px">📱 ทดสอบ LINE</button>
       <button type="button" class="btn btn-outline" onclick="testNotification('telegram')" style="margin-left:8px">✈️ ทดสอบ Telegram</button>
+      <button type="button" class="btn btn-outline" onclick="testEmailNotification()" style="margin-left:8px">📧 ทดสอบ Email</button>
     </div>
   `;
 }
@@ -1673,12 +1722,19 @@ async function saveNotifications() {
   const data = {
     line_messaging_enabled: document.getElementById('nt_line_messaging_enabled')?.checked ?? false,
     line_channel_access_token: gv('nt_line_channel_access_token'),
+    line_channel_secret: gv('nt_line_channel_secret'),
     line_user_id: gv('nt_line_user_id'),
     line_notify_enabled: document.getElementById('nt_line_enabled')?.checked ?? false,
     line_notify_token: gv('nt_line_token'),
     telegram_enabled: document.getElementById('nt_telegram_enabled')?.checked ?? false,
     telegram_bot_token: gv('nt_telegram_bot_token'),
     telegram_chat_id: gv('nt_telegram_chat_id'),
+    email_enabled: document.getElementById('nt_email_enabled')?.checked ?? false,
+    smtp_host: gv('nt_smtp_host'),
+    smtp_port: gv('nt_smtp_port'),
+    smtp_user: gv('nt_smtp_user'),
+    smtp_pass: gv('nt_smtp_pass'),
+    notify_email: gv('nt_notify_email'),
     auto_reply_enabled: document.getElementById('nt_auto_reply_enabled')?.checked ?? false,
     auto_reply_templates: {
       line: gv('nt_ar_line'),
@@ -1696,6 +1752,15 @@ async function testNotification(channel) {
     toast('✅ ส่งทดสอบสำเร็จ');
   } catch (err) {
     toast('❌ ส่งไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function testEmailNotification() {
+  try {
+    const res = await api('/api/test-email', { method: 'POST' });
+    toast('✅ ส่งอีเมลทดสอบสำเร็จ');
+  } catch (err) {
+    toast('❌ ส่งอีเมลไม่สำเร็จ: ' + err.message, 'error');
   }
 }
 
@@ -2579,7 +2644,9 @@ async function renderProposals() {
             <option value="accepted" ${p.status === 'accepted' ? 'selected' : ''}>ยอมรับ</option>
             <option value="rejected" ${p.status === 'rejected' ? 'selected' : ''}>ปฏิเสธ</option>
           </select>
-          <button class="btn btn-sm btn-outline" onclick="editProposal(${p.id})" style="margin-left:4px">✏️</button>
+          <button class="btn btn-sm btn-outline" onclick="editProposal(${p.id})" style="margin-left:4px" title="แก้ไข">✏️</button>
+          <button class="btn btn-sm btn-outline" onclick="downloadProposalPDF(${p.id})" style="margin-left:4px" title="ดาวน์โหลด PDF">📄</button>
+          <button class="btn btn-sm btn-outline" onclick="emailProposal(${p.id})" style="margin-left:4px" title="ส่งอีเมล">📧</button>
         </td>
       </tr>`;
     }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:40px">ยังไม่มีใบเสนอราคา</td></tr>';
@@ -2707,6 +2774,42 @@ async function deleteProposal(id) {
     toast('🗑️ ลบสำเร็จ');
   } catch (err) {
     toast('❌ ลบไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function downloadProposalPDF(id) {
+  try {
+    toast('⏳ กำลังสร้าง PDF...');
+    const res = await fetch(`/api/proposals/${id}/pdf`, { credentials: 'include' });
+    if (!res.ok) throw new Error((await res.json()).error || 'สร้าง PDF ไม่สำเร็จ');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `quotation-${id}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast('✅ ดาวน์โหลด PDF สำเร็จ');
+  } catch (err) {
+    toast('❌ สร้าง PDF ไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+function emailProposal(id) {
+  const toEmail = prompt('กรอกอีเมลผู้รับ:');
+  if (!toEmail) return;
+  sendProposalEmail(id, toEmail);
+}
+
+async function sendProposalEmail(id, toEmail) {
+  try {
+    toast('⏳ กำลังส่งอีเมล...');
+    await api(`/api/proposals/${id}/email`, { method: 'POST', body: JSON.stringify({ to_email: toEmail }) });
+    toast('✅ ส่งอีเมลสำเร็จ');
+  } catch (err) {
+    toast('❌ ส่งอีเมลไม่สำเร็จ: ' + err.message, 'error');
   }
 }
 

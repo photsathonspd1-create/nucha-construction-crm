@@ -11,6 +11,8 @@ const rateLimit = require('express-rate-limit');
 const fs = require('fs');
 const https = require('https');
 const querystring = require('querystring');
+const nodemailer = require('nodemailer');
+const puppeteer = require('puppeteer-core');
 
 const db = require('./server/db');
 const { runMigrations } = require('./server/migrations');
@@ -349,6 +351,475 @@ async function sendTelegramNotify(message) {
     console.error('Telegram Notify error:', err.message);
   }
 }
+
+// ===== EMAIL NOTIFICATION (Nodemailer) =====
+function getEmailTransporter() {
+  try {
+    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    if (!row) return null;
+    const config = JSON.parse(row.content);
+    if (!config.email_enabled || !config.smtp_host || !config.smtp_user || !config.smtp_pass) return null;
+    return nodemailer.createTransport({
+      host: config.smtp_host || 'smtp.gmail.com',
+      port: parseInt(config.smtp_port) || 587,
+      secure: false,
+      auth: { user: config.smtp_user, pass: config.smtp_pass }
+    });
+  } catch { return null; }
+}
+
+async function sendEmailNotification(to, subject, htmlBody) {
+  try {
+    const transporter = getEmailTransporter();
+    if (!transporter) return;
+    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    const config = row ? JSON.parse(row.content) : {};
+    const fromEmail = config.smtp_user || 'noreply@nuchainnovation.com';
+    await transporter.sendMail({
+      from: `"NUCHA INNOVATION" <${fromEmail}>`,
+      to: to,
+      subject: subject,
+      html: htmlBody
+    });
+    console.log(`[EMAIL] Sent to ${to}: ${subject}`);
+  } catch (err) {
+    console.error('Email notification error:', err.message);
+  }
+}
+
+async function sendLeadNotificationEmail(lead) {
+  try {
+    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    if (!row) return;
+    const config = JSON.parse(row.content);
+    const notifyEmail = config.notify_email || config.smtp_user;
+    if (!notifyEmail) return;
+
+    const subject = `🆕 Lead ใหม่: ${lead.name} - ${lead.service_type || 'อื่นๆ'}`;
+    const html = `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f9f9f9;border-radius:12px;">
+        <div style="background:linear-gradient(135deg,#D60000,#B00000);color:white;padding:24px;border-radius:12px 12px 0 0;">
+          <h1 style="margin:0;font-size:1.4rem;">🏗️ NUCHA CRM — Lead ใหม่!</h1>
+        </div>
+        <div style="background:white;padding:24px;border-radius:0 0 12px 12px;">
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="padding:8px 0;font-weight:600;color:#666;width:120px;">👤 ชื่อ</td><td style="padding:8px 0;">${lead.name}</td></tr>
+            <tr><td style="padding:8px 0;font-weight:600;color:#666;">📞 โทร</td><td style="padding:8px 0;">${lead.phone}</td></tr>
+            <tr><td style="padding:8px 0;font-weight:600;color:#666;">📧 อีเมล</td><td style="padding:8px 0;">${lead.email || '-'}</td></tr>
+            <tr><td style="padding:8px 0;font-weight:600;color:#666;">🔧 บริการ</td><td style="padding:8px 0;">${lead.service_type || 'อื่นๆ'}</td></tr>
+            <tr><td style="padding:8px 0;font-weight:600;color:#666;">💰 งบ</td><td style="padding:8px 0;">${lead.budget_range || 'ไม่ระบุ'}</td></tr>
+            <tr><td style="padding:8px 0;font-weight:600;color:#666;">📝 ข้อความ</td><td style="padding:8px 0;">${lead.message || '-'}</td></tr>
+          </table>
+          <div style="margin-top:20px;text-align:center;">
+            <a href="http://localhost:3000/admin" style="display:inline-block;background:#D60000;color:white;padding:12px 32px;border-radius:50px;text-decoration:none;font-weight:600;">เปิด CRM ดู Lead</a>
+          </div>
+        </div>
+      </div>`;
+    await sendEmailNotification(notifyEmail, subject, html);
+  } catch (err) {
+    console.error('Lead email notification error:', err.message);
+  }
+}
+
+async function sendFollowUpReminderEmail() {
+  try {
+    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    if (!row) return;
+    const config = JSON.parse(row.content);
+    const notifyEmail = config.notify_email || config.smtp_user;
+    if (!notifyEmail) return;
+
+    const today = getTodayThai();
+    const followups = db.prepare(`
+      SELECT n.*, l.name as lead_name, l.phone as lead_phone, l.service_type 
+      FROM notes n JOIN leads l ON n.lead_id = l.id 
+      WHERE n.follow_up_done = 0 AND n.follow_up_date <= ?
+      ORDER BY n.follow_up_date ASC LIMIT 20
+    `).all(today);
+
+    if (followups.length === 0) return;
+
+    const rows = followups.map(f => `
+      <tr>
+        <td style="padding:8px;border-bottom:1px solid #eee;">${f.lead_name}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;">${f.lead_phone}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;">${f.service_type}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;">${f.follow_up_date}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;">${f.note?.substring(0, 50) || '-'}</td>
+      </tr>
+    `).join('');
+
+    const html = `
+      <div style="font-family:sans-serif;max-width:700px;margin:0 auto;padding:20px;">
+        <div style="background:linear-gradient(135deg,#D60000,#B00000);color:white;padding:24px;border-radius:12px 12px 0 0;">
+          <h1 style="margin:0;">📋 Follow-up Reminder — ${today}</h1>
+        </div>
+        <div style="background:white;padding:24px;border:1px solid #eee;border-radius:0 0 12px 12px;">
+          <p style="color:#666;">มี ${followups.length} รายการที่ต้อง follow-up:</p>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr style="background:#f5f5f5;">
+              <th style="padding:8px;text-align:left;">ชื่อ</th><th style="padding:8px;text-align:left;">โทร</th>
+              <th style="padding:8px;text-align:left;">บริการ</th><th style="padding:8px;text-align:left;">วันที่</th>
+              <th style="padding:8px;text-align:left;">บันทึก</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div style="margin-top:20px;text-align:center;">
+            <a href="http://localhost:3000/admin" style="display:inline-block;background:#D60000;color:white;padding:12px 32px;border-radius:50px;text-decoration:none;font-weight:600;">เปิด CRM</a>
+          </div>
+        </div>
+      </div>`;
+    await sendEmailNotification(notifyEmail, `📋 Follow-up Reminder: ${followups.length} รายการ`, html);
+  } catch (err) {
+    console.error('Follow-up reminder email error:', err.message);
+  }
+}
+
+// ===== LINE OA WEBHOOK HANDLER =====
+// Verify LINE webhook signature
+function verifyLineSignature(channelSecret, body, signature) {
+  const hash = crypto.createHmac('sha256', channelSecret).update(body).digest('base64');
+  return hash === signature;
+}
+
+// Reply to LINE message
+function replyLineMessage(accessToken, replyToken, messages) {
+  const postData = JSON.stringify({ replyToken, messages });
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'api.line.me',
+      path: '/v2/bot/message/reply',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + accessToken,
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode === 200) resolve(data);
+        else reject(new Error('LINE Reply API error: ' + res.statusCode));
+      });
+    });
+    req.on('error', reject);
+    req.write(postData);
+    req.end();
+  });
+}
+
+// Get LINE user profile
+function getLineUserProfile(accessToken, userId) {
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'api.line.me',
+      path: `/v2/bot/profile/${userId}`,
+      method: 'GET',
+      headers: { 'Authorization': 'Bearer ' + accessToken }
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch { resolve(null); }
+      });
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+// Process incoming LINE messages
+async function handleLineEvent(accessToken, event) {
+  if (event.type !== 'message' || event.message.type !== 'text') return;
+
+  const userId = event.source.userId;
+  const userMsg = event.message.text;
+  const replyToken = event.replyToken;
+
+  // Store in chat_messages using LINE userId as session_id
+  const sessionId = 'line_' + userId;
+  const safeMsg = String(userMsg).replace(/<[^>]*>/g, '').slice(0, 2000);
+
+  // Get user profile for name
+  let customerName = 'LINE User';
+  try {
+    const profile = await getLineUserProfile(accessToken, userId);
+    if (profile && profile.displayName) customerName = profile.displayName;
+  } catch {}
+
+  db.prepare('INSERT INTO chat_messages (session_id, sender, message, customer_name) VALUES (?, ?, ?, ?)')
+    .run(sessionId, 'customer', safeMsg, customerName);
+
+  // Auto-reply with FAQ matching
+  const faqRow = db.prepare("SELECT content FROM site_content WHERE section_key = 'chatbot_faq'").get();
+  let replyText = '';
+
+  if (faqRow) {
+    try {
+      const faq = JSON.parse(faqRow.content);
+      const lower = userMsg.toLowerCase();
+      for (const [key, item] of Object.entries(faq)) {
+        if (item.k && item.k.some(kw => lower.includes(kw.toLowerCase()))) {
+          replyText = item.a;
+          break;
+        }
+      }
+    } catch {}
+  }
+
+  // Default reply if no FAQ match
+  if (!replyText) {
+    replyText = `ขอบคุณครับคุณ ${customerName}! 🙏\nข้อความของคุณถูกส่งถึงทีมงานแล้ว\nทีมงานจะติดต่อกลับเร็วๆ นี้ครับ\n\n💡 หรือโทร: 02-123-4567`;
+  }
+
+  try {
+    await replyLineMessage(accessToken, replyToken, [{ type: 'text', text: replyText }]);
+    // Store bot reply
+    db.prepare('INSERT INTO chat_messages (session_id, sender, message) VALUES (?, ?, ?)')
+      .run(sessionId, 'bot', replyText);
+  } catch (err) {
+    console.error('LINE reply error:', err.message);
+  }
+}
+
+// LINE Webhook endpoint
+app.post('/api/line/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  try {
+    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    if (!row) return res.status(200).json({ success: true });
+    const config = JSON.parse(row.content);
+
+    if (!config.line_channel_access_token || !config.line_channel_secret) {
+      return res.status(200).json({ success: true });
+    }
+
+    // Verify signature
+    const signature = req.headers['x-line-signature'];
+    if (signature && !verifyLineSignature(config.line_channel_secret, req.body, signature)) {
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+
+    const body = JSON.parse(req.body.toString());
+    if (body.events && body.events.length > 0) {
+      for (const event of body.events) {
+        await handleLineEvent(config.line_channel_access_token, event).catch(console.error);
+      }
+    }
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('LINE webhook error:', err);
+    res.status(200).json({ success: true }); // Always return 200 to LINE
+  }
+});
+
+// ===== PDF GENERATION (Quotation / Invoice) =====
+async function generateQuotationPDF(proposalData) {
+  const items = Array.isArray(proposalData.items) ? proposalData.items : JSON.parse(proposalData.items || '[]');
+  const itemRows = items.map((item, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td><div class="svc-main">${item.name || ''}</div><div class="svc-detail">${item.detail || ''}</div></td>
+      <td class="num">${item.qty || 1}</td>
+      <td class="num">฿${Number(item.price || 0).toLocaleString()}</td>
+      <td class="num">฿${Number((item.qty || 1) * (item.price || 0)).toLocaleString()}</td>
+    </tr>
+  `).join('');
+
+  const html = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:'Noto Sans Thai',sans-serif;color:#4A4543;background:#fff}
+      .header{background:linear-gradient(135deg,#D60000,#B00000);color:#fff;padding:32px 40px;display:flex;justify-content:space-between;align-items:flex-start}
+      .header h1{font-size:1.6rem;font-weight:800}
+      .header p{font-size:.85rem;opacity:.85;line-height:1.6}
+      .badge{background:rgba(255,255,255,.2);padding:10px 20px;border-radius:10px;text-align:right}
+      .badge .num{font-size:1.2rem;font-weight:800}
+      .badge .date{font-size:.82rem;opacity:.8}
+      .body{padding:32px 40px}
+      .client{background:#FFF0F0;border-left:4px solid #D60000;border-radius:10px;padding:20px;margin-bottom:28px}
+      .client h3{font-size:.8rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#D60000;margin-bottom:10px}
+      .client-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.9rem}
+      .client-grid .lbl{font-weight:600;color:#9B9593;font-size:.78rem}
+      table{width:100%;border-collapse:collapse;font-size:.88rem;margin-bottom:28px}
+      thead th{background:#F7F5F4;font-size:.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#6E6866;padding:12px 14px;text-align:left;border-bottom:2px solid #E4E0DE}
+      thead th.num,thead th:nth-child(3),thead th:nth-child(4),thead th:nth-child(5){text-align:right}
+      tbody td{padding:12px 14px;border-bottom:1px solid #F0EDEB}
+      tbody td.num{text-align:right;font-weight:600}
+      .svc-main{font-weight:600}.svc-detail{font-size:.78rem;color:#9B9593}
+      .summary{display:flex;justify-content:flex-end;margin-bottom:28px}
+      .sum-box{background:#F7F5F4;border-radius:10px;padding:20px 24px;min-width:280px}
+      .sum-row{display:flex;justify-content:space-between;padding:6px 0;font-size:.9rem}
+      .sum-total{display:flex;justify-content:space-between;padding:14px 0 0;margin-top:8px;border-top:2px solid #D60000}
+      .sum-total .lbl{font-weight:700;font-size:1rem}.sum-total .val{font-size:1.4rem;font-weight:800;color:#D60000}
+      .terms{background:#F7F5F4;border-radius:10px;padding:20px 24px;margin-bottom:28px}
+      .terms h3{font-size:.8rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#D60000;margin-bottom:10px}
+      .terms ol{padding-left:18px;font-size:.82rem;color:#6E6866;line-height:1.8}
+      .sig{display:grid;grid-template-columns:1fr 1fr;gap:32px;padding-top:16px;border-top:1px solid #E4E0DE}
+      .sig-block{text-align:center}
+      .sig-block h4{font-size:.8rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9B9593;margin-bottom:12px}
+      .sig-line{width:100%;height:1px;background:#C8C2BF;margin-bottom:10px}
+      .footer{background:#4A4543;color:#C8C2BF;padding:20px 40px;text-align:center;font-size:.82rem}
+      @media print{body{background:#fff}.no-print{display:none}}
+    </style></head><body>
+    <div class="header">
+      <div><h1>Nucha Construction</h1><p>บริการออกแบบ 3D ก่อสร้าง ตกแต่ง ครบวงจร</p></div>
+      <div class="badge"><div style="font-size:.72rem;opacity:.8;letter-spacing:2px;text-transform:uppercase">ใบเสนอราคา</div><div class="num">${proposalData.proposal_number || 'QT-0000'}</div><div class="date">วันที่: ${new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</div></div>
+    </div>
+    <div class="body">
+      ${proposalData.client_name ? `<div class="client"><h3>ข้อมูลลูกค้า</h3><div class="client-grid">
+        <div><div class="lbl">ชื่อลูกค้า</div><div>${proposalData.client_name || '-'}</div></div>
+        <div><div class="lbl">โทรศัพท์</div><div>${proposalData.client_phone || '-'}</div></div>
+        <div><div class="lbl">อีเมล</div><div>${proposalData.client_email || '-'}</div></div>
+        <div><div class="lbl">โครงการ</div><div>${proposalData.title || '-'}</div></div>
+      </div></div>` : ''}
+      <h3 style="font-size:.95rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px"><span style="width:4px;height:18px;background:#D60000;border-radius:2px;display:inline-block"></span>รายการบริการ</h3>
+      <table><thead><tr><th style="width:36px">#</th><th>รายการ</th><th style="width:70px" class="num">จำนวน</th><th style="width:100px" class="num">ราคา/หน่วย</th><th style="width:100px" class="num">รวม</th></tr></thead>
+      <tbody>${itemRows || '<tr><td colspan="5" style="text-align:center;color:#999">ไม่มีรายการ</td></tr>'}</tbody></table>
+      <div class="summary"><div class="sum-box">
+        <div class="sum-row"><span>ราคารวม</span><span style="font-weight:600">฿${Number(proposalData.subtotal || 0).toLocaleString()}</span></div>
+        ${proposalData.tax ? `<div class="sum-row"><span>ภาษี (${proposalData.tax}%)</span><span style="font-weight:600">฿${Number(proposalData.subtotal * proposalData.tax / 100).toLocaleString()}</span></div>` : ''}
+        <div class="sum-total"><span class="lbl">ยอดรวมทั้งสิ้น</span><span class="val">฿${Number(proposalData.total || 0).toLocaleString()} <span style="font-size:.8rem;font-weight:600;color:#9B9593">บาท</span></span></div>
+      </div></div>
+      <div class="terms"><h3>เงื่อนไขและข้อกำหนด</h3><ol>
+        <li>ใบเสนอนี้มีอายุ 30 วัน นับจากวันที่ออก</li>
+        <li>มัดจำ 50% เมื่อตกลงจ้าง / ชำระส่วนที่เหลือเมื่อส่งมอบงาน</li>
+        <li>ระยะเวลาดำเนินงานประมาณ 15-20 วันทำการ หลังได้รับมัดจำ</li>
+        <li>แก้ไขได้ไม่เกิน 3 ครั้ง โดยไม่คิดค่าใช้จ่ายเพิ่ม</li>
+      </ol></div>
+      ${proposalData.notes ? `<div style="background:#FFF0F0;border-radius:10px;padding:16px 20px;margin-bottom:28px;font-size:.88rem;"><strong>หมายเหตุ:</strong> ${proposalData.notes}</div>` : ''}
+      <div class="sig"><div class="sig-block"><h4>ผู้เสนอราคา</h4><div class="sig-line"></div><p>Nucha Construction</p></div><div class="sig-block"><h4>ผู้อนุมัติ</h4><div class="sig-line"></div><p>( ลงชื่อ )</p></div></div>
+    </div>
+    <div class="footer">Nucha Construction — บริการออกแบบ 3D ก่อสร้าง ตกแต่ง ครบวงจร | โทร: 02-123-4567 | LINE: @nucha</div>
+  </body></html>`;
+
+  const browser = await puppeteer.launch({
+    executablePath: '/usr/bin/chromium',
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    headless: true
+  });
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 15000 });
+    const pdf = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: 0, right: 0, bottom: 0, left: 0 }
+    });
+    return pdf;
+  } finally {
+    await browser.close();
+  }
+}
+
+// PDF Download endpoint
+app.get('/api/proposals/:id/pdf', authMiddleware, async (req, res) => {
+  try {
+    const proposal = db.prepare(`
+      SELECT p.*, l.name as lead_name, l.phone as lead_phone, l.email as lead_email
+      FROM proposals p LEFT JOIN leads l ON p.lead_id = l.id WHERE p.id = ?
+    `).get(req.params.id);
+    if (!proposal) return res.status(404).json({ error: 'ไม่พบใบเสนอราคา' });
+
+    const pdf = await generateQuotationPDF({
+      ...proposal,
+      client_name: proposal.lead_name,
+      client_phone: proposal.lead_phone,
+      client_email: proposal.lead_email
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${proposal.proposal_number || 'quotation'}.pdf"`);
+    res.send(pdf);
+  } catch (err) {
+    console.error('PDF generation error:', err);
+    res.status(500).json({ error: 'ไม่สามารถสร้าง PDF ได้: ' + err.message });
+  }
+});
+
+// Email quotation endpoint
+app.post('/api/proposals/:id/email', authMiddleware, async (req, res) => {
+  try {
+    const { to_email } = req.body;
+    if (!to_email) return res.status(400).json({ error: 'กรุณากรอกอีเมลผู้รับ' });
+
+    const proposal = db.prepare(`
+      SELECT p.*, l.name as lead_name, l.phone as lead_phone, l.email as lead_email
+      FROM proposals p LEFT JOIN leads l ON p.lead_id = l.id WHERE p.id = ?
+    `).get(req.params.id);
+    if (!proposal) return res.status(404).json({ error: 'ไม่พบใบเสนอราคา' });
+
+    const pdf = await generateQuotationPDF({
+      ...proposal,
+      client_name: proposal.lead_name,
+      client_phone: proposal.lead_phone,
+      client_email: proposal.lead_email
+    });
+
+    const transporter = getEmailTransporter();
+    if (!transporter) return res.status(400).json({ error: 'ยังไม่ได้ตั้งค่า SMTP' });
+
+    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    const config = row ? JSON.parse(row.content) : {};
+
+    await transporter.sendMail({
+      from: `"NUCHA INNOVATION" <${config.smtp_user}>`,
+      to: to_email,
+      subject: `ใบเสนอราคา ${proposal.proposal_number} — NUCHA INNOVATION`,
+      html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+        <div style="background:#D60000;color:white;padding:20px;border-radius:12px 12px 0 0;text-align:center;">
+          <h2>📋 ใบเสนอราคา ${proposal.proposal_number}</h2>
+        </div>
+        <div style="padding:24px;background:#f9f9f9;border-radius:0 0 12px 12px;">
+          <p>เรียน คุณ${proposal.lead_name || 'ลูกค้า'},</p>
+          <p>กรุณาดูใบเสนอราคา ${proposal.proposal_number} ที่แนบมากับอีเมลนี้</p>
+          <p>ยอดรวม: <strong>฿${Number(proposal.total || 0).toLocaleString()}</strong></p>
+          <p style="margin-top:16px;">หากมีข้อสงสัย กรุณาติดต่อเราได้เลยครับ</p>
+          <p>📞 02-123-4567 | LINE: @nucha</p>
+        </div>
+      </div>`,
+      attachments: [{
+        filename: `${proposal.proposal_number || 'quotation'}.pdf`,
+        content: pdf,
+        contentType: 'application/pdf'
+      }]
+    });
+
+    res.json({ success: true, message: 'ส่งอีเมลสำเร็จ' });
+  } catch (err) {
+    console.error('Email quotation error:', err);
+    res.status(500).json({ error: 'ไม่สามารถส่งอีเมลได้: ' + err.message });
+  }
+});
+
+// Test email endpoint
+app.post('/api/test-email', authMiddleware, async (req, res) => {
+  try {
+    const transporter = getEmailTransporter();
+    if (!transporter) return res.status(400).json({ error: 'ยังไม่ได้ตั้งค่า SMTP (กรุณาตั้งค่าใน Admin > Notifications)' });
+
+    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    const config = row ? JSON.parse(row.content) : {};
+    const toEmail = config.notify_email || config.smtp_user;
+
+    await transporter.sendMail({
+      from: `"NUCHA CRM" <${config.smtp_user}>`,
+      to: toEmail,
+      subject: '🧪 ทดสอบอีเมลแจ้งเตือน — NUCHA CRM',
+      html: `<div style="font-family:sans-serif;text-align:center;padding:40px;">
+        <h1 style="color:#D60000;">✅ Email ทำงานปกติ!</h1>
+        <p>ระบบแจ้งเตือน NUCHA CRM พร้อมใช้งาน</p>
+        <p style="color:#999;font-size:.85rem;">${new Date().toLocaleString('th-TH')}</p>
+      </div>`
+    });
+
+    res.json({ success: true, message: 'ส่งอีเมลทดสอบสำเร็จ' });
+  } catch (err) {
+    console.error('Test email error:', err);
+    res.status(500).json({ error: 'ส่งอีเมลไม่สำเร็จ: ' + err.message });
+  }
+});
 
 // ===== AUTO-REPLY SYSTEM =====
 function checkAutoReply(leadData) {
@@ -758,6 +1229,16 @@ app.post('/api/leads', leadsLimiter, (req, res) => {
     const notifyMsg = `🆕 Lead ใหม่!\n👤 ${validation.data.name}\n📞 ${validation.data.phone}\n🔧 ${service_type || 'อื่นๆ'}${budgetLabel}${apptLabel}\n📝 ${validation.data.message || '-'}`;
     sendLineNotify(notifyMsg).catch(() => {});
     sendTelegramNotify(notifyMsg).catch(() => {});
+
+    // Send email notification for new lead
+    sendLeadNotificationEmail({
+      name: validation.data.name,
+      phone: validation.data.phone,
+      email: validation.data.email,
+      service_type: service_type || 'อื่นๆ',
+      budget_range: budget_range || 'ไม่ระบุ',
+      message: validation.data.message
+    }).catch(err => console.error('Lead email error:', err.message));
 
     // Auto-reply
     checkAutoReply({ id: result.lastInsertRowid, name: validation.data.name, phone: validation.data.phone });
@@ -2086,7 +2567,18 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🌐 Website: http://localhost:${PORT}`);
   console.log(`🔧 Admin: http://localhost:${PORT}/admin`);
   console.log(`❤️  Health: http://localhost:${PORT}/api/health`);
+  console.log(`📱 LINE Webhook: http://localhost:${PORT}/api/line/webhook`);
   console.log(`⚠️  Default admin: admin@nuchainnovation.com / admin123 — เปลี่ยนรหัสผ่านก่อน deploy จริง!`);
+
+  // Schedule follow-up reminder email (daily at 08:30 Thai time = 01:30 UTC)
+  const now = new Date();
+  const thaiHour = (now.getUTCHours() + 7) % 24;
+  const msUntil830 = ((8 - thaiHour + 24) % 24) * 3600000 + (30 - now.getMinutes()) * 60000 - now.getSeconds() * 1000;
+  setTimeout(() => {
+    sendFollowUpReminderEmail().catch(console.error);
+    setInterval(() => sendFollowUpReminderEmail().catch(console.error), 24 * 60 * 60 * 1000);
+  }, Math.max(msUntil830, 60000));
+  console.log(`📧 Follow-up reminder scheduled (daily 08:30 ICT)`);
 });
 
 // ===== GRACEFUL SHUTDOWN =====

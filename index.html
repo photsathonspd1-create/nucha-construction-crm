@@ -21,6 +21,75 @@
     <!-- Canonical -->
     <link rel="canonical" href="https://nuchainnovation.com">
     <link rel="icon" id="dynamicFavicon" type="image/x-icon" href="/favicon.ico">
+    <!-- Structured Data: LocalBusiness (Schema.org) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "GeneralContractor",
+      "name": "NUCHA INNOVATION",
+      "alternateName": "นุชา อินโนเวชั่น",
+      "description": "บริษัทรับเหมาก่อสร้างครบวงจร ออกแบบ ก่อสร้าง บิ้วอิน ตกแต่ง บริหารงานขายโครงการ โดยทีมมืออาชีพ ประสบการณ์กว่า 10 ปี",
+      "url": "https://nuchainnovation.com",
+      "telephone": "+66-2-123-4567",
+      "email": "info@nuchainnovation.com",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "123 ถ.สุขุมวิท แขวงคลองเตย เขตคลองเตย",
+        "addressLocality": "กรุงเทพมหานคร",
+        "postalCode": "10110",
+        "addressCountry": "TH"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 13.7307,
+        "longitude": 100.5680
+      },
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+          "opens": "09:00",
+          "closes": "18:00"
+        }
+      ],
+      "priceRange": "$$",
+      "image": "https://nuchainnovation.com/uploads/og-image.jpg",
+      "sameAs": [
+        "https://line.me/R/ti/p/@nucha",
+        "https://www.facebook.com/nuchainnovation"
+      ],
+      "areaServed": {
+        "@type": "City",
+        "name": "Bangkok"
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "บริการก่อสร้าง",
+        "itemListElement": [
+          {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "รับเหมาก่อสร้าง", "description": "รับเหมาก่อสร้างครบวงจร"}},
+          {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "บิ้วอิน", "description": "เฟอร์นิเจอร์บิ้วอิน"}},
+          {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "ออกแบบ", "description": "ออกแบบสถาปัตยกรรมและ 3D"}},
+          {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "ตกแต่ง", "description": "ตกแต่งภายใน"}},
+          {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "บริหารงานขายโครงการ", "description": "บริหารโครงการจัดสรร"}}
+        ]
+      }
+    }
+    </script>
+    <!-- Structured Data: WebSite + SearchAction -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "NUCHA INNOVATION",
+      "url": "https://nuchainnovation.com",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://nuchainnovation.com/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    <!-- Preload critical resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Thai:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">

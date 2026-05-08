@@ -268,6 +268,27 @@ function runMigrations() {
           stmt.run(item.cat, item.title, item.desc, item.url, item.type, i);
         });
       }
+    },
+    {
+      name: '014_add_line_webhook_and_email_settings',
+      sql: () => {
+        const existing = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+        if (existing) {
+          const config = JSON.parse(existing.content);
+          let changed = false;
+          if (!config.line_channel_secret) { config.line_channel_secret = ''; changed = true; }
+          if (config.email_enabled === undefined) { config.email_enabled = false; changed = true; }
+          if (!config.smtp_host) { config.smtp_host = 'smtp.gmail.com'; changed = true; }
+          if (!config.smtp_port) { config.smtp_port = '587'; changed = true; }
+          if (!config.smtp_user) { config.smtp_user = ''; changed = true; }
+          if (!config.smtp_pass) { config.smtp_pass = ''; changed = true; }
+          if (!config.notify_email) { config.notify_email = ''; changed = true; }
+          if (changed) {
+            db.prepare("UPDATE site_content SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE section_key = 'notification_settings'")
+              .run(JSON.stringify(config));
+          }
+        }
+      }
     }
   ];
 

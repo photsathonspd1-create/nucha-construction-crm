@@ -1,9 +1,21 @@
 User-agent: *
 Allow: /
+Allow: /services
+Allow: /service
+Allow: /quotation
+Allow: /privacy
+Allow: /terms
+
 Disallow: /admin
+Disallow: /admin-login.html
 Disallow: /api/
 Disallow: /uploads/
 Disallow: /site-docs/
 Disallow: /backups/
+Disallow: /chat-widget.html
+Disallow: /chat-widget.js
+
+# Crawl-delay for polite bots
+Crawl-delay: 1
 
 Sitemap: https://nuchainnovation.com/sitemap.xml
