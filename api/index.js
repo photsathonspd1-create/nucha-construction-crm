@@ -12,7 +12,7 @@ const https = require('https');
 const querystring = require('querystring');
 const nodemailer = require('nodemailer');
 
-const db = require('./server/db_supabase');
+const db = require('./server/db');
 const { runMigrations } = require('./server/migrations');
 const { createBackup, listBackups } = require('../scripts/backup');
 const { validatePhone, validateEmail, validateName, validateMessage, validatePassword, validateLead } = require('./utils/validate');
