@@ -16,7 +16,7 @@ const puppeteer = require('puppeteer-core');
 
 const db = require('./server/db_supabase');
 const { runMigrations } = require('./server/migrations');
-const { createBackup, listBackups } = require('./scripts/backup');
+const { createBackup, listBackups } = require('../scripts/backup');
 const { validatePhone, validateEmail, validateName, validateMessage, validatePassword, validateLead } = require('./utils/validate');
 
 // Run migrations
@@ -40,7 +40,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use('/uploads', express.static(uploadsDir));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // CORS configuration
 app.use((req, res, next) => {
@@ -2490,63 +2490,63 @@ app.use('/api', (req, res) => {
 
 // Service detail page (public)
 app.get('/service', async (req, res) => {
-  res.sendFile('service.html', { root: path.join(__dirname, 'public') });
+  res.sendFile('service.html', { root: path.join(__dirname, '..', 'public') });
 });
 app.get('/service.html', async (req, res) => {
-  res.sendFile('service.html', { root: path.join(__dirname, 'public') });
+  res.sendFile('service.html', { root: path.join(__dirname, '..', 'public') });
 });
 
 // Services overview page (public)
 app.get('/services', async (req, res) => {
-  res.sendFile('services.html', { root: path.join(__dirname, 'public') });
+  res.sendFile('services.html', { root: path.join(__dirname, '..', 'public') });
 });
 app.get('/services.html', async (req, res) => {
-  res.sendFile('services.html', { root: path.join(__dirname, 'public') });
+  res.sendFile('services.html', { root: path.join(__dirname, '..', 'public') });
 });
 
 // Nucha-services alternate pages (public)
 app.get('/services-3d', async (req, res) => {
-  res.sendFile('nucha-services/services-page-3d.html', { root: path.join(__dirname, 'public') });
+  res.sendFile('nucha-services/services-page-3d.html', { root: path.join(__dirname, '..', 'public') });
 });
 app.get('/services-alt', async (req, res) => {
-  res.sendFile('nucha-services/services-page.html', { root: path.join(__dirname, 'public') });
+  res.sendFile('nucha-services/services-page.html', { root: path.join(__dirname, '..', 'public') });
 });
 
 // Quotation template (public)
 app.get('/quotation', async (req, res) => {
-  res.sendFile('quotation.html', { root: path.join(__dirname, 'public') });
+  res.sendFile('quotation.html', { root: path.join(__dirname, '..', 'public') });
 });
 app.get('/quotation.html', async (req, res) => {
-  res.sendFile('quotation.html', { root: path.join(__dirname, 'public') });
+  res.sendFile('quotation.html', { root: path.join(__dirname, '..', 'public') });
 });
 
 // Legal pages (public)
 app.get('/privacy', async (req, res) => {
-  res.sendFile('privacy.html', { root: path.join(__dirname, 'public') });
+  res.sendFile('privacy.html', { root: path.join(__dirname, '..', 'public') });
 });
 app.get('/terms', async (req, res) => {
-  res.sendFile('terms.html', { root: path.join(__dirname, 'public') });
+  res.sendFile('terms.html', { root: path.join(__dirname, '..', 'public') });
 });
 
 // Admin pages (protected)
 app.get('/admin', authMiddleware, async (req, res) => {
-  res.sendFile('admin.html', { root: path.join(__dirname, 'public') });
+  res.sendFile('admin.html', { root: path.join(__dirname, '..', 'public') });
 });
 app.get('/admin.html', authMiddleware, async (req, res) => {
-  res.sendFile('admin.html', { root: path.join(__dirname, 'public') });
+  res.sendFile('admin.html', { root: path.join(__dirname, '..', 'public') });
 });
 
 // Public pages
 app.get('/login', async (req, res) => {
-  res.sendFile('admin-login.html', { root: path.join(__dirname, 'public') });
+  res.sendFile('admin-login.html', { root: path.join(__dirname, '..', 'public') });
 });
 app.get('/admin-login.html', async (req, res) => {
-  res.sendFile('admin-login.html', { root: path.join(__dirname, 'public') });
+  res.sendFile('admin-login.html', { root: path.join(__dirname, '..', 'public') });
 });
 
 // Catch-all for SPA
-app.get('*', async (req, res) => {
-  res.sendFile('index.html', { root: path.join(__dirname, 'public') });
+app.get('/(.*)', async (req, res) => {
+  res.sendFile('index.html', { root: path.join(__dirname, '..', 'public') });
 });
 
 // ===== GLOBAL ERROR HANDLER =====
@@ -2562,40 +2562,8 @@ app.use((err, req, res, next) => {
 });
 
 // ===== START SERVER =====
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🏗️  NUCHA CRM Server running on http://localhost:${PORT}`);
-  console.log(`🌐 Website: http://localhost:${PORT}`);
-  console.log(`🔧 Admin: http://localhost:${PORT}/admin`);
-  console.log(`❤️  Health: http://localhost:${PORT}/api/health`);
-  console.log(`📱 LINE Webhook: http://localhost:${PORT}/api/line/webhook`);
-  console.log(`⚠️  Default admin: admin@nuchainnovation.com / admin123 — เปลี่ยนรหัสผ่านก่อน deploy จริง!`);
+// Export for Vercel
+module.exports = app;
 
-  // Schedule follow-up reminder email (daily at 08:30 Thai time = 01:30 UTC)
-  const now = new Date();
-  const thaiHour = (now.getUTCHours() + 7) % 24;
-  const msUntil830 = ((8 - thaiHour + 24) % 24) * 3600000 + (30 - now.getMinutes()) * 60000 - now.getSeconds() * 1000;
-  setTimeout(() => {
-    sendFollowUpReminderEmail().catch(console.error);
-    setInterval(() => sendFollowUpReminderEmail().catch(console.error), 24 * 60 * 60 * 1000);
-  }, Math.max(msUntil830, 60000));
-  console.log(`📧 Follow-up reminder scheduled (daily 08:30 ICT)`);
-});
 
-// ===== GRACEFUL SHUTDOWN =====
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received. Shutting down gracefully...');
-  db.close();
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT received. Shutting down gracefully...');
-  db.close();
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
-});
+module.exports = app;
