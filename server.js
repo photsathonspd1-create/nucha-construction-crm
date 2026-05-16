@@ -40,7 +40,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use('/uploads', express.static(uploadsDir));
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // CORS configuration
 app.use((req, res, next) => {
@@ -2490,63 +2490,63 @@ app.use('/api', (req, res) => {
 
 // Service detail page (public)
 app.get('/service', async (req, res) => {
-  res.sendFile('service.html', { root: __dirname });
+  res.sendFile('service.html', { root: path.join(__dirname, 'public') });
 });
 app.get('/service.html', async (req, res) => {
-  res.sendFile('service.html', { root: __dirname });
+  res.sendFile('service.html', { root: path.join(__dirname, 'public') });
 });
 
 // Services overview page (public)
 app.get('/services', async (req, res) => {
-  res.sendFile('services.html', { root: __dirname });
+  res.sendFile('services.html', { root: path.join(__dirname, 'public') });
 });
 app.get('/services.html', async (req, res) => {
-  res.sendFile('services.html', { root: __dirname });
+  res.sendFile('services.html', { root: path.join(__dirname, 'public') });
 });
 
 // Nucha-services alternate pages (public)
 app.get('/services-3d', async (req, res) => {
-  res.sendFile('nucha-services/services-page-3d.html', { root: __dirname });
+  res.sendFile('nucha-services/services-page-3d.html', { root: path.join(__dirname, 'public') });
 });
 app.get('/services-alt', async (req, res) => {
-  res.sendFile('nucha-services/services-page.html', { root: __dirname });
+  res.sendFile('nucha-services/services-page.html', { root: path.join(__dirname, 'public') });
 });
 
 // Quotation template (public)
 app.get('/quotation', async (req, res) => {
-  res.sendFile('quotation.html', { root: __dirname });
+  res.sendFile('quotation.html', { root: path.join(__dirname, 'public') });
 });
 app.get('/quotation.html', async (req, res) => {
-  res.sendFile('quotation.html', { root: __dirname });
+  res.sendFile('quotation.html', { root: path.join(__dirname, 'public') });
 });
 
 // Legal pages (public)
 app.get('/privacy', async (req, res) => {
-  res.sendFile('privacy.html', { root: __dirname });
+  res.sendFile('privacy.html', { root: path.join(__dirname, 'public') });
 });
 app.get('/terms', async (req, res) => {
-  res.sendFile('terms.html', { root: __dirname });
+  res.sendFile('terms.html', { root: path.join(__dirname, 'public') });
 });
 
 // Admin pages (protected)
 app.get('/admin', authMiddleware, async (req, res) => {
-  res.sendFile('admin.html', { root: __dirname });
+  res.sendFile('admin.html', { root: path.join(__dirname, 'public') });
 });
 app.get('/admin.html', authMiddleware, async (req, res) => {
-  res.sendFile('admin.html', { root: __dirname });
+  res.sendFile('admin.html', { root: path.join(__dirname, 'public') });
 });
 
 // Public pages
 app.get('/login', async (req, res) => {
-  res.sendFile('admin-login.html', { root: __dirname });
+  res.sendFile('admin-login.html', { root: path.join(__dirname, 'public') });
 });
 app.get('/admin-login.html', async (req, res) => {
-  res.sendFile('admin-login.html', { root: __dirname });
+  res.sendFile('admin-login.html', { root: path.join(__dirname, 'public') });
 });
 
 // Catch-all for SPA
 app.get('*', async (req, res) => {
-  res.sendFile('index.html', { root: __dirname });
+  res.sendFile('index.html', { root: path.join(__dirname, 'public') });
 });
 
 // ===== GLOBAL ERROR HANDLER =====

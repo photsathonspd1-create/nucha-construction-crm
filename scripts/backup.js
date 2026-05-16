@@ -8,7 +8,7 @@ const DB_PATH = path.join(DATA_DIR, 'nucha.db');
 
 // Ensure backup directory exists
 if (!fs.existsSync(BACKUP_DIR)) {
-  fs.mkdirSync(BACKUP_DIR, { recursive: true });
+  try { fs.mkdirSync(BACKUP_DIR, { recursive: true }); } catch (e) { console.warn("Mkdir skipped (read-only):", e.message); }
 }
 
 function createBackup() {
