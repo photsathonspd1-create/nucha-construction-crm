@@ -1,12 +1,27 @@
 {
   "version": 2,
-  "cleanUrls": true,
-  "functions": {
-    "api/**/*.js": {
-      "includeFiles": "public/**"
+  "builds": [
+    {
+      "src": "api/index.js",
+      "use": "@vercel/node"
     }
-  },
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/api/index.js" }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "api/index.js"
+    },
+    {
+      "src": "/uploads/(.*)",
+      "dest": "api/index.js"
+    },
+    {
+      "src": "/admin\\.html",
+      "dest": "/admin.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
   ]
 }

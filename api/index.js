@@ -13,13 +13,20 @@ const querystring = require('querystring');
 const nodemailer = require('nodemailer');
 
 const db = require('./server/db');
-const { runMigrations } = require('./server/migrations');
-const { createBackup, listBackups } = require('../scripts/backup');
+// runMigrations imported below in startup section
+let createBackup, listBackups;
+try {
+  ({ createBackup, listBackups } = require('../scripts/backup'));
+} catch (e) {
+  createBackup = () => { throw new Error('Backup not available on Vercel'); };
+  listBackups = () => [];
+}
 const { validatePhone, validateEmail, validateName, validateMessage, validatePassword, validateLead } = require('./utils/validate');
 const { uploadToStorage, deleteFromStorage, listStorageFiles, extractStoragePath } = require('./server/upload');
 
-// Run migrations
-// runMigrations();
+// Run migrations on cold start
+const { runMigrations } = require('./server/migrations');
+runMigrations().catch(err => console.error('Migration error:', err.message));
 
 const app = express();
 const PORT = process.env.PORT || 3000;
