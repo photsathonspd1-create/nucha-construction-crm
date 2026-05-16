@@ -1,7 +1,6 @@
 -- ============================================
 -- NUCHA Construction CRM — Supabase Schema
 -- Run this ONCE in Supabase SQL Editor
--- (Dashboard > SQL Editor > New Query > Paste > Run)
 -- ============================================
 
 -- 1. Migrations tracking table
@@ -11,9 +10,9 @@ CREATE TABLE IF NOT EXISTS migrations (
   applied_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Users table (if not exists)
+-- 2. Users table
 CREATE TABLE IF NOT EXISTS users (
-  id SERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT NOT NULL UNIQUE,
   password TEXT NOT NULL,
   name TEXT DEFAULT '',
@@ -21,9 +20,9 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. Leads table (if not exists)
+-- 3. Leads table
 CREATE TABLE IF NOT EXISTS leads (
-  id SERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   phone TEXT DEFAULT '',
   service_type TEXT DEFAULT '',
@@ -31,7 +30,7 @@ CREATE TABLE IF NOT EXISTS leads (
   message TEXT DEFAULT '',
   status TEXT DEFAULT 'new',
   score INTEGER DEFAULT 0,
-  assigned_to INTEGER,
+  assigned_to UUID,
   source TEXT DEFAULT 'website',
   tags TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -41,7 +40,7 @@ CREATE TABLE IF NOT EXISTS leads (
 -- 4. Lead attachments
 CREATE TABLE IF NOT EXISTS lead_attachments (
   id SERIAL PRIMARY KEY,
-  lead_id INTEGER NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+  lead_id UUID NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
   filename TEXT NOT NULL,
   original_name TEXT NOT NULL,
   url TEXT NOT NULL,
@@ -52,7 +51,7 @@ CREATE TABLE IF NOT EXISTS lead_attachments (
 -- 5. Password resets
 CREATE TABLE IF NOT EXISTS password_resets (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   token TEXT NOT NULL UNIQUE,
   expires_at TIMESTAMPTZ NOT NULL,
   used INTEGER DEFAULT 0,
@@ -64,7 +63,7 @@ CREATE TABLE IF NOT EXISTS backups (
   id SERIAL PRIMARY KEY,
   filename TEXT NOT NULL,
   file_size INTEGER DEFAULT 0,
-  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -83,9 +82,9 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_unread ON chat_messages(sender, is_read);
 
--- 8. Services table (if not exists)
+-- 8. Services table
 CREATE TABLE IF NOT EXISTS services (
-  id SERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   description TEXT DEFAULT '',
   category TEXT DEFAULT '',
@@ -98,7 +97,7 @@ CREATE TABLE IF NOT EXISTS services (
 -- 9. Service gallery
 CREATE TABLE IF NOT EXISTS service_gallery (
   id SERIAL PRIMARY KEY,
-  service_id INTEGER REFERENCES services(id) ON DELETE CASCADE,
+  service_id UUID REFERENCES services(id) ON DELETE CASCADE,
   service_category TEXT,
   title TEXT DEFAULT '',
   description TEXT DEFAULT '',
@@ -113,7 +112,7 @@ CREATE INDEX IF NOT EXISTS idx_service_gallery_category ON service_gallery(servi
 -- 10. Service models (3D)
 CREATE TABLE IF NOT EXISTS service_models (
   id SERIAL PRIMARY KEY,
-  service_id INTEGER REFERENCES services(id) ON DELETE CASCADE,
+  service_id UUID REFERENCES services(id) ON DELETE CASCADE,
   service_category TEXT,
   title TEXT NOT NULL,
   description TEXT DEFAULT '',
@@ -151,5 +150,12 @@ CREATE TABLE IF NOT EXISTS footer_links (
   category TEXT DEFAULT 'general'
 );
 
--- Done!
+-- 14. Notes table
+CREATE TABLE IF NOT EXISTS notes (
+  id SERIAL PRIMARY KEY,
+  lead_id UUID NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 SELECT 'Schema setup complete ✅' as status;
