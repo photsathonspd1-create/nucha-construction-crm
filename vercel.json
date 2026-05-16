@@ -3,7 +3,6 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
-    { "source": "/api", "destination": "/api" },
     { "source": "/service", "destination": "/service.html" },
     { "source": "/services", "destination": "/services.html" },
     { "source": "/services-3d", "destination": "/nucha-services/services-page-3d.html" },
