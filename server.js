@@ -14,13 +14,13 @@ const querystring = require('querystring');
 const nodemailer = require('nodemailer');
 const puppeteer = require('puppeteer-core');
 
-const db = require('./server/db');
+const db = require('./server/db_supabase');
 const { runMigrations } = require('./server/migrations');
 const { createBackup, listBackups } = require('./scripts/backup');
 const { validatePhone, validateEmail, validateName, validateMessage, validatePassword, validateLead } = require('./utils/validate');
 
 // Run migrations
-runMigrations();
+// runMigrations();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,8 +30,8 @@ const serverStartTime = Date.now();
 // ===== ENSURE DIRECTORIES EXIST =====
 const uploadsDir = path.join(__dirname, 'uploads');
 const backupsDir = path.join(__dirname, 'backups');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir, { recursive: true });
+if (!fs.existsSync(uploadsDir)) try { fs.mkdirSync(uploadsDir, { recursive: true }); } catch (e) { console.warn("Mkdir skipped (read-only):", e.message); }
+if (!fs.existsSync(backupsDir)) try { fs.mkdirSync(backupsDir, { recursive: true }); } catch (e) { console.warn("Mkdir skipped (read-only):", e.message); }
 
 // ===== MIDDLEWARE =====
 app.set('etag', false); // Disable ETag to prevent 304 responses breaking client JSON parsing
@@ -40,6 +40,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use('/uploads', express.static(uploadsDir));
+app.use(express.static(__dirname));
 
 // CORS configuration
 app.use((req, res, next) => {
@@ -201,7 +202,7 @@ function adminOnly(req, res, next) {
 
 // CSRF protection for cookie-based auth
 // Checks Origin/Referer header matches the server host
-function csrfProtection(req, res, next) {
+async function csrfProtection(req, res, next) {
   const origin = req.headers.origin || req.headers.referer;
   if (origin) {
     try {
@@ -219,7 +220,7 @@ function csrfProtection(req, res, next) {
 }
 
 // ===== LEAD SCORING =====
-function calculateScore(lead) {
+async function calculateScore(lead) {
   let score = 0;
   const MAX_SCORE = 10;
   const budgetScores = {
@@ -236,7 +237,7 @@ function calculateScore(lead) {
 }
 
 // ===== THAI DATE HELPER =====
-function getTodayThai() {
+async function getTodayThai() {
   const now = new Date();
   const thaiOffset = 7 * 60;
   const local = new Date(now.getTime() + (thaiOffset + now.getTimezoneOffset()) * 60000);
@@ -246,7 +247,7 @@ function getTodayThai() {
 // ===== NOTIFICATION FUNCTIONS =====
 async function sendLineNotify(message) {
   try {
-    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    const row = await db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
     if (!row) return;
     const config = JSON.parse(row.content);
     // LINE Messaging API (new)
@@ -291,7 +292,7 @@ function sendLineMessaging(accessToken, to, message) {
   });
 }
 
-function sendLineNotifyRaw(token, message) {
+async function sendLineNotifyRaw(token, message) {
   const postData = querystring.stringify({ message });
   return new Promise((resolve, reject) => {
     const req = https.request({
@@ -316,7 +317,7 @@ function sendLineNotifyRaw(token, message) {
 
 async function sendTelegramNotify(message) {
   try {
-    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    const row = await db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
     if (!row) return;
     const config = JSON.parse(row.content);
     if (!config.telegram_enabled || !config.telegram_bot_token || !config.telegram_chat_id) return;
@@ -353,9 +354,9 @@ async function sendTelegramNotify(message) {
 }
 
 // ===== EMAIL NOTIFICATION (Nodemailer) =====
-function getEmailTransporter() {
+async function getEmailTransporter() {
   try {
-    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    const row = await db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
     if (!row) return null;
     const config = JSON.parse(row.content);
     if (!config.email_enabled || !config.smtp_host || !config.smtp_user || !config.smtp_pass) return null;
@@ -370,12 +371,12 @@ function getEmailTransporter() {
 
 async function sendEmailNotification(to, subject, htmlBody) {
   try {
-    const transporter = getEmailTransporter();
+    const transporter = await getEmailTransporter();
     if (!transporter) return;
-    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    const row = await db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
     const config = row ? JSON.parse(row.content) : {};
     const fromEmail = config.smtp_user || 'noreply@nuchainnovation.com';
-    await transporter.sendMail({
+    transporter.sendMail({
       from: `"NUCHA INNOVATION" <${fromEmail}>`,
       to: to,
       subject: subject,
@@ -389,7 +390,7 @@ async function sendEmailNotification(to, subject, htmlBody) {
 
 async function sendLeadNotificationEmail(lead) {
   try {
-    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    const row = await db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
     if (!row) return;
     const config = JSON.parse(row.content);
     const notifyEmail = config.notify_email || config.smtp_user;
@@ -423,14 +424,14 @@ async function sendLeadNotificationEmail(lead) {
 
 async function sendFollowUpReminderEmail() {
   try {
-    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    const row = await db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
     if (!row) return;
     const config = JSON.parse(row.content);
     const notifyEmail = config.notify_email || config.smtp_user;
     if (!notifyEmail) return;
 
-    const today = getTodayThai();
-    const followups = db.prepare(`
+    const today = await getTodayThai();
+    const followups = await db.prepare(`
       SELECT n.*, l.name as lead_name, l.phone as lead_phone, l.service_type 
       FROM notes n JOIN leads l ON n.lead_id = l.id 
       WHERE n.follow_up_done = 0 AND n.follow_up_date <= ?
@@ -483,7 +484,7 @@ function verifyLineSignature(channelSecret, body, signature) {
 }
 
 // Reply to LINE message
-function replyLineMessage(accessToken, replyToken, messages) {
+async function replyLineMessage(accessToken, replyToken, messages) {
   const postData = JSON.stringify({ replyToken, messages });
   return new Promise((resolve, reject) => {
     const req = https.request({
@@ -510,7 +511,7 @@ function replyLineMessage(accessToken, replyToken, messages) {
 }
 
 // Get LINE user profile
-function getLineUserProfile(accessToken, userId) {
+async function getLineUserProfile(accessToken, userId) {
   return new Promise((resolve, reject) => {
     const req = https.request({
       hostname: 'api.line.me',
@@ -548,11 +549,11 @@ async function handleLineEvent(accessToken, event) {
     if (profile && profile.displayName) customerName = profile.displayName;
   } catch {}
 
-  db.prepare('INSERT INTO chat_messages (session_id, sender, message, customer_name) VALUES (?, ?, ?, ?)')
+  await db.prepare('INSERT INTO chat_messages (session_id, sender, message, customer_name) VALUES (?, ?, ?, ?)')
     .run(sessionId, 'customer', safeMsg, customerName);
 
   // Auto-reply with FAQ matching
-  const faqRow = db.prepare("SELECT content FROM site_content WHERE section_key = 'chatbot_faq'").get();
+  const faqRow = await db.prepare("SELECT content FROM site_content WHERE section_key = 'chatbot_faq'").get();
   let replyText = '';
 
   if (faqRow) {
@@ -576,7 +577,7 @@ async function handleLineEvent(accessToken, event) {
   try {
     await replyLineMessage(accessToken, replyToken, [{ type: 'text', text: replyText }]);
     // Store bot reply
-    db.prepare('INSERT INTO chat_messages (session_id, sender, message) VALUES (?, ?, ?)')
+    await db.prepare('INSERT INTO chat_messages (session_id, sender, message) VALUES (?, ?, ?)')
       .run(sessionId, 'bot', replyText);
   } catch (err) {
     console.error('LINE reply error:', err.message);
@@ -586,7 +587,7 @@ async function handleLineEvent(accessToken, event) {
 // LINE Webhook endpoint
 app.post('/api/line/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
-    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    const row = await db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
     if (!row) return res.status(200).json({ success: true });
     const config = JSON.parse(row.content);
 
@@ -716,7 +717,7 @@ async function generateQuotationPDF(proposalData) {
 // PDF Download endpoint
 app.get('/api/proposals/:id/pdf', authMiddleware, async (req, res) => {
   try {
-    const proposal = db.prepare(`
+    const proposal = await db.prepare(`
       SELECT p.*, l.name as lead_name, l.phone as lead_phone, l.email as lead_email
       FROM proposals p LEFT JOIN leads l ON p.lead_id = l.id WHERE p.id = ?
     `).get(req.params.id);
@@ -744,7 +745,7 @@ app.post('/api/proposals/:id/email', authMiddleware, async (req, res) => {
     const { to_email } = req.body;
     if (!to_email) return res.status(400).json({ error: 'กรุณากรอกอีเมลผู้รับ' });
 
-    const proposal = db.prepare(`
+    const proposal = await db.prepare(`
       SELECT p.*, l.name as lead_name, l.phone as lead_phone, l.email as lead_email
       FROM proposals p LEFT JOIN leads l ON p.lead_id = l.id WHERE p.id = ?
     `).get(req.params.id);
@@ -757,13 +758,13 @@ app.post('/api/proposals/:id/email', authMiddleware, async (req, res) => {
       client_email: proposal.lead_email
     });
 
-    const transporter = getEmailTransporter();
+    const transporter = await getEmailTransporter();
     if (!transporter) return res.status(400).json({ error: 'ยังไม่ได้ตั้งค่า SMTP' });
 
-    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    const row = await db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
     const config = row ? JSON.parse(row.content) : {};
 
-    await transporter.sendMail({
+    transporter.sendMail({
       from: `"NUCHA INNOVATION" <${config.smtp_user}>`,
       to: to_email,
       subject: `ใบเสนอราคา ${proposal.proposal_number} — NUCHA INNOVATION`,
@@ -796,14 +797,14 @@ app.post('/api/proposals/:id/email', authMiddleware, async (req, res) => {
 // Test email endpoint
 app.post('/api/test-email', authMiddleware, async (req, res) => {
   try {
-    const transporter = getEmailTransporter();
+    const transporter = await getEmailTransporter();
     if (!transporter) return res.status(400).json({ error: 'ยังไม่ได้ตั้งค่า SMTP (กรุณาตั้งค่าใน Admin > Notifications)' });
 
-    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    const row = await db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
     const config = row ? JSON.parse(row.content) : {};
     const toEmail = config.notify_email || config.smtp_user;
 
-    await transporter.sendMail({
+    transporter.sendMail({
       from: `"NUCHA CRM" <${config.smtp_user}>`,
       to: toEmail,
       subject: '🧪 ทดสอบอีเมลแจ้งเตือน — NUCHA CRM',
@@ -822,9 +823,9 @@ app.post('/api/test-email', authMiddleware, async (req, res) => {
 });
 
 // ===== AUTO-REPLY SYSTEM =====
-function checkAutoReply(leadData) {
+async function checkAutoReply(leadData) {
   try {
-    const row = db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
+    const row = await db.prepare("SELECT content FROM site_content WHERE section_key = 'notification_settings'").get();
     if (!row) return;
     const config = JSON.parse(row.content);
     if (!config.auto_reply_enabled) return;
@@ -834,7 +835,7 @@ function checkAutoReply(leadData) {
     if (templates.line) {
       const msg = templates.line.replace('{name}', leadData.name || '');
       console.log(`[AUTO-REPLY LINE] To: ${leadData.phone}, Message: ${msg}`);
-      db.prepare('INSERT INTO activities (lead_id, action, details) VALUES (?, ?, ?)')
+      await db.prepare('INSERT INTO activities (lead_id, action, details) VALUES (?, ?, ?)')
         .run(leadData.id, 'auto_reply_sent', JSON.stringify({ channel: 'line', message: msg }));
     }
     if (templates.sms) {
@@ -849,10 +850,10 @@ function checkAutoReply(leadData) {
 }
 
 // ===== LEAD NOTIFICATION ON STATUS CHANGE =====
-function notifyLeadStatusChange(leadId, newStatus, leadName) {
+async function notifyLeadStatusChange(leadId, newStatus, leadName) {
   const message = `📋 อัพเดทสถานะ Lead\n👤 ${leadName}\n📊 สถานะใหม่: ${newStatus}`;
-  sendLineNotify(message).catch(() => {});
-  sendTelegramNotify(message).catch(() => {});
+  await sendLineNotify(message).catch(() => {});
+  await sendTelegramNotify(message).catch(() => {});
 }
 
 // Apply CSRF protection to all state-changing authenticated routes
@@ -867,12 +868,12 @@ app.use('/api', (req, res, next) => {
 });
 
 // ===== AUTH ROUTES =====
-app.post('/api/auth/login', loginLimiter, (req, res) => {
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'กรอกอีเมลและรหัสผ่าน' });
 
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email);
     if (!user || !bcrypt.compareSync(password, user.password)) {
       return res.status(401).json({ error: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
     }
@@ -892,14 +893,14 @@ app.post('/api/auth/login', loginLimiter, (req, res) => {
   }
 });
 
-app.post('/api/auth/logout', (req, res) => {
+app.post('/api/auth/logout', async (req, res) => {
   res.clearCookie('token');
   res.json({ success: true });
 });
 
-app.get('/api/auth/me', authMiddleware, (req, res) => {
+app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
-    const user = db.prepare('SELECT id, email, full_name, role FROM users WHERE id = ?').get(req.user.id);
+    const user = await db.prepare('SELECT id, email, full_name, role FROM users WHERE id = ?').get(req.user.id);
     res.json(user || {});
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
@@ -907,7 +908,7 @@ app.get('/api/auth/me', authMiddleware, (req, res) => {
 });
 
 // Change password
-app.put('/api/auth/change-password', authMiddleware, (req, res) => {
+app.put('/api/auth/change-password', authMiddleware, async (req, res) => {
   try {
     const { current_password, new_password } = req.body;
     if (!current_password || !new_password) {
@@ -917,13 +918,13 @@ app.put('/api/auth/change-password', authMiddleware, (req, res) => {
     const pwCheck = validatePassword(new_password);
     if (!pwCheck.valid) return res.status(400).json({ error: pwCheck.error });
 
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+    const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
     if (!user || !bcrypt.compareSync(current_password, user.password)) {
       return res.status(400).json({ error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
     }
 
     const hashed = bcrypt.hashSync(new_password, 10);
-    db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashed, req.user.id);
+    await db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashed, req.user.id);
     res.json({ success: true, message: 'เปลี่ยนรหัสผ่านสำเร็จ' });
   } catch (err) {
     console.error('Change password error:', err);
@@ -932,12 +933,12 @@ app.put('/api/auth/change-password', authMiddleware, (req, res) => {
 });
 
 // Forgot password
-app.post('/api/auth/forgot-password', (req, res) => {
+app.post('/api/auth/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'กรุณากรอกอีเมล' });
 
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email);
     if (!user) {
       // Don't reveal if email exists
       return res.json({ success: true, message: 'หากอีเมลนี้มีอยู่ในระบบ เราจะส่งลิงก์รีเซ็ตรหัสผ่าน' });
@@ -946,7 +947,7 @@ app.post('/api/auth/forgot-password', (req, res) => {
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
 
-    db.prepare('INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)')
+    await db.prepare('INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)')
       .run(user.id, token, expiresAt);
 
     // In production, send email with reset link
@@ -959,7 +960,7 @@ app.post('/api/auth/forgot-password', (req, res) => {
 });
 
 // Reset password
-app.post('/api/auth/reset-password', (req, res) => {
+app.post('/api/auth/reset-password', async (req, res) => {
   try {
     const { token, new_password } = req.body;
     if (!token || !new_password) {
@@ -969,7 +970,7 @@ app.post('/api/auth/reset-password', (req, res) => {
     const pwCheck = validatePassword(new_password);
     if (!pwCheck.valid) return res.status(400).json({ error: pwCheck.error });
 
-    const reset = db.prepare('SELECT * FROM password_resets WHERE token = ? AND used = 0').get(token);
+    const reset = await db.prepare('SELECT * FROM password_resets WHERE token = ? AND used = 0').get(token);
     if (!reset) {
       return res.status(400).json({ error: 'Token ไม่ถูกต้องหรือถูกใช้แล้ว' });
     }
@@ -979,8 +980,8 @@ app.post('/api/auth/reset-password', (req, res) => {
     }
 
     const hashed = bcrypt.hashSync(new_password, 10);
-    db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashed, reset.user_id);
-    db.prepare('UPDATE password_resets SET used = 1 WHERE id = ?').run(reset.id);
+    await db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashed, reset.user_id);
+    await db.prepare('UPDATE password_resets SET used = 1 WHERE id = ?').run(reset.id);
 
     res.json({ success: true, message: 'รีเซ็ตรหัสผ่านสำเร็จ' });
   } catch (err) {
@@ -990,7 +991,7 @@ app.post('/api/auth/reset-password', (req, res) => {
 });
 
 // ===== IMAGE UPLOAD =====
-app.post('/api/upload', authMiddleware, uploadLimiter, upload.single('image'), (req, res) => {
+app.post('/api/upload', authMiddleware, uploadLimiter, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'ไม่พบไฟล์' });
     res.json({ url: '/uploads/' + req.file.filename });
@@ -1000,9 +1001,9 @@ app.post('/api/upload', authMiddleware, uploadLimiter, upload.single('image'), (
 });
 
 // ===== CONTENT API (Public) =====
-app.get('/api/content/:key', (req, res) => {
+app.get('/api/content/:key', async (req, res) => {
   try {
-    const row = db.prepare('SELECT content FROM site_content WHERE section_key = ?').get(req.params.key);
+    const row = await db.prepare('SELECT content FROM site_content WHERE section_key = ?').get(req.params.key);
     if (!row) return res.json({});
     try { res.json(JSON.parse(row.content)); } catch { res.json({}); }
   } catch (err) {
@@ -1010,11 +1011,11 @@ app.get('/api/content/:key', (req, res) => {
   }
 });
 
-app.get('/api/content', (req, res) => {
+app.get('/api/content', async (req, res) => {
   try {
-    const rows = db.prepare('SELECT section_key, content FROM site_content').all();
+    const rows = await db.prepare('SELECT section_key, content FROM site_content').all();
     const result = {};
-    rows.forEach(r => { try { result[r.section_key] = JSON.parse(r.content); } catch {} });
+    for (const r of rows) { try { result[r.section_key] = JSON.parse(r.content); } catch {} }
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
@@ -1022,10 +1023,10 @@ app.get('/api/content', (req, res) => {
 });
 
 // ===== CONTENT API (Admin) =====
-app.put('/api/content/:key', authMiddleware, (req, res) => {
+app.put('/api/content/:key', authMiddleware, async (req, res) => {
   try {
     const content = JSON.stringify(req.body);
-    db.prepare('INSERT INTO site_content (section_key, content, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(section_key) DO UPDATE SET content = ?, updated_at = CURRENT_TIMESTAMP')
+    await db.prepare('INSERT INTO site_content (section_key, content, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(section_key) DO UPDATE SET content = ?, updated_at = CURRENT_TIMESTAMP')
       .run(req.params.key, content, content);
     res.json({ success: true });
   } catch (err) {
@@ -1064,27 +1065,27 @@ app.post('/api/test-notification', authMiddleware, async (req, res) => {
 });
 
 // ===== NAV ITEMS =====
-app.get('/api/nav', (req, res) => {
+app.get('/api/nav', async (req, res) => {
   try {
-    const items = db.prepare('SELECT * FROM nav_items ORDER BY sort_order').all();
+    const items = await db.prepare('SELECT * FROM nav_items ORDER BY sort_order').all();
     res.json(items);
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });
 
-app.put('/api/nav', authMiddleware, (req, res) => {
+app.put('/api/nav', authMiddleware, async (req, res) => {
   try {
     const { items } = req.body;
     if (!Array.isArray(items)) return res.status(400).json({ error: 'ข้อมูลไม่ถูกต้อง' });
-    db.prepare('DELETE FROM nav_items').run();
-    const insert = db.prepare('INSERT INTO nav_items (label, href, sort_order, is_visible) VALUES (?, ?, ?, ?)');
-    items.forEach((item, i) => {
+    await db.prepare('DELETE FROM nav_items').run();
+    const insert = await db.prepare('INSERT INTO nav_items (label, href, sort_order, is_visible) VALUES (?, ?, ?, ?)');
+    let i = 0; for (const item of items) {
       const safeLabel = String(item.label || '').replace(/<[^>]*>/g, '');
       // Allow tel:, mailto:, http(s)://, and relative paths like #section or /page
       const safeHref = String(item.href || '#').replace(/[^a-zA-Z0-9\-_/#.?&=:@+!%,]/g, '');
-      insert.run(safeLabel, safeHref, item.sort_order || i + 1, item.is_visible ?? 1);
-    });
+      await insert.run(safeLabel, safeHref, item.sort_order || i + 1, item.is_visible ?? 1);
+     i++;}
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
@@ -1093,7 +1094,7 @@ app.put('/api/nav', authMiddleware, (req, res) => {
 
 // ===== LEADS =====
 // Get leads with filtering, sorting, pagination
-app.get('/api/leads', authMiddleware, (req, res) => {
+app.get('/api/leads', authMiddleware, async (req, res) => {
   try {
     let query = 'SELECT * FROM leads';
     const conditions = [];
@@ -1160,13 +1161,13 @@ app.get('/api/leads', authMiddleware, (req, res) => {
 
     // Get total count
     const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
-    const totalResult = db.prepare(countQuery).get(...params);
+    const totalResult = await db.prepare(countQuery).get(...params);
     const total = totalResult ? totalResult.total : 0;
 
     query += ' LIMIT ? OFFSET ?';
     params.push(limit, offset);
 
-    const leads = db.prepare(query).all(...params);
+    const leads = await db.prepare(query).all(...params);
     res.json({
       data: leads,
       pagination: {
@@ -1183,7 +1184,7 @@ app.get('/api/leads', authMiddleware, (req, res) => {
 });
 
 // Create lead (with duplicate detection)
-app.post('/api/leads', leadsLimiter, (req, res) => {
+app.post('/api/leads', leadsLimiter, async (req, res) => {
   try {
     const { name, phone, email, service_type, budget_range, message, appointment_date, appointment_time, meeting_type } = req.body;
     if (!name || !phone) return res.status(400).json({ error: 'กรอกชื่อและเบอร์โทร' });
@@ -1197,7 +1198,7 @@ app.post('/api/leads', leadsLimiter, (req, res) => {
     // Duplicate detection
     if (!force) {
       const cleanPhone = validation.data.phone;
-      const existing = db.prepare("SELECT * FROM leads WHERE phone = ? OR (email = ? AND email != '')").get(cleanPhone, validation.data.email);
+      const existing = await db.prepare("SELECT * FROM leads WHERE phone = ? OR (email = ? AND email != '')").get(cleanPhone, validation.data.email);
       if (existing) {
         return res.status(409).json({
           error: 'พบ lead ที่มีเบอร์โทรหรืออีเมลซ้ำ',
@@ -1214,21 +1215,21 @@ app.post('/api/leads', leadsLimiter, (req, res) => {
       }
     }
 
-    const score = calculateScore({ budget_range, service_type, message, appointment_date });
-    const result = db.prepare(
+    const score = await calculateScore({ budget_range, service_type, message, appointment_date });
+    const result = await db.prepare(
       'INSERT INTO leads (name, phone, email, service_type, budget_range, message, score, appointment_date, appointment_time, meeting_type, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     ).run(validation.data.name, validation.data.phone, validation.data.email, service_type || 'อื่นๆ', budget_range || '', validation.data.message, score, appointment_date || null, appointment_time || null, meeting_type || 'onsite', req.body.source || 'website');
 
     // Log activity
-    db.prepare('INSERT INTO activities (lead_id, action, details) VALUES (?, ?, ?)')
+    await db.prepare('INSERT INTO activities (lead_id, action, details) VALUES (?, ?, ?)')
       .run(result.lastInsertRowid, 'lead_created', JSON.stringify({ source: req.body.source || 'website' }));
 
     // Send notifications
     const budgetLabel = budget_range && budget_range !== 'ไม่ระบุ' ? `\n💰 งบ: ${budget_range}` : '';
     const apptLabel = appointment_date ? `\n📅 นัด: ${appointment_date} ${appointment_time || ''}` : '';
     const notifyMsg = `🆕 Lead ใหม่!\n👤 ${validation.data.name}\n📞 ${validation.data.phone}\n🔧 ${service_type || 'อื่นๆ'}${budgetLabel}${apptLabel}\n📝 ${validation.data.message || '-'}`;
-    sendLineNotify(notifyMsg).catch(() => {});
-    sendTelegramNotify(notifyMsg).catch(() => {});
+    await sendLineNotify(notifyMsg).catch(() => {});
+    await sendTelegramNotify(notifyMsg).catch(() => {});
 
     // Send email notification for new lead
     sendLeadNotificationEmail({
@@ -1251,7 +1252,7 @@ app.post('/api/leads', leadsLimiter, (req, res) => {
 });
 
 // Update lead
-app.put('/api/leads/:id', authMiddleware, (req, res) => {
+app.put('/api/leads/:id', authMiddleware, async (req, res) => {
   try {
     const updates = req.body;
     const allowedFields = ['name', 'phone', 'email', 'service_type', 'budget_range', 'message', 'status', 'score', 'assigned_to', 'lost_reason', 'appointment_date', 'appointment_time', 'meeting_type', 'source', 'tags'];
@@ -1263,14 +1264,14 @@ app.put('/api/leads/:id', authMiddleware, (req, res) => {
         values.push(val);
       }
     }
-    if (fields.length === 0) return res.status(400).json({ error: 'ไม่มีข้อมูลที่อัพเดท' });
+    if (fields.length === 0) return res.status(200).json({ error: 'ไม่มีข้อมูลที่อัพเดท' });
 
     // Get old status for notification
-    const oldLead = db.prepare('SELECT status, name FROM leads WHERE id = ?').get(req.params.id);
+    const oldLead = await db.prepare('SELECT status, name FROM leads WHERE id = ?').get(req.params.id);
 
     fields.push('updated_at = CURRENT_TIMESTAMP');
     values.push(req.params.id);
-    db.prepare(`UPDATE leads SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+    await db.prepare(`UPDATE leads SET ${fields.join(', ')} WHERE id = ?`).run(...values);
 
     // Notify on status change
     if (updates.status && oldLead && updates.status !== oldLead.status) {
@@ -1279,11 +1280,11 @@ app.put('/api/leads/:id', authMiddleware, (req, res) => {
 
     // Set first_contact_at when status changes to Contacted
     if (updates.status === 'Contacted' && oldLead && oldLead.status !== 'Contacted') {
-      db.prepare('UPDATE leads SET first_contact_at = CURRENT_TIMESTAMP WHERE id = ?').run(req.params.id);
+      await db.prepare('UPDATE leads SET first_contact_at = CURRENT_TIMESTAMP WHERE id = ?').run(req.params.id);
     }
 
     // Log activity
-    db.prepare('INSERT INTO activities (lead_id, action, details) VALUES (?, ?, ?)')
+    await db.prepare('INSERT INTO activities (lead_id, action, details) VALUES (?, ?, ?)')
       .run(req.params.id, 'lead_updated', JSON.stringify(updates));
 
     res.json({ success: true });
@@ -1294,9 +1295,9 @@ app.put('/api/leads/:id', authMiddleware, (req, res) => {
 });
 
 // Delete lead
-app.delete('/api/leads/:id', authMiddleware, (req, res) => {
+app.delete('/api/leads/:id', authMiddleware, async (req, res) => {
   try {
-    db.prepare('DELETE FROM leads WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM leads WHERE id = ?').run(req.params.id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
@@ -1304,7 +1305,7 @@ app.delete('/api/leads/:id', authMiddleware, (req, res) => {
 });
 
 // Bulk update leads
-app.post('/api/leads/bulk-update', authMiddleware, bulkLimiter, (req, res) => {
+app.post('/api/leads/bulk-update', authMiddleware, bulkLimiter, async (req, res) => {
   try {
     const { ids, updates } = req.body;
     if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'ไม่มี leads ที่เลือก' });
@@ -1319,17 +1320,17 @@ app.post('/api/leads/bulk-update', authMiddleware, bulkLimiter, (req, res) => {
         values.push(val);
       }
     }
-    if (fields.length === 0) return res.status(400).json({ error: 'ไม่มีข้อมูลที่อัพเดท' });
+    if (fields.length === 0) return res.status(200).json({ error: 'ไม่มีข้อมูลที่อัพเดท' });
 
     fields.push('updated_at = CURRENT_TIMESTAMP');
     const placeholders = ids.map(() => '?').join(',');
-    db.prepare(`UPDATE leads SET ${fields.join(', ')} WHERE id IN (${placeholders})`).run(...values, ...ids);
+    await db.prepare(`UPDATE leads SET ${fields.join(', ')} WHERE id IN (${placeholders})`).run(...values, ...ids);
 
     // Log activity for each
-    ids.forEach(id => {
-      db.prepare('INSERT INTO activities (lead_id, action, details) VALUES (?, ?, ?)')
+    for (const id of ids) {
+      await db.prepare('INSERT INTO activities (lead_id, action, details) VALUES (?, ?, ?)')
         .run(id, 'bulk_update', JSON.stringify(updates));
-    });
+    }
 
     res.json({ success: true, updated: ids.length });
   } catch (err) {
@@ -1339,13 +1340,13 @@ app.post('/api/leads/bulk-update', authMiddleware, bulkLimiter, (req, res) => {
 });
 
 // Bulk delete leads
-app.post('/api/leads/bulk-delete', authMiddleware, bulkLimiter, (req, res) => {
+app.post('/api/leads/bulk-delete', authMiddleware, bulkLimiter, async (req, res) => {
   try {
     const { ids } = req.body;
     if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'ไม่มี leads ที่เลือก' });
 
     const placeholders = ids.map(() => '?').join(',');
-    db.prepare(`DELETE FROM leads WHERE id IN (${placeholders})`).run(...ids);
+    await db.prepare(`DELETE FROM leads WHERE id IN (${placeholders})`).run(...ids);
     res.json({ success: true, deleted: ids.length });
   } catch (err) {
     console.error('Bulk delete error:', err);
@@ -1354,20 +1355,20 @@ app.post('/api/leads/bulk-delete', authMiddleware, bulkLimiter, (req, res) => {
 });
 
 // ===== LEAD ATTACHMENTS =====
-app.get('/api/leads/:id/attachments', authMiddleware, (req, res) => {
+app.get('/api/leads/:id/attachments', authMiddleware, async (req, res) => {
   try {
-    const attachments = db.prepare('SELECT * FROM lead_attachments WHERE lead_id = ? ORDER BY uploaded_at DESC').all(req.params.id);
+    const attachments = await db.prepare('SELECT * FROM lead_attachments WHERE lead_id = ? ORDER BY uploaded_at DESC').all(req.params.id);
     res.json(attachments);
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });
 
-app.post('/api/leads/:id/attachments', authMiddleware, uploadLimiter, attachmentUpload.single('file'), (req, res) => {
+app.post('/api/leads/:id/attachments', authMiddleware, uploadLimiter, attachmentUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'ไม่พบไฟล์' });
 
-    const result = db.prepare('INSERT INTO lead_attachments (lead_id, filename, original_name, url, file_size) VALUES (?, ?, ?, ?, ?)')
+    const result = await db.prepare('INSERT INTO lead_attachments (lead_id, filename, original_name, url, file_size) VALUES (?, ?, ?, ?, ?)')
       .run(req.params.id, req.file.filename, req.file.originalname, '/uploads/' + req.file.filename, req.file.size);
 
     res.json({ success: true, id: result.lastInsertRowid, url: '/uploads/' + req.file.filename });
@@ -1377,16 +1378,16 @@ app.post('/api/leads/:id/attachments', authMiddleware, uploadLimiter, attachment
   }
 });
 
-app.delete('/api/attachments/:id', authMiddleware, (req, res) => {
+app.delete('/api/attachments/:id', authMiddleware, async (req, res) => {
   try {
-    const attachment = db.prepare('SELECT * FROM lead_attachments WHERE id = ?').get(req.params.id);
+    const attachment = await db.prepare('SELECT * FROM lead_attachments WHERE id = ?').get(req.params.id);
     if (!attachment) return res.status(404).json({ error: 'ไม่พบไฟล์' });
 
     // Delete file from disk
     const filePath = path.join(uploadsDir, attachment.filename);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
-    db.prepare('DELETE FROM lead_attachments WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM lead_attachments WHERE id = ?').run(req.params.id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
@@ -1394,20 +1395,20 @@ app.delete('/api/attachments/:id', authMiddleware, (req, res) => {
 });
 
 // ===== NOTES =====
-app.get('/api/leads/:id/notes', authMiddleware, (req, res) => {
+app.get('/api/leads/:id/notes', authMiddleware, async (req, res) => {
   try {
-    const notes = db.prepare('SELECT * FROM notes WHERE lead_id = ? ORDER BY created_at DESC').all(req.params.id);
+    const notes = await db.prepare('SELECT * FROM notes WHERE lead_id = ? ORDER BY created_at DESC').all(req.params.id);
     res.json(notes);
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });
 
-app.post('/api/leads/:id/notes', authMiddleware, (req, res) => {
+app.post('/api/leads/:id/notes', authMiddleware, async (req, res) => {
   try {
     const { note, note_type, follow_up_date } = req.body;
     if (!note) return res.status(400).json({ error: 'กรุณากรอกบันทึก' });
-    const result = db.prepare('INSERT INTO notes (lead_id, note, note_type, follow_up_date) VALUES (?, ?, ?, ?)')
+    const result = await db.prepare('INSERT INTO notes (lead_id, note, note_type, follow_up_date) VALUES (?, ?, ?, ?)')
       .run(req.params.id, note, note_type || 'general', follow_up_date || null);
     res.json({ success: true, id: result.lastInsertRowid });
   } catch (err) {
@@ -1415,10 +1416,10 @@ app.post('/api/leads/:id/notes', authMiddleware, (req, res) => {
   }
 });
 
-app.put('/api/notes/:id', authMiddleware, (req, res) => {
+app.put('/api/notes/:id', authMiddleware, async (req, res) => {
   try {
     const { follow_up_done } = req.body;
-    db.prepare('UPDATE notes SET follow_up_done = ? WHERE id = ?').run(follow_up_done ? 1 : 0, req.params.id);
+    await db.prepare('UPDATE notes SET follow_up_done = ? WHERE id = ?').run(follow_up_done ? 1 : 0, req.params.id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
@@ -1426,10 +1427,10 @@ app.put('/api/notes/:id', authMiddleware, (req, res) => {
 });
 
 // ===== ACTIVITIES =====
-app.get('/api/activities', authMiddleware, (req, res) => {
+app.get('/api/activities', authMiddleware, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
-    const activities = db.prepare(`
+    const activities = await db.prepare(`
       SELECT a.*, l.name as lead_name 
       FROM activities a 
       LEFT JOIN leads l ON a.lead_id = l.id 
@@ -1443,9 +1444,9 @@ app.get('/api/activities', authMiddleware, (req, res) => {
 });
 
 // ===== PROPOSALS =====
-app.get('/api/proposals', authMiddleware, (req, res) => {
+app.get('/api/proposals', authMiddleware, async (req, res) => {
   try {
-    const proposals = db.prepare(`
+    const proposals = await db.prepare(`
       SELECT p.*, l.name as lead_name 
       FROM proposals p 
       LEFT JOIN leads l ON p.lead_id = l.id 
@@ -1457,17 +1458,17 @@ app.get('/api/proposals', authMiddleware, (req, res) => {
   }
 });
 
-app.post('/api/proposals', authMiddleware, (req, res) => {
+app.post('/api/proposals', authMiddleware, async (req, res) => {
   try {
     const { lead_id, title, items, subtotal, tax, total, valid_until, notes } = req.body;
-    const maxRow = db.prepare("SELECT proposal_number FROM proposals ORDER BY id DESC LIMIT 1").get();
+    const maxRow = await db.prepare("SELECT proposal_number FROM proposals ORDER BY id DESC LIMIT 1").get();
     let nextNum = 1;
     if (maxRow && maxRow.proposal_number) {
       const match = maxRow.proposal_number.match(/NP-(\d+)/);
       if (match) nextNum = parseInt(match[1]) + 1;
     }
     const proposal_number = `NP-${String(nextNum).padStart(4, '0')}`;
-    const result = db.prepare(
+    const result = await db.prepare(
       'INSERT INTO proposals (lead_id, proposal_number, title, items, subtotal, tax, total, valid_until, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
     ).run(lead_id, proposal_number, title, JSON.stringify(items || []), subtotal || 0, tax || 0, total || 0, valid_until || null, notes || '');
     res.json({ success: true, id: result.lastInsertRowid, proposal_number });
@@ -1476,10 +1477,10 @@ app.post('/api/proposals', authMiddleware, (req, res) => {
   }
 });
 
-app.put('/api/proposals/:id', authMiddleware, (req, res) => {
+app.put('/api/proposals/:id', authMiddleware, async (req, res) => {
   try {
     const { status, title, items, subtotal, tax, total, valid_until, notes } = req.body;
-    db.prepare('UPDATE proposals SET status = COALESCE(?, status), title = COALESCE(?, title), items = COALESCE(?, items), subtotal = COALESCE(?, subtotal), tax = COALESCE(?, tax), total = COALESCE(?, total), valid_until = COALESCE(?, valid_until), notes = COALESCE(?, notes), updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+    await db.prepare('UPDATE proposals SET status = COALESCE(?, status), title = COALESCE(?, title), items = COALESCE(?, items), subtotal = COALESCE(?, subtotal), tax = COALESCE(?, tax), total = COALESCE(?, total), valid_until = COALESCE(?, valid_until), notes = COALESCE(?, notes), updated_at = CURRENT_TIMESTAMP WHERE id = ?')
       .run(status, title, items ? JSON.stringify(items) : null, subtotal, tax, total, valid_until, notes, req.params.id);
     res.json({ success: true });
   } catch (err) {
@@ -1487,9 +1488,9 @@ app.put('/api/proposals/:id', authMiddleware, (req, res) => {
   }
 });
 
-app.delete('/api/proposals/:id', authMiddleware, (req, res) => {
+app.delete('/api/proposals/:id', authMiddleware, async (req, res) => {
   try {
-    db.prepare('DELETE FROM proposals WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM proposals WHERE id = ?').run(req.params.id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
@@ -1497,10 +1498,10 @@ app.delete('/api/proposals/:id', authMiddleware, (req, res) => {
 });
 
 // ===== FOLLOW-UPS =====
-app.get('/api/followups', authMiddleware, (req, res) => {
+app.get('/api/followups', authMiddleware, async (req, res) => {
   try {
-    const today = getTodayThai();
-    const followups = db.prepare(`
+    const today = await getTodayThai();
+    const followups = await db.prepare(`
       SELECT n.*, l.name as lead_name, l.phone as lead_phone, l.service_type 
       FROM notes n 
       JOIN leads l ON n.lead_id = l.id 
@@ -1514,10 +1515,10 @@ app.get('/api/followups', authMiddleware, (req, res) => {
 });
 
 // ===== STATS =====
-app.get('/api/stats', authMiddleware, (req, res) => {
+app.get('/api/stats', authMiddleware, async (req, res) => {
   try {
-    const leads = db.prepare('SELECT * FROM leads').all();
-    const today = getTodayThai();
+    const leads = await db.prepare('SELECT * FROM leads').all();
+    const today = await getTodayThai();
     const todayAppts = leads.filter(l => l.appointment_date === today).length;
     res.json({
       totalLeads: leads.length,
@@ -1532,9 +1533,9 @@ app.get('/api/stats', authMiddleware, (req, res) => {
 });
 
 // ===== PIPELINE =====
-app.get('/api/pipeline', authMiddleware, (req, res) => {
+app.get('/api/pipeline', authMiddleware, async (req, res) => {
   try {
-    const leads = db.prepare('SELECT * FROM leads').all();
+    const leads = await db.prepare('SELECT * FROM leads').all();
     const stages = ['New Lead', 'Contacted', 'Appointment Set', 'Proposal Sent', 'Closed Won', 'Closed Lost'];
     res.json(stages.map(stage => ({
       stage,
@@ -1547,24 +1548,24 @@ app.get('/api/pipeline', authMiddleware, (req, res) => {
 });
 
 // ===== REPORTS =====
-app.get('/api/reports/summary', authMiddleware, (req, res) => {
+app.get('/api/reports/summary', authMiddleware, async (req, res) => {
   try {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
 
-    const totalLeads = db.prepare('SELECT COUNT(*) as count FROM leads').get().count;
-    const monthLeads = db.prepare('SELECT COUNT(*) as count FROM leads WHERE created_at >= ? AND created_at <= ?').get(monthStart, monthEnd).count;
-    const closedWon = db.prepare("SELECT COUNT(*) as count FROM leads WHERE status = 'Closed Won'").get().count;
-    const monthClosed = db.prepare("SELECT COUNT(*) as count FROM leads WHERE status = 'Closed Won' AND updated_at >= ? AND updated_at <= ?").get(monthStart, monthEnd).count;
+    const totalLeads = await db.prepare('SELECT COUNT(*) as count FROM leads').get().count;
+    const monthLeads = await db.prepare('SELECT COUNT(*) as count FROM leads WHERE created_at >= ? AND created_at <= ?').get(monthStart, monthEnd).count;
+    const closedWon = await db.prepare("SELECT COUNT(*) as count FROM leads WHERE status = 'Closed Won'").get().count;
+    const monthClosed = await db.prepare("SELECT COUNT(*) as count FROM leads WHERE status = 'Closed Won' AND updated_at >= ? AND updated_at <= ?").get(monthStart, monthEnd).count;
     const conversionRate = totalLeads > 0 ? Math.round((closedWon / totalLeads) * 100) : 0;
 
     // Revenue estimate from proposals
-    const revenueResult = db.prepare("SELECT SUM(total) as total FROM proposals WHERE status = 'accepted'").get();
+    const revenueResult = await db.prepare("SELECT SUM(total) as total FROM proposals WHERE status = 'accepted'").get();
     const revenueEstimate = revenueResult ? revenueResult.total : 0;
 
     // Leads by status
-    const byStatus = db.prepare("SELECT status, COUNT(*) as count FROM leads GROUP BY status").all();
+    const byStatus = await db.prepare("SELECT status, COUNT(*) as count FROM leads GROUP BY status").all();
 
     res.json({
       total_leads: totalLeads,
@@ -1581,11 +1582,11 @@ app.get('/api/reports/summary', authMiddleware, (req, res) => {
   }
 });
 
-app.get('/api/reports/export/csv', authMiddleware, (req, res) => {
+app.get('/api/reports/export/csv', authMiddleware, async (req, res) => {
   try {
-    const leads = db.prepare('SELECT * FROM leads ORDER BY created_at DESC').all();
+    const leads = await db.prepare('SELECT * FROM leads ORDER BY created_at DESC').all();
     // Sanitize CSV field to prevent formula injection in spreadsheet apps
-    function safeCsvField(val) {
+    async function safeCsvField(val) {
       const str = String(val || '').replace(/"/g, '""');
       // Prefix with single quote if starts with formula-triggering chars
       if (/^[=+\-@\t\r]/.test(str)) return `"'${str}"`;
@@ -1610,7 +1611,7 @@ app.get('/api/reports/export/csv', authMiddleware, (req, res) => {
     csv += rows.map(r => r.join(',')).join('\n');
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename=leads-export-${getTodayThai()}.csv`);
+    res.setHeader('Content-Disposition', `attachment; filename=leads-export-${await getTodayThai()}.csv`);
     res.send(csv);
   } catch (err) {
     console.error('CSV export error:', err);
@@ -1618,9 +1619,9 @@ app.get('/api/reports/export/csv', authMiddleware, (req, res) => {
   }
 });
 
-app.get('/api/reports/by-service', authMiddleware, (req, res) => {
+app.get('/api/reports/by-service', authMiddleware, async (req, res) => {
   try {
-    const result = db.prepare(`
+    const result = await db.prepare(`
       SELECT service_type, COUNT(*) as count, 
         SUM(CASE WHEN status = 'Closed Won' THEN 1 ELSE 0 END) as closed,
         AVG(score) as avg_score
@@ -1634,12 +1635,12 @@ app.get('/api/reports/by-service', authMiddleware, (req, res) => {
   }
 });
 
-app.get('/api/reports/by-date', authMiddleware, (req, res) => {
+app.get('/api/reports/by-date', authMiddleware, async (req, res) => {
   try {
     const dateFrom = req.query.date_from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const dateTo = req.query.date_to || getTodayThai();
+    const dateTo = req.query.date_to || await getTodayThai();
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       SELECT DATE(created_at) as date, COUNT(*) as count,
         SUM(CASE WHEN status = 'Closed Won' THEN 1 ELSE 0 END) as closed
       FROM leads 
@@ -1654,16 +1655,16 @@ app.get('/api/reports/by-date', authMiddleware, (req, res) => {
 });
 
 // ===== USERS MANAGEMENT =====
-app.get('/api/users', authMiddleware, adminOnly, (req, res) => {
+app.get('/api/users', authMiddleware, adminOnly, async (req, res) => {
   try {
-    const users = db.prepare('SELECT id, email, full_name, role, created_at FROM users ORDER BY created_at DESC').all();
+    const users = await db.prepare('SELECT id, email, full_name, role, created_at FROM users ORDER BY created_at DESC').all();
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });
 
-app.post('/api/users', authMiddleware, adminOnly, (req, res) => {
+app.post('/api/users', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { email, password, full_name, role } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'กรุณากรอกอีเมลและรหัสผ่าน' });
@@ -1674,14 +1675,14 @@ app.post('/api/users', authMiddleware, adminOnly, (req, res) => {
     const pwCheck = validatePassword(password);
     if (!pwCheck.valid) return res.status(400).json({ error: pwCheck.error });
 
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(email);
     if (existing) return res.status(409).json({ error: 'อีเมลนี้มีอยู่ในระบบแล้ว' });
 
     const validRoles = ['admin', 'manager', 'sales'];
     const userRole = validRoles.includes(role) ? role : 'sales';
 
     const hashed = bcrypt.hashSync(password, 10);
-    const result = db.prepare('INSERT INTO users (email, password, full_name, role) VALUES (?, ?, ?, ?)')
+    const result = await db.prepare('INSERT INTO users (email, password, full_name, role) VALUES (?, ?, ?, ?)')
       .run(email, hashed, full_name || '', userRole);
 
     res.json({ success: true, id: result.lastInsertRowid });
@@ -1691,7 +1692,7 @@ app.post('/api/users', authMiddleware, adminOnly, (req, res) => {
   }
 });
 
-app.put('/api/users/:id', authMiddleware, adminOnly, (req, res) => {
+app.put('/api/users/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { full_name, role, password } = req.body;
     const fields = [];
@@ -1712,19 +1713,19 @@ app.put('/api/users/:id', authMiddleware, adminOnly, (req, res) => {
     if (fields.length === 0) return res.status(400).json({ error: 'ไม่มีข้อมูลที่อัพเดท' });
 
     values.push(req.params.id);
-    db.prepare(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+    await db.prepare(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`).run(...values);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });
 
-app.delete('/api/users/:id', authMiddleware, adminOnly, (req, res) => {
+app.delete('/api/users/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
     if (parseInt(req.params.id) === req.user.id) {
       return res.status(400).json({ error: 'ไม่สามารถลบบัญชีตัวเอง' });
     }
-    db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
@@ -1732,10 +1733,10 @@ app.delete('/api/users/:id', authMiddleware, adminOnly, (req, res) => {
 });
 
 // ===== BACKUP MANAGEMENT =====
-app.get('/api/admin/backup', authMiddleware, adminOnly, (req, res) => {
+app.get('/api/admin/backup', authMiddleware, adminOnly, async (req, res) => {
   try {
     const backup = createBackup();
-    db.prepare('INSERT INTO backups (filename, file_size, created_by) VALUES (?, ?, ?)')
+    await db.prepare('INSERT INTO backups (filename, file_size, created_by) VALUES (?, ?, ?)')
       .run(backup.filename, backup.file_size, req.user.id);
 
     const fileBuffer = fs.readFileSync(backup.path);
@@ -1749,7 +1750,7 @@ app.get('/api/admin/backup', authMiddleware, adminOnly, (req, res) => {
   }
 });
 
-app.get('/api/admin/backups', authMiddleware, adminOnly, (req, res) => {
+app.get('/api/admin/backups', authMiddleware, adminOnly, async (req, res) => {
   try {
     const backups = listBackups();
     res.json(backups);
@@ -1762,7 +1763,7 @@ app.get('/api/admin/backups', authMiddleware, adminOnly, (req, res) => {
 // ===== SITE DOCUMENTATION =====
 const { execFile } = require("child_process");
 
-app.post("/api/admin/generate-docs", authMiddleware, adminOnly, (req, res) => {
+app.post("/api/admin/generate-docs", authMiddleware, adminOnly, async (req, res) => {
   try {
     const baseUrl = req.body.url || `http://localhost:${PORT}`;
     const outputDir = path.join(__dirname, "site-docs");
@@ -1814,7 +1815,7 @@ app.post("/api/admin/generate-docs", authMiddleware, adminOnly, (req, res) => {
   }
 });
 
-app.get("/api/admin/docs-status", authMiddleware, adminOnly, (req, res) => {
+app.get("/api/admin/docs-status", authMiddleware, adminOnly, async (req, res) => {
   try {
     const dataPath = path.join(__dirname, "site-docs", "site-data.json");
     if (fs.existsSync(dataPath)) {
@@ -1842,7 +1843,7 @@ app.get("/api/admin/docs-status", authMiddleware, adminOnly, (req, res) => {
 app.use("/site-docs", authMiddleware, express.static(path.join(__dirname, "site-docs")));
 // ===== CUSTOMER CHAT =====
 // Customer sends a message (no auth required)
-app.post('/api/chat/messages', leadsLimiter, (req, res) => {
+app.post('/api/chat/messages', leadsLimiter, async (req, res) => {
   try {
     const { session_id, message, customer_name, customer_phone, sender } = req.body;
     if (!session_id || !message) return res.status(400).json({ error: 'กรุณากรอกข้อความ' });
@@ -1864,16 +1865,16 @@ app.post('/api/chat/messages', leadsLimiter, (req, res) => {
 });
 
 // Customer polls for admin responses
-app.get('/api/chat/messages/:session_id', (req, res) => {
+app.get('/api/chat/messages/:session_id', async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 100));
     const offset = (page - 1) * limit;
 
-    const total = db.prepare('SELECT COUNT(*) as count FROM chat_messages WHERE session_id = ?').get(req.params.session_id).count;
-    const messages = db.prepare('SELECT * FROM chat_messages WHERE session_id = ? ORDER BY created_at ASC LIMIT ? OFFSET ?').all(req.params.session_id, limit, offset);
+    const total = await db.prepare('SELECT COUNT(*) as count FROM chat_messages WHERE session_id = ?').get(req.params.session_id).count;
+    const messages = await db.prepare('SELECT * FROM chat_messages WHERE session_id = ? ORDER BY created_at ASC LIMIT ? OFFSET ?').all(req.params.session_id, limit, offset);
     // Mark admin messages as read
-    db.prepare("UPDATE chat_messages SET is_read = 1 WHERE session_id = ? AND sender = 'admin' AND is_read = 0").run(req.params.session_id);
+    await db.prepare("UPDATE chat_messages SET is_read = 1 WHERE session_id = ? AND sender = 'admin' AND is_read = 0").run(req.params.session_id);
     res.json({
       data: messages,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
@@ -1884,9 +1885,9 @@ app.get('/api/chat/messages/:session_id', (req, res) => {
 });
 
 // Admin gets all chat sessions
-app.get('/api/chat/sessions', authMiddleware, (req, res) => {
+app.get('/api/chat/sessions', authMiddleware, async (req, res) => {
   try {
-    const sessions = db.prepare(`
+    const sessions = await db.prepare(`
       SELECT session_id, customer_name, customer_phone,
         MAX(created_at) as last_message_at,
         COUNT(*) as message_count,
@@ -1904,18 +1905,18 @@ app.get('/api/chat/sessions', authMiddleware, (req, res) => {
 });
 
 // Admin replies to a session
-app.post('/api/chat/sessions/:session_id', authMiddleware, (req, res) => {
+app.post('/api/chat/sessions/:session_id', authMiddleware, async (req, res) => {
   try {
     const { message } = req.body;
     if (!message) return res.status(400).json({ error: 'กรุณากรอกข้อความ' });
     const safeMsg = String(message).replace(/<[^>]*>/g, '').slice(0, 2000);
     // Get admin name from JWT
-    const adminUser = db.prepare('SELECT full_name FROM users WHERE id = ?').get(req.user.id);
+    const adminUser = await db.prepare('SELECT full_name FROM users WHERE id = ?').get(req.user.id);
     const adminName = adminUser?.full_name || 'Admin';
-    db.prepare("INSERT INTO chat_messages (session_id, sender, message, admin_name) VALUES (?, 'admin', ?, ?)")
+    await db.prepare("INSERT INTO chat_messages (session_id, sender, message, admin_name) VALUES (?, 'admin', ?, ?)")
       .run(req.params.session_id, safeMsg, adminName);
     // Mark all customer messages in this session as read
-    db.prepare("UPDATE chat_messages SET is_read = 1 WHERE session_id = ? AND sender = 'customer' AND is_read = 0").run(req.params.session_id);
+    await db.prepare("UPDATE chat_messages SET is_read = 1 WHERE session_id = ? AND sender = 'customer' AND is_read = 0").run(req.params.session_id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
@@ -1923,9 +1924,9 @@ app.post('/api/chat/sessions/:session_id', authMiddleware, (req, res) => {
 });
 
 // Delete a chat session (all messages)
-app.delete('/api/chat/sessions/:session_id', authMiddleware, (req, res) => {
+app.delete('/api/chat/sessions/:session_id', authMiddleware, async (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM chat_messages WHERE session_id = ?').run(req.params.session_id);
+    const result = await db.prepare('DELETE FROM chat_messages WHERE session_id = ?').run(req.params.session_id);
     res.json({ success: true, deleted: result.changes });
   } catch (err) {
     console.error('Delete chat session error:', err);
@@ -1934,12 +1935,12 @@ app.delete('/api/chat/sessions/:session_id', authMiddleware, (req, res) => {
 });
 
 // Bulk delete chat sessions
-app.post('/api/chat/sessions/bulk-delete', authMiddleware, bulkLimiter, (req, res) => {
+app.post('/api/chat/sessions/bulk-delete', authMiddleware, bulkLimiter, async (req, res) => {
   try {
     const { session_ids } = req.body;
     if (!Array.isArray(session_ids) || session_ids.length === 0) return res.status(400).json({ error: 'ไม่มี session ที่เลือก' });
     const placeholders = session_ids.map(() => '?').join(',');
-    const result = db.prepare(`DELETE FROM chat_messages WHERE session_id IN (${placeholders})`).run(...session_ids);
+    const result = await db.prepare(`DELETE FROM chat_messages WHERE session_id IN (${placeholders})`).run(...session_ids);
     res.json({ success: true, deleted: result.changes });
   } catch (err) {
     console.error('Bulk delete chat error:', err);
@@ -1948,9 +1949,9 @@ app.post('/api/chat/sessions/bulk-delete', authMiddleware, bulkLimiter, (req, re
 });
 
 // Admin marks session as read
-app.put('/api/chat/sessions/:session_id/read', authMiddleware, (req, res) => {
+app.put('/api/chat/sessions/:session_id/read', authMiddleware, async (req, res) => {
   try {
-    db.prepare("UPDATE chat_messages SET is_read = 1 WHERE session_id = ? AND sender = 'customer' AND is_read = 0").run(req.params.session_id);
+    await db.prepare("UPDATE chat_messages SET is_read = 1 WHERE session_id = ? AND sender = 'customer' AND is_read = 0").run(req.params.session_id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
@@ -1958,9 +1959,9 @@ app.put('/api/chat/sessions/:session_id/read', authMiddleware, (req, res) => {
 });
 
 // Get unread chat count (for badge)
-app.get('/api/chat/unread-count', authMiddleware, (req, res) => {
+app.get('/api/chat/unread-count', authMiddleware, async (req, res) => {
   try {
-    const result = db.prepare("SELECT COUNT(DISTINCT session_id) as count FROM chat_messages WHERE sender = 'customer' AND is_read = 0").get();
+    const result = await db.prepare("SELECT COUNT(DISTINCT session_id) as count FROM chat_messages WHERE sender = 'customer' AND is_read = 0").get();
     res.json({ count: result ? result.count : 0 });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
@@ -1968,10 +1969,10 @@ app.get('/api/chat/unread-count', authMiddleware, (req, res) => {
 });
 
 // ===== HEALTH CHECK =====
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
   try {
     // Test DB connection
-    db.prepare('SELECT 1').get();
+    await db.prepare('SELECT 1').get();
     res.json({
       status: 'ok',
       database: 'connected',
@@ -1983,15 +1984,15 @@ app.get('/api/health', (req, res) => {
 });
 
 // ===== MEDIA =====
-app.get('/api/media', authMiddleware, (req, res) => {
+app.get('/api/media', authMiddleware, async (req, res) => {
   try {
-    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+    if (!fs.existsSync(uploadsDir)) try { fs.mkdirSync(uploadsDir, { recursive: true }); } catch (e) { console.warn("Mkdir skipped (read-only):", e.message); }
     const files = fs.readdirSync(uploadsDir).filter(f => /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(f));
     res.json(files.map(f => ({ name: f, url: '/uploads/' + f })));
   } catch { res.json([]); }
 });
 
-app.delete('/api/media/:name', authMiddleware, (req, res) => {
+app.delete('/api/media/:name', authMiddleware, async (req, res) => {
   try {
     const safeName = path.basename(req.params.name);
     if (!safeName || safeName.includes('..') || safeName.includes('/') || safeName.includes('\\')) {
@@ -2013,7 +2014,7 @@ app.delete('/api/media/:name', authMiddleware, (req, res) => {
 });
 
 // Serve uploaded files — reject path traversal attempts
-app.get('/uploads/:name', (req, res) => {
+app.get('/uploads/:name', async (req, res) => {
   const safeName = path.basename(req.params.name);
   if (!safeName || safeName.includes('..')) {
     return res.status(400).json({ error: 'ชื่อไฟล์ไม่ถูกต้อง' });
@@ -2029,7 +2030,7 @@ app.get('/uploads/:name', (req, res) => {
 });
 
 // ===== ADMIN SERVICES API (CRUD) =====
-app.get('/api/admin/services', authMiddleware, adminOnly, (req, res) => {
+app.get('/api/admin/services', authMiddleware, adminOnly, async (req, res) => {
   try {
     let query = 'SELECT * FROM services';
     const conditions = [];
@@ -2060,13 +2061,13 @@ app.get('/api/admin/services', authMiddleware, adminOnly, (req, res) => {
     const offset = (page - 1) * limit;
 
     const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
-    const total = db.prepare(countQuery).get(...params).total;
+    const total = await db.prepare(countQuery).get(...params).total;
 
     query += ' LIMIT ? OFFSET ?';
     params.push(limit, offset);
 
-    const services = db.prepare(query).all(...params);
-    const categories = db.prepare('SELECT DISTINCT category FROM services ORDER BY category').all().map(r => r.category);
+    const services = await db.prepare(query).all(...params);
+    const categories = await db.prepare('SELECT DISTINCT category FROM services ORDER BY category').all().map(r => r.category);
 
     res.json({ data: services, categories, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
   } catch (err) {
@@ -2075,13 +2076,13 @@ app.get('/api/admin/services', authMiddleware, adminOnly, (req, res) => {
   }
 });
 
-app.post('/api/admin/services', authMiddleware, adminOnly, (req, res) => {
+app.post('/api/admin/services', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { category, name, description, price_start, price_unit, icon, image_url, sort_order, is_active } = req.body;
     if (!category || !name) return res.status(400).json({ error: 'กรุณากรอกหมวดหมู่และชื่อบริการ' });
 
-    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM services').get().m || 0;
-    const result = db.prepare(
+    const maxOrder = await db.prepare('SELECT MAX(sort_order) as m FROM services').get().m || 0;
+    const result = await db.prepare(
       'INSERT INTO services (category, name, description, price_start, price_unit, icon, image_url, sort_order, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
     ).run(category, name, description || '', price_start || 0, price_unit || 'รายการ', icon || '', image_url || '', sort_order ?? maxOrder + 1, is_active !== undefined ? is_active : 1);
 
@@ -2092,7 +2093,7 @@ app.post('/api/admin/services', authMiddleware, adminOnly, (req, res) => {
   }
 });
 
-app.put('/api/admin/services/:id', authMiddleware, adminOnly, (req, res) => {
+app.put('/api/admin/services/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
     const allowedFields = ['category', 'name', 'description', 'price_start', 'price_unit', 'icon', 'image_url', 'sort_order', 'is_active'];
     const fields = [];
@@ -2103,11 +2104,11 @@ app.put('/api/admin/services/:id', authMiddleware, adminOnly, (req, res) => {
         values.push(val);
       }
     }
-    if (fields.length === 0) return res.status(400).json({ error: 'ไม่มีข้อมูลที่อัพเดท' });
+    if (fields.length === 0) return res.status(200).json({ error: 'ไม่มีข้อมูลที่อัพเดท' });
 
     fields.push('updated_at = CURRENT_TIMESTAMP');
     values.push(req.params.id);
-    const result = db.prepare(`UPDATE services SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+    const result = await db.prepare(`UPDATE services SET ${fields.join(', ')} WHERE id = ?`).run(...values);
     if (result.changes === 0) return res.status(404).json({ error: 'ไม่พบบริการ' });
 
     res.json({ success: true });
@@ -2117,13 +2118,13 @@ app.put('/api/admin/services/:id', authMiddleware, adminOnly, (req, res) => {
   }
 });
 
-app.delete('/api/admin/services/:id', authMiddleware, adminOnly, (req, res) => {
+app.delete('/api/admin/services/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM services WHERE id = ?').run(req.params.id);
+    const result = await db.prepare('DELETE FROM services WHERE id = ?').run(req.params.id);
     if (result.changes === 0) return res.status(404).json({ error: 'ไม่พบบริการ' });
     // Also delete related gallery and models
-    db.prepare('DELETE FROM service_gallery WHERE service_id = ?').run(req.params.id);
-    db.prepare('DELETE FROM service_models WHERE service_id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM service_gallery WHERE service_id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM service_models WHERE service_id = ?').run(req.params.id);
     res.json({ success: true });
   } catch (err) {
     console.error('Delete service error:', err);
@@ -2132,23 +2133,23 @@ app.delete('/api/admin/services/:id', authMiddleware, adminOnly, (req, res) => {
 });
 
 // ===== ADMIN SERVICE PACKAGES API (CRUD) =====
-app.get('/api/admin/service-packages', authMiddleware, adminOnly, (req, res) => {
+app.get('/api/admin/service-packages', authMiddleware, adminOnly, async (req, res) => {
   try {
-    const packages = db.prepare('SELECT * FROM service_packages ORDER BY sort_order').all();
+    const packages = await db.prepare('SELECT * FROM service_packages ORDER BY sort_order').all();
     res.json(packages);
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });
 
-app.post('/api/admin/service-packages', authMiddleware, adminOnly, (req, res) => {
+app.post('/api/admin/service-packages', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { name, description, price_start, features, is_featured, sort_order, is_active } = req.body;
     if (!name) return res.status(400).json({ error: 'กรุณากรอกชื่อแพ็กเกจ' });
 
-    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM service_packages').get().m || 0;
+    const maxOrder = await db.prepare('SELECT MAX(sort_order) as m FROM service_packages').get().m || 0;
     const featuresStr = typeof features === 'string' ? features : JSON.stringify(features || []);
-    const result = db.prepare(
+    const result = await db.prepare(
       'INSERT INTO service_packages (name, description, price_start, features, is_featured, sort_order, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)'
     ).run(name, description || '', price_start || 0, featuresStr, is_featured ? 1 : 0, sort_order ?? maxOrder + 1, is_active !== undefined ? is_active : 1);
 
@@ -2159,7 +2160,7 @@ app.post('/api/admin/service-packages', authMiddleware, adminOnly, (req, res) =>
   }
 });
 
-app.put('/api/admin/service-packages/:id', authMiddleware, adminOnly, (req, res) => {
+app.put('/api/admin/service-packages/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
     const allowedFields = ['name', 'description', 'price_start', 'features', 'is_featured', 'sort_order', 'is_active'];
     const fields = [];
@@ -2170,11 +2171,11 @@ app.put('/api/admin/service-packages/:id', authMiddleware, adminOnly, (req, res)
         values.push(key === 'features' ? (typeof val === 'string' ? val : JSON.stringify(val)) : val);
       }
     }
-    if (fields.length === 0) return res.status(400).json({ error: 'ไม่มีข้อมูลที่อัพเดท' });
+    if (fields.length === 0) return res.status(200).json({ error: 'ไม่มีข้อมูลที่อัพเดท' });
 
     fields.push('updated_at = CURRENT_TIMESTAMP');
     values.push(req.params.id);
-    const result = db.prepare(`UPDATE service_packages SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+    const result = await db.prepare(`UPDATE service_packages SET ${fields.join(', ')} WHERE id = ?`).run(...values);
     if (result.changes === 0) return res.status(404).json({ error: 'ไม่พบแพ็กเกจ' });
 
     res.json({ success: true });
@@ -2184,9 +2185,9 @@ app.put('/api/admin/service-packages/:id', authMiddleware, adminOnly, (req, res)
   }
 });
 
-app.delete('/api/admin/service-packages/:id', authMiddleware, adminOnly, (req, res) => {
+app.delete('/api/admin/service-packages/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM service_packages WHERE id = ?').run(req.params.id);
+    const result = await db.prepare('DELETE FROM service_packages WHERE id = ?').run(req.params.id);
     if (result.changes === 0) return res.status(404).json({ error: 'ไม่พบแพ็กเกจ' });
     res.json({ success: true });
   } catch (err) {
@@ -2196,27 +2197,27 @@ app.delete('/api/admin/service-packages/:id', authMiddleware, adminOnly, (req, r
 });
 
 // ===== SERVICES API (Public) =====
-app.get('/api/services/categories', (req, res) => {
+app.get('/api/services/categories', async (req, res) => {
   try {
-    const rows = db.prepare('SELECT DISTINCT category FROM services WHERE is_active = 1 ORDER BY category').all();
+    const rows = await db.prepare('SELECT DISTINCT category FROM services WHERE is_active = 1 ORDER BY category').all();
     res.json(rows.map(r => r.category));
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });
 
-app.get('/api/services', (req, res) => {
+app.get('/api/services', async (req, res) => {
   try {
-    const services = db.prepare('SELECT * FROM services WHERE is_active = 1 ORDER BY category, sort_order').all();
+    const services = await db.prepare('SELECT * FROM services WHERE is_active = 1 ORDER BY category, sort_order').all();
     res.json(services);
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });
 
-app.get('/api/services/:id', (req, res) => {
+app.get('/api/services/:id', async (req, res) => {
   try {
-    const service = db.prepare('SELECT * FROM services WHERE id = ? AND is_active = 1').get(req.params.id);
+    const service = await db.prepare('SELECT * FROM services WHERE id = ? AND is_active = 1').get(req.params.id);
     if (!service) return res.status(404).json({ error: 'ไม่พบบริการ' });
     res.json(service);
   } catch (err) {
@@ -2225,11 +2226,11 @@ app.get('/api/services/:id', (req, res) => {
 });
 
 // ===== SERVICE GALLERY API =====
-app.get('/api/services/:id/gallery', (req, res) => {
+app.get('/api/services/:id/gallery', async (req, res) => {
   try {
-    const service = db.prepare('SELECT * FROM services WHERE id = ?').get(req.params.id);
+    const service = await db.prepare('SELECT * FROM services WHERE id = ?').get(req.params.id);
     if (!service) return res.status(404).json({ error: 'ไม่พบบริการ' });
-    const items = db.prepare(
+    const items = await db.prepare(
       'SELECT * FROM service_gallery WHERE (service_id = ? OR service_category = ?) ORDER BY sort_order, id'
     ).all(req.params.id, service.category);
     res.json(items);
@@ -2238,9 +2239,9 @@ app.get('/api/services/:id/gallery', (req, res) => {
   }
 });
 
-app.get('/api/gallery/category/:category', (req, res) => {
+app.get('/api/gallery/category/:category', async (req, res) => {
   try {
-    const items = db.prepare(
+    const items = await db.prepare(
       'SELECT * FROM service_gallery WHERE service_category = ? ORDER BY sort_order, id'
     ).all(req.params.category);
     res.json(items);
@@ -2249,16 +2250,16 @@ app.get('/api/gallery/category/:category', (req, res) => {
   }
 });
 
-app.post('/api/services/:id/gallery', authMiddleware, uploadLimiter, upload.single('image'), (req, res) => {
+app.post('/api/services/:id/gallery', authMiddleware, uploadLimiter, upload.single('image'), async (req, res) => {
   try {
-    const service = db.prepare('SELECT * FROM services WHERE id = ?').get(req.params.id);
+    const service = await db.prepare('SELECT * FROM services WHERE id = ?').get(req.params.id);
     if (!service) return res.status(404).json({ error: 'ไม่พบบริการ' });
     const { title, description, image_type } = req.body;
     let imageUrl = req.body.image_url;
     if (req.file) imageUrl = `/uploads/${req.file.filename}`;
     if (!imageUrl) return res.status(400).json({ error: 'กรุณาอัพโหลดรูปหรือใส่ URL' });
-    const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM service_gallery').get().m || 0;
-    const result = db.prepare(
+    const maxOrder = await db.prepare('SELECT MAX(sort_order) as m FROM service_gallery').get().m || 0;
+    const result = await db.prepare(
       'INSERT INTO service_gallery (service_id, service_category, title, description, image_url, image_type, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)'
     ).run(req.params.id, service.category, title || '', description || '', imageUrl, image_type || 'photo', maxOrder + 1);
     res.json({ success: true, id: result.lastInsertRowid });
@@ -2267,29 +2268,29 @@ app.post('/api/services/:id/gallery', authMiddleware, uploadLimiter, upload.sing
   }
 });
 
-app.delete('/api/gallery/:id', authMiddleware, (req, res) => {
+app.delete('/api/gallery/:id', authMiddleware, async (req, res) => {
   try {
-    const item = db.prepare('SELECT * FROM service_gallery WHERE id = ?').get(req.params.id);
+    const item = await db.prepare('SELECT * FROM service_gallery WHERE id = ?').get(req.params.id);
     if (!item) return res.status(404).json({ error: 'ไม่พบรูป' });
     if (item.image_url && item.image_url.startsWith('/uploads/')) {
       const filepath = path.join(__dirname, item.image_url);
       if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
     }
-    db.prepare('DELETE FROM service_gallery WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM service_gallery WHERE id = ?').run(req.params.id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });
 
-app.put('/api/gallery/:id', authMiddleware, uploadLimiter, upload.single('image'), (req, res) => {
+app.put('/api/gallery/:id', authMiddleware, uploadLimiter, upload.single('image'), async (req, res) => {
   try {
-    const item = db.prepare('SELECT * FROM service_gallery WHERE id = ?').get(req.params.id);
+    const item = await db.prepare('SELECT * FROM service_gallery WHERE id = ?').get(req.params.id);
     if (!item) return res.status(404).json({ error: 'ไม่พบรูป' });
     const { title, description, image_type, image_url, sort_order } = req.body;
     let newImageUrl = image_url || item.image_url;
     if (req.file) newImageUrl = `/uploads/${req.file.filename}`;
-    db.prepare(
+    await db.prepare(
       'UPDATE service_gallery SET title = ?, description = ?, image_url = ?, image_type = ?, sort_order = ? WHERE id = ?'
     ).run(title ?? item.title, description ?? item.description, newImageUrl, image_type ?? item.image_type, sort_order ?? item.sort_order, req.params.id);
     res.json({ success: true });
@@ -2299,7 +2300,7 @@ app.put('/api/gallery/:id', authMiddleware, uploadLimiter, upload.single('image'
 });
 
 // Admin: list all gallery items with service info
-app.get('/api/admin/gallery', authMiddleware, (req, res) => {
+app.get('/api/admin/gallery', authMiddleware, async (req, res) => {
   try {
     const { service_id, category } = req.query;
     let sql = 'SELECT sg.*, s.name as service_name FROM service_gallery sg LEFT JOIN services s ON sg.service_id = s.id WHERE 1=1';
@@ -2307,18 +2308,18 @@ app.get('/api/admin/gallery', authMiddleware, (req, res) => {
     if (service_id) { sql += ' AND sg.service_id = ?'; params.push(service_id); }
     if (category) { sql += ' AND sg.service_category = ?'; params.push(category); }
     sql += ' ORDER BY sg.sort_order, sg.id';
-    res.json(db.prepare(sql).all(...params));
+    res.json(await db.prepare(sql).all(...params));
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });
 
 // ===== SERVICE 3D MODELS API =====
-app.get('/api/services/:id/models', (req, res) => {
+app.get('/api/services/:id/models', async (req, res) => {
   try {
-    const service = db.prepare('SELECT * FROM services WHERE id = ?').get(req.params.id);
+    const service = await db.prepare('SELECT * FROM services WHERE id = ?').get(req.params.id);
     if (!service) return res.status(404).json({ error: 'ไม่พบบริการ' });
-    const items = db.prepare(
+    const items = await db.prepare(
       'SELECT * FROM service_models WHERE (service_id = ? OR service_category = ?) ORDER BY sort_order, id'
     ).all(req.params.id, service.category);
     res.json(items);
@@ -2327,9 +2328,9 @@ app.get('/api/services/:id/models', (req, res) => {
   }
 });
 
-app.get('/api/models/category/:category', (req, res) => {
+app.get('/api/models/category/:category', async (req, res) => {
   try {
-    const items = db.prepare(
+    const items = await db.prepare(
       'SELECT * FROM service_models WHERE service_category = ? ORDER BY sort_order, id'
     ).all(req.params.category);
     res.json(items);
@@ -2343,7 +2344,7 @@ app.post('/api/services/:id/models', authMiddleware, modelUpload.fields([
   { name: 'poster_file', maxCount: 1 }
 ]), async (req, res) => {
   try {
-    const service = db.prepare('SELECT * FROM services WHERE id = ?').get(req.params.id);
+    const service = await db.prepare('SELECT * FROM services WHERE id = ?').get(req.params.id);
     if (!service) return res.status(404).json({ error: 'ไม่พบบริการ' });
     const { title, description, model_url, model_format, poster_url, auto_rotate, camera_orbit } = req.body;
     let finalModelUrl = model_url || '';
@@ -2367,7 +2368,7 @@ app.post('/api/services/:id/models', authMiddleware, modelUpload.fields([
     if (req.files?.poster_file?.[0]) finalPosterUrl = '/uploads/' + req.files.poster_file[0].filename;
     if (!finalModelUrl) return res.status(400).json({ error: 'กรุณาอัพโหลดไฟล์โมเดลหรือใส่ URL' });
     if (!fmt || fmt === 'obj') fmt = finalModelUrl.endsWith('.gltf') ? 'gltf' : 'glb';
-    const result = db.prepare(
+    const result = await db.prepare(
       'INSERT INTO service_models (service_id, service_category, title, description, model_url, model_format, poster_url, auto_rotate, camera_orbit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
     ).run(req.params.id, service.category, title || '', description || '', finalModelUrl, fmt, finalPosterUrl, auto_rotate !== undefined ? auto_rotate : 1, camera_orbit || '0deg 75deg 105%');
     res.json({ success: true, id: result.lastInsertRowid });
@@ -2382,7 +2383,7 @@ app.put('/api/models/:id', authMiddleware, modelUpload.fields([
   { name: 'poster_file', maxCount: 1 }
 ]), async (req, res) => {
   try {
-    const item = db.prepare('SELECT * FROM service_models WHERE id = ?').get(req.params.id);
+    const item = await db.prepare('SELECT * FROM service_models WHERE id = ?').get(req.params.id);
     if (!item) return res.status(404).json({ error: 'ไม่พบโมเดล' });
     const { title, description, model_url, model_format, poster_url, auto_rotate, camera_orbit, sort_order } = req.body;
     let finalModelUrl = model_url ?? item.model_url;
@@ -2416,7 +2417,7 @@ app.put('/api/models/:id', authMiddleware, modelUpload.fields([
       }
       finalPosterUrl = '/uploads/' + req.files.poster_file[0].filename;
     }
-    db.prepare(
+    await db.prepare(
       'UPDATE service_models SET title = ?, description = ?, model_url = ?, model_format = ?, poster_url = ?, auto_rotate = ?, camera_orbit = ?, sort_order = ? WHERE id = ?'
     ).run(title ?? item.title, description ?? item.description, finalModelUrl, fmt, finalPosterUrl, auto_rotate !== undefined ? auto_rotate : item.auto_rotate, camera_orbit ?? item.camera_orbit, sort_order ?? item.sort_order, req.params.id);
     res.json({ success: true });
@@ -2426,9 +2427,9 @@ app.put('/api/models/:id', authMiddleware, modelUpload.fields([
   }
 });
 
-app.delete('/api/models/:id', authMiddleware, (req, res) => {
+app.delete('/api/models/:id', authMiddleware, async (req, res) => {
   try {
-    const item = db.prepare('SELECT * FROM service_models WHERE id = ?').get(req.params.id);
+    const item = await db.prepare('SELECT * FROM service_models WHERE id = ?').get(req.params.id);
     if (!item) return res.status(404).json({ error: 'ไม่พบโมเดล' });
     // Delete uploaded files
     if (item.model_url?.startsWith('/uploads/')) {
@@ -2439,7 +2440,7 @@ app.delete('/api/models/:id', authMiddleware, (req, res) => {
       const fp = path.join(__dirname, item.poster_url);
       if (fs.existsSync(fp)) fs.unlinkSync(fp);
     }
-    db.prepare('DELETE FROM service_models WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM service_models WHERE id = ?').run(req.params.id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
@@ -2447,7 +2448,7 @@ app.delete('/api/models/:id', authMiddleware, (req, res) => {
 });
 
 // Admin: list all models with service info
-app.get('/api/admin/models', authMiddleware, (req, res) => {
+app.get('/api/admin/models', authMiddleware, async (req, res) => {
   try {
     const { service_id, category } = req.query;
     let sql = 'SELECT sm.*, s.name as service_name FROM service_models sm LEFT JOIN services s ON sm.service_id = s.id WHERE 1=1';
@@ -2455,24 +2456,24 @@ app.get('/api/admin/models', authMiddleware, (req, res) => {
     if (service_id) { sql += ' AND sm.service_id = ?'; params.push(service_id); }
     if (category) { sql += ' AND sm.service_category = ?'; params.push(category); }
     sql += ' ORDER BY sm.sort_order, sm.id';
-    res.json(db.prepare(sql).all(...params));
+    res.json(await db.prepare(sql).all(...params));
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });
 
-app.get('/api/service-packages', (req, res) => {
+app.get('/api/service-packages', async (req, res) => {
   try {
-    const packages = db.prepare('SELECT * FROM service_packages WHERE is_active = 1 ORDER BY sort_order').all();
+    const packages = await db.prepare('SELECT * FROM service_packages WHERE is_active = 1 ORDER BY sort_order').all();
     res.json(packages);
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });
 
-app.get('/api/service-packages/:id', (req, res) => {
+app.get('/api/service-packages/:id', async (req, res) => {
   try {
-    const pkg = db.prepare('SELECT * FROM service_packages WHERE id = ? AND is_active = 1').get(req.params.id);
+    const pkg = await db.prepare('SELECT * FROM service_packages WHERE id = ? AND is_active = 1').get(req.params.id);
     if (!pkg) return res.status(404).json({ error: 'ไม่พบแพ็กเกจ' });
     res.json(pkg);
   } catch (err) {
@@ -2486,66 +2487,65 @@ app.use('/api', (req, res) => {
 });
 
 // ===== SERVE STATIC FILES =====
-app.use(express.static(__dirname));
 
 // Service detail page (public)
-app.get('/service', (req, res) => {
+app.get('/service', async (req, res) => {
   res.sendFile('service.html', { root: __dirname });
 });
-app.get('/service.html', (req, res) => {
+app.get('/service.html', async (req, res) => {
   res.sendFile('service.html', { root: __dirname });
 });
 
 // Services overview page (public)
-app.get('/services', (req, res) => {
+app.get('/services', async (req, res) => {
   res.sendFile('services.html', { root: __dirname });
 });
-app.get('/services.html', (req, res) => {
+app.get('/services.html', async (req, res) => {
   res.sendFile('services.html', { root: __dirname });
 });
 
 // Nucha-services alternate pages (public)
-app.get('/services-3d', (req, res) => {
+app.get('/services-3d', async (req, res) => {
   res.sendFile('nucha-services/services-page-3d.html', { root: __dirname });
 });
-app.get('/services-alt', (req, res) => {
+app.get('/services-alt', async (req, res) => {
   res.sendFile('nucha-services/services-page.html', { root: __dirname });
 });
 
 // Quotation template (public)
-app.get('/quotation', (req, res) => {
+app.get('/quotation', async (req, res) => {
   res.sendFile('quotation.html', { root: __dirname });
 });
-app.get('/quotation.html', (req, res) => {
+app.get('/quotation.html', async (req, res) => {
   res.sendFile('quotation.html', { root: __dirname });
 });
 
 // Legal pages (public)
-app.get('/privacy', (req, res) => {
+app.get('/privacy', async (req, res) => {
   res.sendFile('privacy.html', { root: __dirname });
 });
-app.get('/terms', (req, res) => {
+app.get('/terms', async (req, res) => {
   res.sendFile('terms.html', { root: __dirname });
 });
 
 // Admin pages (protected)
-app.get('/admin', authMiddleware, (req, res) => {
+app.get('/admin', authMiddleware, async (req, res) => {
   res.sendFile('admin.html', { root: __dirname });
 });
-app.get('/admin.html', authMiddleware, (req, res) => {
+app.get('/admin.html', authMiddleware, async (req, res) => {
   res.sendFile('admin.html', { root: __dirname });
 });
 
 // Public pages
-app.get('/login', (req, res) => {
+app.get('/login', async (req, res) => {
   res.sendFile('admin-login.html', { root: __dirname });
 });
-app.get('/admin-login.html', (req, res) => {
+app.get('/admin-login.html', async (req, res) => {
   res.sendFile('admin-login.html', { root: __dirname });
 });
 
 // Catch-all for SPA
-app.get('/{*splat}', (req, res) => {
+app.get('*', async (req, res) => {
   res.sendFile('index.html', { root: __dirname });
 });
 
