@@ -2,7 +2,6 @@
   "name": "nucha-construction-crm",
   "version": "1.0.0",
   "description": "> ระบบ CRM สำหรับบริษัทรับเหมาก่อสร้าง พร้อม Supabase backend",
-  "main": "api/index.js",
   "type": "commonjs",
   "scripts": {},
   "repository": {
