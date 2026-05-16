@@ -3,6 +3,16 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/api", "destination": "/api" },
+    { "source": "/service", "destination": "/service.html" },
+    { "source": "/services", "destination": "/services.html" },
+    { "source": "/services-3d", "destination": "/nucha-services/services-page-3d.html" },
+    { "source": "/services-alt", "destination": "/nucha-services/services-page.html" },
+    { "source": "/quotation", "destination": "/quotation.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/terms", "destination": "/terms.html" },
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/login", "destination": "/admin-login.html" },
     { "source": "/((?!api|uploads|.*\\..*).*)", "destination": "/index.html" }
   ]
 }
