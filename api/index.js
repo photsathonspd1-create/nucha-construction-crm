@@ -2479,6 +2479,22 @@ app.get('/api/service-packages/:id', async (req, res) => {
   }
 });
 
+// ===== SERVE STATIC FILES =====
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
+app.get('/service', (req, res) => res.sendFile('service.html', { root: path.join(__dirname, '..', 'public') }));
+app.get('/services', (req, res) => res.sendFile('services.html', { root: path.join(__dirname, '..', 'public') }));
+app.get('/services-3d', (req, res) => res.sendFile('nucha-services/services-page-3d.html', { root: path.join(__dirname, '..', 'public') }));
+app.get('/services-alt', (req, res) => res.sendFile('nucha-services/services-page.html', { root: path.join(__dirname, '..', 'public') }));
+app.get('/quotation', (req, res) => res.sendFile('quotation.html', { root: path.join(__dirname, '..', 'public') }));
+app.get('/privacy', (req, res) => res.sendFile('privacy.html', { root: path.join(__dirname, '..', 'public') }));
+app.get('/terms', (req, res) => res.sendFile('terms.html', { root: path.join(__dirname, '..', 'public') }));
+app.get('/admin', (req, res) => res.sendFile('admin.html', { root: path.join(__dirname, '..', 'public') }));
+app.get('/login', (req, res) => res.sendFile('admin-login.html', { root: path.join(__dirname, '..', 'public') }));
+app.get('/(.*)', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
+  res.sendFile('index.html', { root: path.join(__dirname, '..', 'public') });
+});
 // ===== API 404 HANDLER =====
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'ไม่พบ endpoint นี้' });
