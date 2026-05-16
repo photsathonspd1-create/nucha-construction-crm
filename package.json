@@ -4,10 +4,7 @@
   "description": "> ระบบ CRM สำหรับบริษัทรับเหมาก่อสร้าง พร้อม Supabase backend",
   "main": "api/index.js",
   "type": "commonjs",
-  "scripts": {
-    "start": "node api/index.js",
-    "dev": "node api/index.js"
-  },
+  "scripts": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dmz2001TH/nucha-construction-crm.git"
