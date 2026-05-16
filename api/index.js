@@ -4,7 +4,6 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-const obj2gltf = require('obj2gltf');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -12,7 +11,6 @@ const fs = require('fs');
 const https = require('https');
 const querystring = require('querystring');
 const nodemailer = require('nodemailer');
-const puppeteer = require('puppeteer-core');
 
 const db = require('./server/db_supabase');
 const { runMigrations } = require('./server/migrations');
