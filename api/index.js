@@ -16,6 +16,7 @@ const db = require('./server/db');
 const { runMigrations } = require('./server/migrations');
 const { createBackup, listBackups } = require('../scripts/backup');
 const { validatePhone, validateEmail, validateName, validateMessage, validatePassword, validateLead } = require('./utils/validate');
+const { uploadToStorage, deleteFromStorage, listStorageFiles, extractStoragePath } = require('./server/upload');
 
 // Run migrations
 // runMigrations();
@@ -26,9 +27,7 @@ const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('he
 const serverStartTime = Date.now();
 
 // ===== ENSURE DIRECTORIES EXIST =====
-const uploadsDir = path.join(__dirname, 'uploads');
 const backupsDir = path.join(__dirname, 'backups');
-if (!fs.existsSync(uploadsDir)) try { fs.mkdirSync(uploadsDir, { recursive: true }); } catch (e) { console.warn("Mkdir skipped (read-only):", e.message); }
 if (!fs.existsSync(backupsDir)) try { fs.mkdirSync(backupsDir, { recursive: true }); } catch (e) { console.warn("Mkdir skipped (read-only):", e.message); }
 
 // ===== MIDDLEWARE =====
@@ -37,7 +36,7 @@ app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use('/uploads', express.static(uploadsDir));
+// Static uploads removed — files now served from Supabase Storage CDN
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // CORS configuration
@@ -83,16 +82,8 @@ app.use('/api', (req, res, next) => {
 });
 
 // ===== IMAGE UPLOAD =====
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const name = Date.now() + '-' + crypto.randomBytes(4).toString('hex') + ext;
-    cb(null, name);
-  }
-});
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
@@ -101,30 +92,14 @@ const upload = multer({
 });
 
 // File upload for attachments (allows any file type)
-const attachmentStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const name = Date.now() + '-' + crypto.randomBytes(4).toString('hex') + ext;
-    cb(null, name);
-  }
-});
 const attachmentUpload = multer({
-  storage: attachmentStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
 // File upload for 3D models (.glb, .gltf, poster images)
-const modelStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const name = Date.now() + '-' + crypto.randomBytes(4).toString('hex') + ext;
-    cb(null, name);
-  }
-});
 const modelUpload = multer({
-  storage: modelStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = ['.glb', '.gltf', '.obj', '.mtl', '.jpg', '.jpeg', '.png', '.webp'];
@@ -134,15 +109,7 @@ const modelUpload = multer({
   }
 });
 
-// Convert .obj to .glb using obj2gltf
-async function convertObjToGlb(objPath) {
-  const glbPath = objPath.replace(/\.obj$/i, '.glb');
-  const glb = await obj2gltf(objPath, { binary: true });
-  fs.writeFileSync(glbPath, glb);
-  // Remove original .obj after conversion
-  try { fs.unlinkSync(objPath); } catch {}
-  return glbPath;
-}
+// Note: .obj to .glb conversion removed (files now uploaded directly to Supabase Storage)
 
 // ===== RATE LIMITERS =====
 const loginLimiter = rateLimit({
@@ -992,9 +959,11 @@ app.post('/api/auth/reset-password', async (req, res) => {
 app.post('/api/upload', authMiddleware, uploadLimiter, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'ไม่พบไฟล์' });
-    res.json({ url: '/uploads/' + req.file.filename });
+    const result = await uploadToStorage(req.file, 'images');
+    res.json({ url: result.url });
   } catch (err) {
-    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+    console.error('Upload error:', err);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด: ' + err.message });
   }
 });
 
@@ -1365,14 +1334,13 @@ app.get('/api/leads/:id/attachments', authMiddleware, async (req, res) => {
 app.post('/api/leads/:id/attachments', authMiddleware, uploadLimiter, attachmentUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'ไม่พบไฟล์' });
-
+    const uploaded = await uploadToStorage(req.file, 'attachments');
     const result = await db.prepare('INSERT INTO lead_attachments (lead_id, filename, original_name, url, file_size) VALUES (?, ?, ?, ?, ?)')
-      .run(req.params.id, req.file.filename, req.file.originalname, '/uploads/' + req.file.filename, req.file.size);
-
-    res.json({ success: true, id: result.lastInsertRowid, url: '/uploads/' + req.file.filename });
+      .run(req.params.id, req.file.originalname, req.file.originalname, uploaded.url, req.file.size);
+    res.json({ success: true, id: result.lastInsertRowid, url: uploaded.url });
   } catch (err) {
     console.error('Upload attachment error:', err);
-    res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด: ' + err.message });
   }
 });
 
@@ -1381,9 +1349,8 @@ app.delete('/api/attachments/:id', authMiddleware, async (req, res) => {
     const attachment = await db.prepare('SELECT * FROM lead_attachments WHERE id = ?').get(req.params.id);
     if (!attachment) return res.status(404).json({ error: 'ไม่พบไฟล์' });
 
-    // Delete file from disk
-    const filePath = path.join(uploadsDir, attachment.filename);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    // Delete file from Supabase Storage
+    if (attachment.url) await deleteFromStorage(attachment.url);
 
     await db.prepare('DELETE FROM lead_attachments WHERE id = ?').run(req.params.id);
     res.json({ success: true });
@@ -1984,47 +1951,23 @@ app.get('/api/health', async (req, res) => {
 // ===== MEDIA =====
 app.get('/api/media', authMiddleware, async (req, res) => {
   try {
-    if (!fs.existsSync(uploadsDir)) try { fs.mkdirSync(uploadsDir, { recursive: true }); } catch (e) { console.warn("Mkdir skipped (read-only):", e.message); }
-    const files = fs.readdirSync(uploadsDir).filter(f => /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(f));
-    res.json(files.map(f => ({ name: f, url: '/uploads/' + f })));
+    const files = await listStorageFiles('images');
+    res.json(files);
   } catch { res.json([]); }
 });
 
-app.delete('/api/media/:name', authMiddleware, async (req, res) => {
+app.delete('/api/media/:name(*)', authMiddleware, async (req, res) => {
   try {
-    const safeName = path.basename(req.params.name);
-    if (!safeName || safeName.includes('..') || safeName.includes('/') || safeName.includes('\\')) {
-      return res.status(400).json({ error: 'ชื่อไฟล์ไม่ถูกต้อง' });
-    }
-    const filePath = path.join(uploadsDir, safeName);
-    if (!filePath.startsWith(uploadsDir)) {
-      return res.status(400).json({ error: 'ชื่อไฟล์ไม่ถูกต้อง' });
-    }
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      res.json({ success: true });
-    } else {
-      res.status(404).json({ error: 'ไม่พบไฟล์' });
-    }
+    await deleteFromStorage(req.params.name);
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'เกิดข้อผิดพลาด' });
   }
 });
 
-// Serve uploaded files — reject path traversal attempts
-app.get('/uploads/:name', async (req, res) => {
-  const safeName = path.basename(req.params.name);
-  if (!safeName || safeName.includes('..')) {
-    return res.status(400).json({ error: 'ชื่อไฟล์ไม่ถูกต้อง' });
-  }
-  const filePath = path.join(uploadsDir, safeName);
-  if (!filePath.startsWith(uploadsDir)) {
-    return res.status(400).json({ error: 'ชื่อไฟล์ไม่ถูกต้อง' });
-  }
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: 'ไม่พบไฟล์' });
-  }
-  res.sendFile(filePath);
+// Legacy /uploads/ route — redirect to Supabase Storage or 404
+app.get('/uploads/:name(*)', async (req, res) => {
+  res.status(410).json({ error: 'ไฟล์นี้ถูกย้ายไป Supabase Storage แล้ว กรุณาอัพโหลดใหม่' });
 });
 
 // ===== ADMIN SERVICES API (CRUD) =====
@@ -2254,7 +2197,10 @@ app.post('/api/services/:id/gallery', authMiddleware, uploadLimiter, upload.sing
     if (!service) return res.status(404).json({ error: 'ไม่พบบริการ' });
     const { title, description, image_type } = req.body;
     let imageUrl = req.body.image_url;
-    if (req.file) imageUrl = `/uploads/${req.file.filename}`;
+    if (req.file) {
+      const uploaded = await uploadToStorage(req.file, 'gallery');
+      imageUrl = uploaded.url;
+    }
     if (!imageUrl) return res.status(400).json({ error: 'กรุณาอัพโหลดรูปหรือใส่ URL' });
     const maxOrder = await db.prepare('SELECT MAX(sort_order) as m FROM service_gallery').get().m || 0;
     const result = await db.prepare(
@@ -2270,9 +2216,8 @@ app.delete('/api/gallery/:id', authMiddleware, async (req, res) => {
   try {
     const item = await db.prepare('SELECT * FROM service_gallery WHERE id = ?').get(req.params.id);
     if (!item) return res.status(404).json({ error: 'ไม่พบรูป' });
-    if (item.image_url && item.image_url.startsWith('/uploads/')) {
-      const filepath = path.join(__dirname, item.image_url);
-      if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
+    if (item.image_url) {
+      await deleteFromStorage(item.image_url);
     }
     await db.prepare('DELETE FROM service_gallery WHERE id = ?').run(req.params.id);
     res.json({ success: true });
@@ -2287,7 +2232,11 @@ app.put('/api/gallery/:id', authMiddleware, uploadLimiter, upload.single('image'
     if (!item) return res.status(404).json({ error: 'ไม่พบรูป' });
     const { title, description, image_type, image_url, sort_order } = req.body;
     let newImageUrl = image_url || item.image_url;
-    if (req.file) newImageUrl = `/uploads/${req.file.filename}`;
+    if (req.file) {
+      const uploaded = await uploadToStorage(req.file, 'gallery');
+      newImageUrl = uploaded.url;
+      if (item.image_url) await deleteFromStorage(item.image_url);
+    }
     await db.prepare(
       'UPDATE service_gallery SET title = ?, description = ?, image_url = ?, image_type = ?, sort_order = ? WHERE id = ?'
     ).run(title ?? item.title, description ?? item.description, newImageUrl, image_type ?? item.image_type, sort_order ?? item.sort_order, req.params.id);
@@ -2349,21 +2298,16 @@ app.post('/api/services/:id/models', authMiddleware, modelUpload.fields([
     let finalPosterUrl = poster_url || '';
     let fmt = model_format || 'glb';
     if (req.files?.model_file?.[0]) {
-      let filePath = path.join(uploadsDir, req.files.model_file[0].filename);
-      // Auto-convert .obj to .glb
-      if (filePath.toLowerCase().endsWith('.obj')) {
-        try {
-          filePath = await convertObjToGlb(filePath);
-          fmt = 'glb';
-        } catch (convErr) {
-          console.error('OBJ conversion error:', convErr.message);
-          return res.status(400).json({ error: 'ไม่สามารถแปลงไฟล์ .obj ได้: ' + convErr.message });
-        }
-      }
-      finalModelUrl = '/uploads/' + path.basename(filePath);
+      const modelFile = req.files.model_file[0];
+      const modelUploaded = await uploadToStorage(modelFile, 'models');
+      finalModelUrl = modelUploaded.url;
+      fmt = model_format || 'glb';
       if (!fmt || fmt === 'obj') fmt = 'glb';
     }
-    if (req.files?.poster_file?.[0]) finalPosterUrl = '/uploads/' + req.files.poster_file[0].filename;
+    if (req.files?.poster_file?.[0]) {
+      const posterUploaded = await uploadToStorage(req.files.poster_file[0], 'models');
+      finalPosterUrl = posterUploaded.url;
+    }
     if (!finalModelUrl) return res.status(400).json({ error: 'กรุณาอัพโหลดไฟล์โมเดลหรือใส่ URL' });
     if (!fmt || fmt === 'obj') fmt = finalModelUrl.endsWith('.gltf') ? 'gltf' : 'glb';
     const result = await db.prepare(
@@ -2388,32 +2332,17 @@ app.put('/api/models/:id', authMiddleware, modelUpload.fields([
     let finalPosterUrl = poster_url ?? item.poster_url;
     let fmt = model_format ?? item.model_format;
     if (req.files?.model_file?.[0]) {
-      let filePath = path.join(uploadsDir, req.files.model_file[0].filename);
-      // Auto-convert .obj to .glb
-      if (filePath.toLowerCase().endsWith('.obj')) {
-        try {
-          filePath = await convertObjToGlb(filePath);
-          fmt = 'glb';
-        } catch (convErr) {
-          console.error('OBJ conversion error:', convErr.message);
-          return res.status(400).json({ error: 'ไม่สามารถแปลงไฟล์ .obj ได้: ' + convErr.message });
-        }
-      }
-      // Delete old uploaded model file
-      if (item.model_url?.startsWith('/uploads/')) {
-        const oldPath = path.join(__dirname, item.model_url);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-      }
-      finalModelUrl = '/uploads/' + path.basename(filePath);
+      const modelFile = req.files.model_file[0];
+      const modelUploaded = await uploadToStorage(modelFile, 'models');
+      if (item.model_url) await deleteFromStorage(item.model_url);
+      finalModelUrl = modelUploaded.url;
+      fmt = model_format || 'glb';
       if (!fmt || fmt === 'obj') fmt = 'glb';
     }
     if (req.files?.poster_file?.[0]) {
-      // Delete old uploaded poster
-      if (item.poster_url?.startsWith('/uploads/')) {
-        const oldPath = path.join(__dirname, item.poster_url);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-      }
-      finalPosterUrl = '/uploads/' + req.files.poster_file[0].filename;
+      const posterUploaded = await uploadToStorage(req.files.poster_file[0], 'models');
+      if (item.poster_url) await deleteFromStorage(item.poster_url);
+      finalPosterUrl = posterUploaded.url;
     }
     await db.prepare(
       'UPDATE service_models SET title = ?, description = ?, model_url = ?, model_format = ?, poster_url = ?, auto_rotate = ?, camera_orbit = ?, sort_order = ? WHERE id = ?'
@@ -2429,15 +2358,9 @@ app.delete('/api/models/:id', authMiddleware, async (req, res) => {
   try {
     const item = await db.prepare('SELECT * FROM service_models WHERE id = ?').get(req.params.id);
     if (!item) return res.status(404).json({ error: 'ไม่พบโมเดล' });
-    // Delete uploaded files
-    if (item.model_url?.startsWith('/uploads/')) {
-      const fp = path.join(__dirname, item.model_url);
-      if (fs.existsSync(fp)) fs.unlinkSync(fp);
-    }
-    if (item.poster_url?.startsWith('/uploads/')) {
-      const fp = path.join(__dirname, item.poster_url);
-      if (fs.existsSync(fp)) fs.unlinkSync(fp);
-    }
+    // Delete uploaded files from Supabase Storage
+    if (item.model_url) await deleteFromStorage(item.model_url);
+    if (item.poster_url) await deleteFromStorage(item.poster_url);
     await db.prepare('DELETE FROM service_models WHERE id = ?').run(req.params.id);
     res.json({ success: true });
   } catch (err) {
