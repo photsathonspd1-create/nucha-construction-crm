@@ -16,7 +16,7 @@ const db = require('./server/db');
 // runMigrations imported below in startup section
 let createBackup, listBackups;
 try {
-  ({ createBackup, listBackups } = require('../scripts/backup'));
+  ({ createBackup, listBackups } = null);
 } catch (e) {
   createBackup = () => { throw new Error('Backup not available on Vercel'); };
   listBackups = () => [];
@@ -26,7 +26,7 @@ const { uploadToStorage, deleteFromStorage, listStorageFiles, extractStoragePath
 
 // Run migrations on cold start
 const { runMigrations } = require('./server/migrations');
-runMigrations().catch(err => console.error('Migration error:', err.message));
+//.catch(err => console.error('Migration error:', err.message));
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -44,7 +44,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 // Static uploads removed — files now served from Supabase Storage CDN
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(path.join(process.cwd(), 'public')));
 
 // CORS configuration
 app.use((req, res, next) => {
@@ -1963,7 +1963,7 @@ app.get('/api/media', authMiddleware, async (req, res) => {
   } catch { res.json([]); }
 });
 
-app.delete('/api/media/:name(*)', authMiddleware, async (req, res) => {
+app.delete('/api/media/:name(.*)', authMiddleware, async (req, res) => {
   try {
     await deleteFromStorage(req.params.name);
     res.json({ success: true });
@@ -1973,7 +1973,7 @@ app.delete('/api/media/:name(*)', authMiddleware, async (req, res) => {
 });
 
 // Legacy /uploads/ route — redirect to Supabase Storage or 404
-app.get('/uploads/:name(*)', async (req, res) => {
+app.get('/uploads/:name(.*)', async (req, res) => {
   res.status(410).json({ error: 'ไฟล์นี้ถูกย้ายไป Supabase Storage แล้ว กรุณาอัพโหลดใหม่' });
 });
 
@@ -2410,20 +2410,20 @@ app.get('/api/service-packages/:id', async (req, res) => {
 });
 
 // ===== SERVE STATIC FILES =====
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(path.join(process.cwd(), 'public')));
 
-app.get('/service', (req, res) => res.sendFile('service.html', { root: path.join(__dirname, '..', 'public') }));
-app.get('/services', (req, res) => res.sendFile('services.html', { root: path.join(__dirname, '..', 'public') }));
-app.get('/services-3d', (req, res) => res.sendFile('nucha-services/services-page-3d.html', { root: path.join(__dirname, '..', 'public') }));
-app.get('/services-alt', (req, res) => res.sendFile('nucha-services/services-page.html', { root: path.join(__dirname, '..', 'public') }));
-app.get('/quotation', (req, res) => res.sendFile('quotation.html', { root: path.join(__dirname, '..', 'public') }));
-app.get('/privacy', (req, res) => res.sendFile('privacy.html', { root: path.join(__dirname, '..', 'public') }));
-app.get('/terms', (req, res) => res.sendFile('terms.html', { root: path.join(__dirname, '..', 'public') }));
-app.get('/admin', (req, res) => res.sendFile('admin.html', { root: path.join(__dirname, '..', 'public') }));
-app.get('/login', (req, res) => res.sendFile('admin-login.html', { root: path.join(__dirname, '..', 'public') }));
+app.get('/service', (req, res) => res.sendFile('service.html', { root: path.join(process.cwd(), 'public') }));
+app.get('/services', (req, res) => res.sendFile('services.html', { root: path.join(process.cwd(), 'public') }));
+app.get('/services-3d', (req, res) => res.sendFile('nucha-services/services-page-3d.html', { root: path.join(process.cwd(), 'public') }));
+app.get('/services-alt', (req, res) => res.sendFile('nucha-services/services-page.html', { root: path.join(process.cwd(), 'public') }));
+app.get('/quotation', (req, res) => res.sendFile('quotation.html', { root: path.join(process.cwd(), 'public') }));
+app.get('/privacy', (req, res) => res.sendFile('privacy.html', { root: path.join(process.cwd(), 'public') }));
+app.get('/terms', (req, res) => res.sendFile('terms.html', { root: path.join(process.cwd(), 'public') }));
+app.get('/admin', (req, res) => res.sendFile('admin.html', { root: path.join(process.cwd(), 'public') }));
+app.get('/login', (req, res) => res.sendFile('admin-login.html', { root: path.join(process.cwd(), 'public') }));
 app.get('/(.*)', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
-  res.sendFile('index.html', { root: path.join(__dirname, '..', 'public') });
+  res.sendFile('index.html', { root: path.join(process.cwd(), 'public') });
 });
 // ===== API 404 HANDLER =====
 app.use('/api', (req, res) => {
